@@ -1,0 +1,206 @@
+#include "gtest.h"
+
+#include <map>
+#include <string>
+#include <sstream>
+
+#define private public
+
+#include "RegExpAutomata.h"
+#include "RegExpSyntaxTree.h"
+
+class RegExpNFACase
+{
+    public:
+
+        typedef std::map<int, std::map<int, std::vector<int> > > nfa_set;
+        RegExpNFACase(const char* txt):txt_(txt)
+        {
+        }
+
+    private:
+
+        const char* txt_;
+        nfa_set states_;
+};
+
+TEST(test_reg_exp_nfa_gen, test_automata_gen)
+{
+    std::vector<RegExpNFACase> cases;
+
+    RegExpNFACase c1("a");
+    c1.states_[0]['a'].push_back(1);
+    cases.push_back(c1);
+
+    RegExpNFACase c2("ab");
+    c2.states_[0]['a'].push_back(1);
+    c2.states_[1]['b'].push_back(3); // state 2 will be merged into 1
+    cases.push_back(c2);
+
+    RegExpNFACase c2_1("a*b");
+    c2_1.states_[0][STATE_EPSILON].push_back(1);
+    c2_1.states_[0][STATE_EPSILON].push_back(3);
+    c2_1.states_[1]['a'].push_back(2);
+    c2_1.states_[2][STATE_EPSILON].push_back(1);
+    c2_1.states_[2][STATE_EPSILON].push_back(3);
+    cases.push_back(c2_1);
+
+    RegExpNFACase c2_2("a.b");
+    c2_2.states_[0]['a'].push_back(1);
+    for (int i = 0; i < STATE_TRAN_MAX - 1; ++i)
+    {
+        c2_2.states_[1][i].push_back(3);
+    }
+    c2_2.states_[3]['b'].push_back(5);
+    cases.push_back(c2_2);
+
+    RegExpNFACase c2_3("a+b");
+    c2_3.states_[0]['a'].push_back(1);
+    c2_3.states_[1][STATE_EPSILON].push_back(0);
+    c2_3.states_[1][STATE_EPSILON].push_back(2);
+    c2_3.states_[2]['b'].push_back(4);
+    cases.push_back(c2_3);
+
+    RegExpNFACase c2_4("abc");
+    c2_4.states_[0]['a'].push_back(1);
+    c2_4.states_[1]['b'].push_back(3);
+    c2_4.states_[3]['c'].push_back(5);
+    cases.push_back(c2_4);
+
+    RegExpNFACase c2_5("(ab)c");
+    c2_5.states_[0]['a'].push_back(1);
+    c2_5.states_[1]['b'].push_back(3);
+    c2_5.states_[3]['c'].push_back(5);
+    cases.push_back(c2_5);
+
+    // case 8
+    RegExpNFACase c3("ab*");
+    c3.states_[0]['a'].push_back(1);
+    c3.states_[1][STATE_EPSILON].push_back(5);
+    c3.states_[1][STATE_EPSILON].push_back(3);
+    c3.states_[3]['b'].push_back(4);
+    c3.states_[4][STATE_EPSILON].push_back(3);
+    c3.states_[4][STATE_EPSILON].push_back(5);
+    cases.push_back(c3);
+
+    RegExpNFACase c4("(ab)*");
+    c4.states_[0][STATE_EPSILON].push_back(1);
+    c4.states_[0][STATE_EPSILON].push_back(5);
+    c4.states_[1]['a'].push_back(2);
+    c4.states_[2]['b'].push_back(4);
+    c4.states_[4][STATE_EPSILON].push_back(1);
+    c4.states_[4][STATE_EPSILON].push_back(5);
+    cases.push_back(c4);
+
+    // case 10
+    RegExpNFACase c5("(ab)+");
+    c5.states_[0]['a'].push_back(1);
+    c5.states_[1]['b'].push_back(3);
+    c5.states_[3][STATE_EPSILON].push_back(0);
+    c5.states_[3][STATE_EPSILON].push_back(4);
+    cases.push_back(c5);
+
+    RegExpNFACase c6("(ab)?");
+    c6.states_[0][STATE_EPSILON].push_back(1);
+    c6.states_[0][STATE_EPSILON].push_back(5);
+    c6.states_[1]['a'].push_back(2);
+    c6.states_[2]['b'].push_back(4);
+    c6.states_[4][STATE_EPSILON].push_back(5);
+    cases.push_back(c6);
+
+    RegExpNFACase c7("(a|b)?");
+    c7.states_[0][STATE_EPSILON].push_back(1);
+    c7.states_[0][STATE_EPSILON].push_back(7);
+    c7.states_[1][STATE_EPSILON].push_back(2);
+    c7.states_[1][STATE_EPSILON].push_back(4);
+    c7.states_[2]['a'].push_back(3);
+    c7.states_[4]['b'].push_back(5);
+    c7.states_[3][STATE_EPSILON].push_back(6);
+    c7.states_[5][STATE_EPSILON].push_back(6);
+    c7.states_[6][STATE_EPSILON].push_back(7);
+    cases.push_back(c7);
+
+    // case 13
+    RegExpNFACase c8("(a|b){2,}[abce]\\d$");
+    c8.states_[0][STATE_EPSILON].push_back(1);
+    c8.states_[0][STATE_EPSILON].push_back(3);
+    c8.states_[1]['a'].push_back(2);
+    c8.states_[3]['b'].push_back(4);
+    c8.states_[2][STATE_EPSILON].push_back(5);
+    c8.states_[4][STATE_EPSILON].push_back(5);
+    c8.states_[5][STATE_EPSILON].push_back(6);
+
+    c8.states_[6][STATE_EPSILON].push_back(7);
+    c8.states_[6][STATE_EPSILON].push_back(9);
+    c8.states_[7]['a'].push_back(8);
+    c8.states_[9]['b'].push_back(10);
+    c8.states_[8][STATE_EPSILON].push_back(11);
+    c8.states_[10][STATE_EPSILON].push_back(11);
+    c8.states_[11][STATE_EPSILON].push_back(6);
+    c8.states_[11][STATE_EPSILON].push_back(12);
+
+    c8.states_[12]['a'].push_back(14);
+    c8.states_[12]['b'].push_back(14);
+    c8.states_[12]['c'].push_back(14);
+    c8.states_[12]['e'].push_back(14);
+
+    for (int i = '0'; i <= '9'; ++i)
+    {
+        c8.states_[14][i].push_back(16);
+    }
+
+    c8.states_[16][STATE_EPSILON].push_back(18);
+    cases.push_back(c8);
+
+    RegExpNFACase c9("(ab){3}");
+    c9.states_[0]['a'].push_back(1);
+    c9.states_[1]['b'].push_back(3);
+    c9.states_[4]['a'].push_back(5);
+    c9.states_[5]['b'].push_back(7);
+    c9.states_[8]['a'].push_back(9);
+    c9.states_[9]['b'].push_back(11);
+    cases.push_back(c9);
+
+    // TODO, more cases
+    RegExpAutomata nfa;
+    RegExpSyntaxTree regSynTree;
+
+    int start, accept;
+    for (int i = 0; i < cases.size(); ++i)
+    {
+        try
+        {
+            regSynTree.BuildSyntaxTree(cases[i].txt_, cases[i].txt_ + strlen(cases[i].txt_) - 1);
+            nfa.BuildNFA(&regSynTree);
+        }
+        catch (...)
+        {
+            std::cout << "parsing exception, case:" << i << std::endl;
+            continue;
+        }
+
+        start = nfa.GetStartState();
+        accept = nfa.GetAcceptState();
+
+        RegExpAutomata::NFATRAN_T trans = nfa.GetNFATran();
+
+        for (RegExpNFACase::nfa_set::iterator nit = cases[i].states_.begin(); nit != cases[i].states_.end(); ++nit)
+        {
+            int st = nit->first;
+            for (std::map<int, std::vector<int> >::iterator it = cases[i].states_[st].begin(); it != cases[i].states_[st].end(); ++it)
+            {
+                int ch = it->first;
+                EXPECT_EQ(it->second.size(), trans[st][ch].size()) << "tran state not equal, case: " << i << ", txt:" << cases[i].txt_ << ", state:" << st << ", ch:" << ch << std::endl;
+
+                std::sort(it->second.begin(), it->second.end());
+                std::sort(trans[st][ch].begin(), trans[st][ch].end());
+
+                for (int j = 0; j < it->second.size(); ++j)
+                {
+                    EXPECT_EQ(it->second[j], trans[st][ch][j]) << "case: " << i << ", txt:" << cases[i].txt_ << ", state:" << st << ", ch:" << ch << ", j:" << j << std::endl;
+                }
+            }
+        }
+    }
+}
+
