@@ -1,0 +1,8 @@
+*.swp
+cscope*
+*.a
+filenametags
+tags
+*.o
+count.sh
+testRegExp
