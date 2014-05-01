@@ -19,8 +19,8 @@ class RegExpAutomata: public AutomatonBase
         virtual int BuildNFA(RegExpSyntaxTree* tree);
         virtual int BuildDFA(RegExpSyntaxTree* tree);
 
-        int  GetStartState() const { return start_; }
-        int  GetAcceptState() const { return accept_; }
+        int   GetStartState() const { return start_; }
+        int   GetAcceptState() const { return accept_; }
         const std::vector<MachineState>& GetAllStates() const { return states_; }
         const NFATRAN_T& GetNFATran() const { return NFAStatTran_; }
 
