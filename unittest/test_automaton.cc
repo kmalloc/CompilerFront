@@ -165,12 +165,13 @@ TEST(test_reg_exp_nfa_gen, test_automata_gen)
     cases.push_back(c8);
 
     RegExpNFACase c9("(ab){3}");
-    c9.states_[0]['a'].push_back(1);
-    c9.states_[1]['b'].push_back(3);
-    c9.states_[4]['a'].push_back(5);
-    c9.states_[5]['b'].push_back(7);
-    c9.states_[8]['a'].push_back(9);
-    c9.states_[9]['b'].push_back(11);
+    c9.states_[1]['a'].push_back(2);
+    c9.states_[2]['b'].push_back(4);
+    c9.states_[5]['a'].push_back(6);
+    c9.states_[6]['b'].push_back(8);
+    c9.states_[9]['a'].push_back(10);
+    c9.states_[10]['b'].push_back(12);
+    c9.states_[12][STATE_EPSILON].push_back(0);
     cases.push_back(c9);
 
     // case 14
@@ -210,6 +211,49 @@ TEST(test_reg_exp_nfa_gen, test_automata_gen)
     c10.states_[19]['e'].push_back(21);
     cases.push_back(c10);
 
+    RegExpNFACase c12("(abc)+\\d((ev){2,5})?");
+    c12.states_[0]['a'].push_back(1);
+    c12.states_[1]['b'].push_back(3);
+    c12.states_[3]['c'].push_back(5);
+    c12.states_[5][STATE_EPSILON].push_back(6);
+    c12.states_[5][STATE_EPSILON].push_back(0);
+
+    for (int i = '0'; i <= '9'; ++i)
+    {
+        c12.states_[6][i].push_back(8);
+    }
+
+    c12.states_[8][STATE_EPSILON].push_back(11);
+    c12.states_[8][STATE_EPSILON].push_back(31);
+    c12.states_[10][STATE_EPSILON].push_back(31);
+
+    c12.states_[11]['e'].push_back(12);
+    c12.states_[12]['v'].push_back(14);
+    c12.states_[14][STATE_EPSILON].push_back(15);
+
+    c12.states_[15]['e'].push_back(16);
+    c12.states_[16]['v'].push_back(18);
+    c12.states_[18][STATE_EPSILON].push_back(19);
+    c12.states_[18][STATE_EPSILON].push_back(10);
+
+    c12.states_[19]['e'].push_back(20);
+    c12.states_[20]['v'].push_back(22);
+    c12.states_[22][STATE_EPSILON].push_back(23);
+    c12.states_[22][STATE_EPSILON].push_back(10);
+
+    c12.states_[23]['e'].push_back(24);
+    c12.states_[24]['v'].push_back(26);
+    c12.states_[26][STATE_EPSILON].push_back(27);
+    c12.states_[26][STATE_EPSILON].push_back(10);
+
+    c12.states_[27]['e'].push_back(28);
+    c12.states_[28]['v'].push_back(30);
+    c12.states_[30][STATE_EPSILON].push_back(10);
+
+    cases.push_back(c12);
+
+       // test (ab){2, 5}
+
     // TODO, more cases
     RegExpNFA nfa;
     RegExpSyntaxTree regSynTree;
@@ -220,7 +264,7 @@ TEST(test_reg_exp_nfa_gen, test_automata_gen)
         try
         {
             regSynTree.BuildSyntaxTree(cases[i].txt_, cases[i].txt_ + strlen(cases[i].txt_) - 1);
-            nfa.BuildNFA(&regSynTree);
+            nfa.BuildMachine(&regSynTree);
         }
         catch (...)
         {
@@ -250,6 +294,71 @@ TEST(test_reg_exp_nfa_gen, test_automata_gen)
                 }
             }
         }
+    }
+}
+
+
+class nfa_case
+{
+    public:
+
+        nfa_case(const char* pattern)
+            :pattern_(pattern)
+        {
+            tree_.BuildSyntaxTree(pattern, pattern + strlen(pattern) - 1);
+            nfa_.BuildMachine(&tree_);
+        }
+
+        void AddTestCase(const std::string& txt, bool ismatch)
+        {
+            txt2match_[txt] = ismatch;
+        }
+
+        bool IsMatch(const std::string& txt) { return txt2match_[txt]; }
+
+    private:
+
+        std::string pattern_;
+        RegExpNFA nfa_;
+        RegExpSyntaxTree tree_;
+        std::map<std::string, bool> txt2match_;
+};
+
+TEST(test_matching_txt, test_automata_gen)
+{
+    std::vector<nfa_case*> cases;
+
+    nfa_case* c1 = new nfa_case("([abc]+\\d)*(a|b)+3\\w2e");
+    c1->AddTestCase("a3b3c2e", true);
+    c1->AddTestCase("aa3b3c2e", true);
+    c1->AddTestCase("ab3b3c2e", true);
+    c1->AddTestCase("ab32ab3e2e", false);
+    c1->AddTestCase("ab3ac32e", false);
+    c1->AddTestCase("ab3ab3aa3e2e", true);
+    c1->AddTestCase("ab3aa3aa3v2e", true);
+    c1->AddTestCase("ab32ab32e", false);
+    c1->AddTestCase("ab3b4c2a3e", false);
+    cases.push_back(c1);
+
+    nfa_case* c2 = new nfa_case("(abc)+\\d((ev){2,5})?");
+    c2->AddTestCase("abc3", true);
+    c2->AddTestCase("abc3evevev", true);
+    c2->AddTestCase("abc3evevevevevev", false);
+    c2->AddTestCase("abcabcabc3", true);
+    c2->AddTestCase("abcara3", false);
+    c2->AddTestCase("abcabbaae2", false);
+    cases.push_back(c2);
+
+    for (int i = 0; i < cases.size(); ++i)
+    {
+        for (std::map<std::string, bool>::iterator it = cases[i]->txt2match_.begin();
+                it != cases[i]->txt2match_.end(); ++it)
+        {
+            EXPECT_EQ(it->second, cases[i]->nfa_.RunMachine(it->first.c_str(), it->first.c_str() + it->first.size() - 1)) \
+                << "case:" << i << ", pattern:" << cases[i]->pattern_ << ", test:" << it->first << std::endl;
+        }
+
+        delete cases[i];
     }
 }
 

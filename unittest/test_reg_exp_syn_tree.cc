@@ -139,7 +139,8 @@ TEST(test_extract_unit, test_reg_exp_automata_gen)
         RegUnit("(a|b|(\\s+))+", 1, 9, -1, 11),
         RegUnit("(abc|efg)?", 1, 7, -1, 9),
         RegUnit("(ab)(efg)(vv)*", 10, 11, 8, 13),
-        RegUnit("([abc]+\\w)*(a|b)+", 12, 14, 10, 16)
+        RegUnit("([abc]+\\w)*(a|b)+", 12, 14, 10, 16),
+        RegUnit("(abc)+\\d((ev){2,5})?", 9, 17, 7, 19), 
     };
 
     RegExpTokenizer tokenizer;
@@ -260,7 +261,8 @@ TEST(test_construct_reg_syn_tree, test_reg_exp_automata_gen)
         "[vef]{23,}abc+$", // 23
         "ab\\\\|ef\\+e|vv\\|", // 24
         "((fae)|(abcd))+|vv\\[ee(fff|vvvv)*",
-        "^abc(ef){1,23}([abcefg]{1,4}|gve)"
+        "^abc(ef){1,23}([abcefg]{1,4}|gve)",
+        "(abc)+\\d((ev){2,5})?",
     };
 
     RegExpSyntaxTree regSynTree;
