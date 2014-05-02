@@ -15,6 +15,7 @@ class SyntaxTreeBase: public NonCopyable
 
     protected:
 
+        virtual int GetNodeNumber() const = 0;
         virtual SynTreeNodeBase* ConstructSyntaxTree(const char* ps, const char* pe) = 0;
         virtual SynTreeNodeBase* ConstructSyntaxTreeImp(const char* ps, const char* pe) = 0;
 };

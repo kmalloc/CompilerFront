@@ -1,33 +1,42 @@
 #ifndef REGEXP_AUTOMA_H_
 #define REGEXP_AUTOMA_H_
 
+#include <map>
 #include <vector>
 #include "AutomatonBase.h"
 #include "MachineComponent.h"
 
+class RegExpDFA;
+class SyntaxTreeBase;
 class RegExpSyntaxTree;
+class RegExpSynTreeNode;
+class RegExpSynTreeLeafNode;
+class RegExpSynTreeStarNode;
 
-class RegExpAutomata: public AutomatonBase
+class RegExpNFA: public AutomatonBase
 {
     public:
 
-        typedef std::vector<std::vector<std::vector<int> > > NFATRAN_T;
+        typedef std::vector<std::vector<std::vector<int> > > NFA_TRAN_T;
 
-        explicit RegExpAutomata(AutomatonType type = AutomatonType_NFA);
-        ~RegExpAutomata();
+        RegExpNFA();
+        ~RegExpNFA();
 
-        virtual int BuildNFA(RegExpSyntaxTree* tree);
-        virtual int BuildDFA(RegExpSyntaxTree* tree);
+        virtual int  BuildMachine(SyntaxTreeBase* tree);
+        virtual bool RunMachine(const char* ps, const char* pe) const;
 
-        int  GetStartState() const { return start_; }
-        int  GetAcceptState() const { return accept_; }
+        RegExpDFA ConvertToDFA() const;
+
+        const NFA_TRAN_T& GetNFATran() const { return NFAStatTran_; }
         const std::vector<MachineState>& GetAllStates() const { return states_; }
-        const NFATRAN_T& GetNFATran() const { return NFAStatTran_; }
 
     protected:
 
-        virtual int ConvertSynTreeToNFA();
-        virtual int ConvertSynTreeToDFA();
+        int  BuildNFA(RegExpSyntaxTree* tree);
+        void RunNFA(const char* ps, const char* pe) const;
+
+        int  EpsilonClosure(int st, std::vector<int>& out) const;
+        int  MoveOnInput(char ch, std::vector<int>& out) const;
 
     private:
 
@@ -36,17 +45,40 @@ class RegExpAutomata: public AutomatonBase
         int CreateState(StateType type);
         int BuildNFAImp(RegExpSynTreeNode* node, int& start, int& accept);
 
-        int BuildNFAStateForLeafNode(RegExpSynTreeLeafNode* node, int& start, int& accept);
-        int BuildNFAStateForStarNode(RegExpSynTreeStarNode* node, int& start, int& accept);
-        int BuildNFAStateForOrNode(RegExpSynTreeNode* node, int& start, int& accept);
-        int BuildNFAStateForCatNode(RegExpSynTreeNode* node, int& start, int& accept);
+        int BuildStateForLeafNode(RegExpSynTreeLeafNode* node, int& start, int& accept);
+        int BuildStateForStarNode(RegExpSynTreeStarNode* node, int& start, int& accept);
+        int BuildStateForOrNode(RegExpSynTreeNode* node, int& start, int& accept);
+        int BuildStateForCatNode(RegExpSynTreeNode* node, int& start, int& accept);
 
     private:
 
         int stateIndex_;
-        int start_, accept_;
         std::vector<MachineState> states_;
-        std::vector<std::vector<std::vector<int> > > NFAStatTran_; // state char state
+
+        // inStates_[st] records the states which 'st' comes from through those characters in the vector
+        std::vector<std::map<int, std::vector<int> > > inStates_;
+        std::vector<std::vector<std::vector<int> > > NFAStatTran_; // state to char to state
+};
+
+class RegExpDFA: public AutomatonBase
+{
+    public:
+
+        RegExpDFA();
+        ~RegExpDFA();
+
+        virtual int  BuildMachine(SyntaxTreeBase* tree);
+        virtual bool RunMachine(const char* ps, const char* pe) const;
+
+    private:
+
+        int BuildDFA(RegExpSyntaxTree* tree);
+        int RunDFA(const char* ps, const char* pe) const;
+
+    private:
+
+        int stateIndex_;
+        std::vector<MachineState> states_;
 };
 
 #endif
