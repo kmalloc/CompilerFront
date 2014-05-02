@@ -17,6 +17,8 @@ class RegExpSyntaxTree: public SyntaxTreeBase
         bool BuildSyntaxTree(const char* ps, const char* pe);
         virtual SynTreeNodeBase* GetSynTree() const { return synTreeRoot_; }
 
+        virtual int GetNodeNumber() const { return leafIndex_ + 1; }
+
     private:
 
         virtual SynTreeNodeBase* ConstructSyntaxTree(const char* ps, const char* pe);

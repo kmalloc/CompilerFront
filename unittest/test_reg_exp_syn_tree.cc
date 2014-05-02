@@ -2,6 +2,7 @@
 
 #include <string>
 #include <sstream>
+#include <climits>
 
 #define private public
 
@@ -137,7 +138,8 @@ TEST(test_extract_unit, test_reg_exp_automata_gen)
         RegUnit("(a)*", 1, 1, -1, 3),
         RegUnit("(a|b|(\\s+))+", 1, 9, -1, 11),
         RegUnit("(abc|efg)?", 1, 7, -1, 9),
-        RegUnit("(ab)(efg)(vv)*", 10, 11, 8, 13)
+        RegUnit("(ab)(efg)(vv)*", 10, 11, 8, 13),
+        RegUnit("([abc]+\\w)*(a|b)+", 12, 14, 10, 16)
     };
 
     RegExpTokenizer tokenizer;

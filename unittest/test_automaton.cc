@@ -3,8 +3,12 @@
 #include <map>
 #include <string>
 #include <sstream>
+#include <climits>
+#include <sstream>
+#include <algorithm>
 
 #define private public
+#define protected public
 
 #include "RegExpAutomata.h"
 #include "RegExpSyntaxTree.h"
@@ -36,6 +40,14 @@ TEST(test_reg_exp_nfa_gen, test_automata_gen)
     c2.states_[0]['a'].push_back(1);
     c2.states_[1]['b'].push_back(3); // state 2 will be merged into 1
     cases.push_back(c2);
+
+    RegExpNFACase c2_0("abcde");
+    c2_0.states_[0]['a'].push_back(1);
+    c2_0.states_[1]['b'].push_back(3); // state 2 will be merged into 1
+    c2_0.states_[3]['c'].push_back(5);
+    c2_0.states_[5]['d'].push_back(7);
+    c2_0.states_[7]['e'].push_back(9);
+    cases.push_back(c2_0);
 
     RegExpNFACase c2_1("a*b");
     c2_1.states_[0][STATE_EPSILON].push_back(1);
@@ -161,8 +173,45 @@ TEST(test_reg_exp_nfa_gen, test_automata_gen)
     c9.states_[9]['b'].push_back(11);
     cases.push_back(c9);
 
+    // case 14
+    RegExpNFACase c10("([abc]+\\d)*(a|b)+3\\w2e");
+    c10.states_[0][STATE_EPSILON].push_back(1);
+    c10.states_[0][STATE_EPSILON].push_back(6);
+    c10.states_[1]['a'].push_back(2);
+    c10.states_[1]['b'].push_back(2);
+    c10.states_[1]['c'].push_back(2);
+    c10.states_[2][STATE_EPSILON].push_back(1);
+    c10.states_[2][STATE_EPSILON].push_back(3);
+
+    for (int i = '0'; i <= '9'; ++i)
+    {
+        c10.states_[3][i].push_back(5);
+    }
+
+    c10.states_[5][STATE_EPSILON].push_back(6);
+    c10.states_[5][STATE_EPSILON].push_back(1);
+    c10.states_[6][STATE_EPSILON].push_back(8);
+    c10.states_[6][STATE_EPSILON].push_back(10);
+    c10.states_[8]['a'].push_back(9);
+    c10.states_[10]['b'].push_back(11);
+    c10.states_[9][STATE_EPSILON].push_back(12);
+    c10.states_[11][STATE_EPSILON].push_back(12);
+    c10.states_[12][STATE_EPSILON].push_back(13);
+    c10.states_[12][STATE_EPSILON].push_back(6);
+    c10.states_[13]['3'].push_back(15);
+
+    for (int i = 'a'; i <= 'z'; ++i)
+    {
+        c10.states_[15][i].push_back(17);
+        c10.states_[15][i + 'A' - 'a'].push_back(17);
+    }
+
+    c10.states_[17]['2'].push_back(19);
+    c10.states_[19]['e'].push_back(21);
+    cases.push_back(c10);
+
     // TODO, more cases
-    RegExpAutomata nfa;
+    RegExpNFA nfa;
     RegExpSyntaxTree regSynTree;
 
     int start, accept;
@@ -182,7 +231,7 @@ TEST(test_reg_exp_nfa_gen, test_automata_gen)
         start = nfa.GetStartState();
         accept = nfa.GetAcceptState();
 
-        RegExpAutomata::NFATRAN_T trans = nfa.GetNFATran();
+        RegExpNFA::NFA_TRAN_T trans = nfa.GetNFATran();
 
         for (RegExpNFACase::nfa_set::iterator nit = cases[i].states_.begin(); nit != cases[i].states_.end(); ++nit)
         {

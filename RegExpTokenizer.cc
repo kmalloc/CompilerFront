@@ -1,6 +1,8 @@
 #include "RegExpTokenizer.h"
 
 #include <string>
+#include <limits.h>
+#include <assert.h>
 #include "LexException.h"
 
 bool RegExpTokenizer::IsCharEscape(const char* ps, const char* pc)

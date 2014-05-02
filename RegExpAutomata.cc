@@ -1,29 +1,37 @@
 #include "RegExpAutomata.h"
 
+#include <limits.h>
+#include <stdlib.h>
+#include <assert.h>
+#include <algorithm>
 #include "LexException.h"
 #include "RegExpTokenizer.h"
 #include "RegExpSyntaxTree.h"
+#include "RegExpSynTreeNode.h"
 
-RegExpAutomata::RegExpAutomata(AutomatonType type)
-    :AutomatonBase(type), stateIndex_(0)
+RegExpNFA::RegExpNFA()
+    :AutomatonBase(AutomatonType_NFA), stateIndex_(0)
 {
 }
 
-RegExpAutomata::~RegExpAutomata()
+RegExpNFA::~RegExpNFA()
 {
 }
 
-int RegExpAutomata::BuildNFA(RegExpSyntaxTree* tree)
+int RegExpNFA::BuildNFA(RegExpSyntaxTree* tree)
 {
     stateIndex_ = 0;
     states_.clear();
+    inStates_.clear();
     NFAStatTran_.clear();
 
+    states_.reserve(tree->GetNodeNumber() * 2);
+    inStates_.reserve(tree->GetNodeNumber() * 2);
     return BuildNFAImp(dynamic_cast<RegExpSynTreeNode*>(tree->GetSynTree()), start_, accept_);
 }
 
 // merge s2 into s1
-void RegExpAutomata::MergeState(int s1, int s2)
+void RegExpNFA::MergeState(int s1, int s2)
 {
     states_[s1].SetType(State_Norm);
     for (int i = 0; i < STATE_TRAN_MAX; ++i)
@@ -35,22 +43,35 @@ void RegExpAutomata::MergeState(int s1, int s2)
         std::unique(NFAStatTran_[s1][i].begin(), NFAStatTran_[s1][i].end());
     }
 
+    for (std::map<int, std::vector<int> >::iterator it = inStates_[s2].begin(); it != inStates_[s2].end(); ++it)
+    {
+        int st = it->first;
+        for (int j = 0; j < it->second.size(); ++j)
+        {
+            int ch =  it->second[j];
+            std::vector<int>& vec = NFAStatTran_[st][ch];
+            vec.erase(std::remove(vec.begin(), vec.end(), s2), vec.end());
+            vec.push_back(s1);
+        }
+    }
+
     NFAStatTran_[s2].clear();
     states_[s2].SetType(State_None);
 }
 
-int RegExpAutomata::CreateState(StateType type)
+int RegExpNFA::CreateState(StateType type)
 {
     MachineState state(stateIndex_, type);
     std::vector<std::vector<int> > tmps(STATE_TRAN_MAX);
 
     stateIndex_++;
     states_.push_back(state);
+    inStates_.push_back(std::map<int, std::vector<int> >());
     NFAStatTran_.push_back(tmps);
     return stateIndex_ - 1;
 }
 
-int RegExpAutomata::BuildNFAImp(RegExpSynTreeNode* root, int& start, int& accept)
+int RegExpNFA::BuildNFAImp(RegExpSynTreeNode* root, int& start, int& accept)
 {
     if (!root) return 0;
 
@@ -59,22 +80,22 @@ int RegExpAutomata::BuildNFAImp(RegExpSynTreeNode* root, int& start, int& accept
         RegExpSynTreeLeafNode* ln = dynamic_cast<RegExpSynTreeLeafNode*>(root);
         assert(ln);
 
-        return BuildNFAStateForLeafNode(ln, start, accept);
+        return BuildStateForLeafNode(ln, start, accept);
     }
     else if (root->GetNodeType() == RegExpSynTreeNodeType_Star)
     {
         RegExpSynTreeStarNode* sn = dynamic_cast<RegExpSynTreeStarNode*>(root);
         assert(sn);
 
-        return BuildNFAStateForStarNode(sn, start, accept);
+        return BuildStateForStarNode(sn, start, accept);
     }
     else if (root->GetNodeType() == RegExpSynTreeNodeType_Or)
     {
-        return BuildNFAStateForOrNode(root, start, accept);
+        return BuildStateForOrNode(root, start, accept);
     }
     else if (root->GetNodeType() == RegExpSynTreeNodeType_Concat)
     {
-        return BuildNFAStateForCatNode(root, start, accept);
+        return BuildStateForCatNode(root, start, accept);
     }
 
     assert(0);
@@ -82,7 +103,7 @@ int RegExpAutomata::BuildNFAImp(RegExpSynTreeNode* root, int& start, int& accept
     return 0;
 }
 
-int RegExpAutomata::BuildNFAStateForLeafNode(RegExpSynTreeLeafNode* ln, int& start, int& accept)
+int RegExpNFA::BuildStateForLeafNode(RegExpSynTreeLeafNode* ln, int& start, int& accept)
 {
     start = CreateState(State_Start);
     accept = CreateState(State_Accept);
@@ -95,18 +116,25 @@ int RegExpAutomata::BuildNFAStateForLeafNode(RegExpSynTreeLeafNode* ln, int& sta
         std::vector<std::vector<int> > char_to_state(STATE_TRAN_MAX, to);
         char_to_state[STATE_EPSILON].clear();
         NFAStatTran_[start].swap(char_to_state);
+
+        for (int i = 0; i < STATE_TRAN_MAX; ++i)
+        {
+            inStates_[accept][start].push_back(i);
+        }
     }
     else if (lt == RegExpSynTreeNodeLeafNodeType_Head
             || lt == RegExpSynTreeNodeLeafNodeType_Tail)
     {
         std::vector<int> acc(1, accept);
         NFAStatTran_[start][STATE_EPSILON] = acc; // epsilon transition
+        inStates_[accept][start].push_back(STATE_EPSILON);
     }
     else if (lt == RegExpSynTreeNodeLeafNodeType_Alt)
     {
         std::vector<int> acc(1, accept);
         for (int i = 0; i < txt.size(); ++i)
         {
+            inStates_[accept][start].push_back(txt[i]);
             NFAStatTran_[start][txt[i]] = acc;
         }
     }
@@ -116,13 +144,16 @@ int RegExpAutomata::BuildNFAStateForLeafNode(RegExpSynTreeLeafNode* ln, int& sta
         if (txt[0] == 's')
         {
             NFAStatTran_[start][' '] = acc;
+            inStates_[accept][start].push_back(' ');
         }
         else if (txt[0] == 'w')
         {
             for(int i = 'a'; i <= 'z'; ++i)
             {
                 NFAStatTran_[start][i] = acc;
-                NFAStatTran_[start][i + 'a' - 'A']  = acc;
+                NFAStatTran_[start][i + 'A' - 'a']  = acc;
+                inStates_[accept][start].push_back(i);
+                inStates_[accept][start].push_back(i + 'A' - 'a');
             }
         }
         else
@@ -130,6 +161,7 @@ int RegExpAutomata::BuildNFAStateForLeafNode(RegExpSynTreeLeafNode* ln, int& sta
             for(int i = '0'; i <= '9'; ++i)
             {
                 NFAStatTran_[start][i] = acc;
+                inStates_[accept][start].push_back(i);
             }
         }
     }
@@ -137,12 +169,13 @@ int RegExpAutomata::BuildNFAStateForLeafNode(RegExpSynTreeLeafNode* ln, int& sta
     {
         std::vector<int> acc(1, accept);
         NFAStatTran_[start][txt[0]] = acc;
+        inStates_[accept][start].push_back(txt[0]);
     }
 
     return 2;
 }
 
-int RegExpAutomata::BuildNFAStateForOrNode(RegExpSynTreeNode* node, int& start, int& accept)
+int RegExpNFA::BuildStateForOrNode(RegExpSynTreeNode* node, int& start, int& accept)
 {
     int left_child_start, left_child_accept;
     int right_child_start, right_child_accept;
@@ -165,13 +198,15 @@ int RegExpAutomata::BuildNFAStateForOrNode(RegExpSynTreeNode* node, int& start, 
 
     states_[left_child_accept].SetType(State_Norm);
     states_[right_child_accept].SetType(State_Norm);
+    inStates_[accept][left_child_accept].push_back(STATE_EPSILON);
+    inStates_[accept][right_child_accept].push_back(STATE_EPSILON);
     NFAStatTran_[left_child_accept][STATE_EPSILON].push_back(accept);
     NFAStatTran_[right_child_accept][STATE_EPSILON].push_back(accept);
 
     return left_child_state_num + right_child_state_num + 2;
 }
 
-int RegExpAutomata::BuildNFAStateForCatNode(RegExpSynTreeNode* node, int& start, int& accept)
+int RegExpNFA::BuildStateForCatNode(RegExpSynTreeNode* node, int& start, int& accept)
 {
     int left_child_start, left_child_accept;
     int right_child_start, right_child_accept;
@@ -193,7 +228,7 @@ int RegExpAutomata::BuildNFAStateForCatNode(RegExpSynTreeNode* node, int& start,
     return left_child_state_num + right_child_state_num - 1;
 }
 
-int RegExpAutomata::BuildNFAStateForStarNode(RegExpSynTreeStarNode* sn, int& start, int& accept)
+int RegExpNFA::BuildStateForStarNode(RegExpSynTreeStarNode* sn, int& start, int& accept)
 {
     int child_start, child_accept;
     RegExpSynTreeNode* child = dynamic_cast<RegExpSynTreeNode*>(sn->GetLeftChild());
@@ -206,13 +241,17 @@ int RegExpAutomata::BuildNFAStateForStarNode(RegExpSynTreeStarNode* sn, int& sta
         int child_states_num = BuildNFAImp(child, child_start, child_accept);
         accept = CreateState(State_Accept);
 
+        inStates_[child_start][start].push_back(STATE_EPSILON);
         NFAStatTran_[start][STATE_EPSILON].push_back(child_start);
+        inStates_[accept][start].push_back(STATE_EPSILON);
         NFAStatTran_[start][STATE_EPSILON].push_back(accept);
 
         states_[child_start].SetType(State_Norm);
         states_[child_accept].SetType(State_Norm);
 
+        inStates_[child_start][child_accept].push_back(STATE_EPSILON);
         NFAStatTran_[child_accept][STATE_EPSILON].push_back(child_start);
+        inStates_[accept][child_accept].push_back(STATE_EPSILON);
         NFAStatTran_[child_accept][STATE_EPSILON].push_back(accept);
 
         return child_states_num + 2;
@@ -227,8 +266,11 @@ int RegExpAutomata::BuildNFAStateForStarNode(RegExpSynTreeStarNode* sn, int& sta
         states_[child_start].SetType(State_Norm);
         states_[child_accept].SetType(State_Norm);
 
+        inStates_[child_start][start].push_back(STATE_EPSILON);
         NFAStatTran_[start][STATE_EPSILON].push_back(child_start);
+        inStates_[accept][start].push_back(STATE_EPSILON);
         NFAStatTran_[start][STATE_EPSILON].push_back(accept);
+        inStates_[accept][child_accept].push_back(STATE_EPSILON);
         NFAStatTran_[child_accept][STATE_EPSILON].push_back(accept);
 
         return child_states_num + 2;
@@ -250,6 +292,7 @@ int RegExpAutomata::BuildNFAStateForStarNode(RegExpSynTreeStarNode* sn, int& sta
 
             states_[ta].SetType(State_Norm);
             states_[cs].SetType(State_Norm);
+            inStates_[cs][ta].push_back(STATE_EPSILON);
             NFAStatTran_[ta][STATE_EPSILON].push_back(cs);
 
             ts = cs;
@@ -261,7 +304,9 @@ int RegExpAutomata::BuildNFAStateForStarNode(RegExpSynTreeStarNode* sn, int& sta
         start = child_start;
         accept = CreateState(State_Accept);
 
+        inStates_[ts][ta].push_back(STATE_EPSILON);
         NFAStatTran_[ta][STATE_EPSILON].push_back(ts);
+        inStates_[accept][ta].push_back(STATE_EPSILON);
         NFAStatTran_[ta][STATE_EPSILON].push_back(accept);
 
         return child_states_num * min + 1;
@@ -284,6 +329,7 @@ int RegExpAutomata::BuildNFAStateForStarNode(RegExpSynTreeStarNode* sn, int& sta
 
             states_[ta].SetType(State_Norm);
             states_[cs].SetType(State_Norm);
+            inStates_[cs][ta].push_back(STATE_EPSILON);
             NFAStatTran_[ta][STATE_EPSILON].push_back(cs);
 
             ts = cs;
@@ -295,7 +341,9 @@ int RegExpAutomata::BuildNFAStateForStarNode(RegExpSynTreeStarNode* sn, int& sta
             BuildNFAImp(child, cs, ca);
             states_[ta].SetType(State_Norm);
             states_[cs].SetType(State_Norm);
+            inStates_[cs][ta].push_back(STATE_EPSILON);
             NFAStatTran_[ta][STATE_EPSILON].push_back(cs);
+            inStates_[accept][ta].push_back(STATE_EPSILON);
             NFAStatTran_[ta][STATE_EPSILON].push_back(accept);
 
             ts = cs;
@@ -305,27 +353,24 @@ int RegExpAutomata::BuildNFAStateForStarNode(RegExpSynTreeStarNode* sn, int& sta
         start = child_start;
         accept = CreateState(State_Accept);
 
+        inStates_[accept][ta].push_back(STATE_EPSILON);
         NFAStatTran_[ta][STATE_EPSILON].push_back(accept);
 
         return child_states_num * max + 1;
     }
 }
 
-int RegExpAutomata::ConvertSynTreeToNFA()
+int RegExpNFA::BuildMachine(SyntaxTreeBase* tree)
 {
-    // TODO
-    return 0;
+    RegExpSyntaxTree* reg_tree = dynamic_cast<RegExpSyntaxTree*>(tree);
+    if (!reg_tree) return 0;
+
+    return BuildNFA(reg_tree);
 }
 
-int RegExpAutomata::ConvertSynTreeToDFA()
+bool RegExpNFA::RunMachine(const char* ps, const char* pe) const
 {
     // TODO
-    return 0;
-}
-
-int RegExpAutomata::BuildDFA(RegExpSyntaxTree* tree)
-{
-    // TODO
-    return 0;
+    return false;
 }
 

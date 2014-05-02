@@ -4,7 +4,7 @@
 #include <vector>
 #include <string>
 #include "NonCopyable.h"
-#include "RegExpSynTreeNode.h"
+#include "SyntaxTreeBase.h"
 
 enum AutomatonType
 {
@@ -19,17 +19,16 @@ class AutomatonBase: public NonCopyable
         explicit AutomatonBase(AutomatonType type);
         virtual ~AutomatonBase();
 
-        bool RunMachine(const char* ps, const char* pe) const;
+        int  GetStartState() const { return start_; }
+        int  GetAcceptState() const { return accept_; }
+
+        virtual int  BuildMachine(SyntaxTreeBase* tree) = 0;
+        virtual bool RunMachine(const char* ps, const char* pe) const = 0;
 
     protected:
 
-        virtual int ConvertSynTreeToNFA() = 0;
-        virtual int ConvertSynTreeToDFA() = 0;
-
-    protected:
-
+        int start_, accept_; // start state and the accepting state
         AutomatonType automataType_;
-        int (AutomatonBase::* automatonConverter_)();
 };
 
 #endif
