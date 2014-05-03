@@ -35,12 +35,10 @@ class RegExpNFA: public AutomatonBase
         int  BuildNFA(RegExpSyntaxTree* tree);
         void RunNFA(const char* ps, const char* pe) const;
 
-        int  EpsilonClosure(int st, std::vector<int>& out) const;
-        int  MoveOnInput(char ch, std::vector<int>& out) const;
-
     private:
 
         void MergeState(int s1, int s2);
+        int  AddStateWithEpsilon(int st, std::vector<char>& ison, std::vector<int>& to) const;
 
         int CreateState(StateType type);
         int BuildNFAImp(RegExpSynTreeNode* node, int& start, int& accept);

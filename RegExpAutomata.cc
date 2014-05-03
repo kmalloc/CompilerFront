@@ -368,9 +368,64 @@ int RegExpNFA::BuildMachine(SyntaxTreeBase* tree)
     return BuildNFA(reg_tree);
 }
 
+int RegExpNFA::AddStateWithEpsilon(int st, std::vector<char>& isOn, std::vector<int>& to) const
+{
+    isOn[st] = 1;
+    to.push_back(st);
+    for (int i = 0; i < NFAStatTran_[st][STATE_EPSILON].size(); ++i)
+    {
+        int epsilon = NFAStatTran_[st][STATE_EPSILON][i];
+        if (isOn[epsilon]) continue;
+
+        AddStateWithEpsilon(epsilon, isOn, to);
+    }
+
+    return  to.size();
+}
+
 bool RegExpNFA::RunMachine(const char* ps, const char* pe) const
 {
-    // TODO
-    return false;
+    char ch;
+    const char* in = ps;
+
+    std::vector<int> curStat;
+    std::vector<int> toStat;
+    std::vector<char> alreadyOn(states_.size(), 0);
+
+    curStat.reserve(states_.size());
+    toStat.reserve(states_.size());
+    AddStateWithEpsilon(start_, alreadyOn, curStat);
+
+    for (int i = 0; i < curStat.size(); ++i)
+    {
+        alreadyOn[curStat[i]] = false;
+    }
+
+    while (in <= pe && !curStat.empty())
+    {
+        ch = *in++;
+        for (int i = 0; i < curStat.size(); ++i)
+        {
+            const std::vector<int>& vc = NFAStatTran_[curStat[i]][ch];
+            if (vc.empty()) continue;
+
+            for (int j = 0; j < vc.size(); ++j)
+            {
+                if (alreadyOn[vc[j]]) continue;
+
+                AddStateWithEpsilon(vc[j], alreadyOn, toStat);
+            }
+        }
+
+        curStat.swap(toStat);
+        toStat.clear();
+
+        for (int i = 0; i < curStat.size(); ++i)
+        {
+            alreadyOn[curStat[i]] = false;
+        }
+    }
+
+    return !curStat.empty() && std::find(curStat.begin(), curStat.end(), accept_) != curStat.end();
 }
 

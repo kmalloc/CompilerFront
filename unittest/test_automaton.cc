@@ -212,7 +212,7 @@ TEST(test_reg_exp_nfa_gen, test_automata_gen)
         try
         {
             regSynTree.BuildSyntaxTree(cases[i].txt_, cases[i].txt_ + strlen(cases[i].txt_) - 1);
-            nfa.BuildNFA(&regSynTree);
+            nfa.BuildMachine(&regSynTree);
         }
         catch (...)
         {
@@ -242,6 +242,69 @@ TEST(test_reg_exp_nfa_gen, test_automata_gen)
                 }
             }
         }
+    }
+}
+
+
+class nfa_case
+{
+    public:
+
+        nfa_case(const char* pattern)
+            :pattern_(pattern)
+        {
+            tree_.BuildSyntaxTree(pattern, pattern + strlen(pattern) - 1);
+            nfa_.BuildMachine(&tree_);
+        }
+
+        void AddTestCase(const std::string& txt, bool ismatch)
+        {
+            txt2match_[txt] = ismatch;
+        }
+
+        bool IsMatch(const std::string& txt) { return txt2match_[txt]; }
+
+    private:
+
+        std::string pattern_;
+        RegExpNFA nfa_;
+        RegExpSyntaxTree tree_;
+        std::map<std::string, bool> txt2match_;
+};
+
+TEST(test_matching_txt, test_automata_gen)
+{
+    std::vector<nfa_case*> cases;
+
+    nfa_case* c1 = new nfa_case("([abc]+\\d)*(a|b)+3\\w2e");
+    c1->AddTestCase("a3b3c2e", true);
+    c1->AddTestCase("aa3b3c2e", true);
+    c1->AddTestCase("ab3b3c2e", true);
+    c1->AddTestCase("ab32ab3e2e", false);
+    c1->AddTestCase("ab3ac32e", false);
+    c1->AddTestCase("ab3ab3aa3e2e", true);
+    c1->AddTestCase("ab3aa3aa3v2e", true);
+    c1->AddTestCase("ab32ab32e", false);
+    c1->AddTestCase("ab3b4c2a3e", false);
+    cases.push_back(c1);
+
+    nfa_case* c2 = new nfa_case("(abc)+\\d");
+    c2->AddTestCase("abc3", true);
+    c2->AddTestCase("abcabcabc3", true);
+    c2->AddTestCase("abcara3", false);
+    c2->AddTestCase("abcabbaae2", false);
+    cases.push_back(c2);
+
+    for (int i = 0; i < cases.size(); ++i)
+    {
+        for (std::map<std::string, bool>::iterator it = cases[i]->txt2match_.begin();
+                it != cases[i]->txt2match_.end(); ++it)
+        {
+            EXPECT_EQ(it->second, cases[i]->nfa_.RunMachine(it->first.c_str(), it->first.c_str() + it->first.size() - 1)) \
+                << "case:" << i << ", pattern:" << cases[i]->pattern_ << ", test:" << it->first << std::endl;
+        }
+
+        delete cases[i];
     }
 }
 
