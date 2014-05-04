@@ -65,9 +65,6 @@ class RegExpNFA: public AutomatonBase
         int headState_, tailState_;
         bool support_partial_match_;
         std::vector<MachineState> states_;
-
-        // inStates_[st] records the states which 'st' comes from through those characters in the vector
-        std::vector<std::map<int, std::vector<int> > > inStates_;
         std::vector<std::vector<std::vector<int> > > NFAStatTran_; // state to char to state
 };
 

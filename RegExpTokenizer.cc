@@ -43,6 +43,7 @@ bool RegExpTokenizer::IsMetaChar(char c) const
 
 bool RegExpTokenizer::CanCharEscape(char c)
 {
+    //TODO, handle \1, \2, ..,\99
     return IsRegExpMetaChar(c) || (c == 's' || c == 'w' || c == 'd');
 }
 

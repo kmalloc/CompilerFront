@@ -32,7 +32,6 @@ class RegExpSyntaxTree: public SyntaxTreeBase
 
         RegExpTokenizer* tokenizer_;
         RegExpSynTreeNode* synTreeRoot_;
-        std::vector<RegExpSynTreeNode*> unitMap_;
 };
 
 #endif

@@ -233,11 +233,10 @@ TEST(test_construct_reg_syn_tree, test_reg_exp_automata_gen)
 {
     const char* cases[] =
     {
-        "a",
+        "\\+vv", // 3
         ".*",
         ".?", // 1
         ".+", // 2
-        "\\+vv", // 3
         "\\*v", // 4
         "\\s+.*", // 5
         "(\\w+)+\\s(a.)*[abc]+\\d$", // 6
@@ -263,6 +262,7 @@ TEST(test_construct_reg_syn_tree, test_reg_exp_automata_gen)
         "((fae)|(abcd))+|vv\\[ee(fff|vvvv)*",
         "^abc(ef){1,23}([abcefg]{1,4}|gve)",
         "(abc)+\\d((ev){2,5})?",
+        "a",
     };
 
     RegExpSyntaxTree regSynTree;

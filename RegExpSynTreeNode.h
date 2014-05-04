@@ -10,8 +10,6 @@ enum RegExpSynTreeNodeType
     RegExpSynTreeNodeType_Concat,
     RegExpSynTreeNodeType_Or,
     RegExpSynTreeNodeType_Star,
-    // TODO
-    RegExpSynTreeNodeType_BackRef, // for back-reference, \1, \2, etc
 };
 
 enum RegExpSynTreeNodeLeafNodeType
@@ -23,6 +21,8 @@ enum RegExpSynTreeNodeLeafNodeType
     RegExpSynTreeNodeLeafNodeType_Dot, //.
     RegExpSynTreeNodeLeafNodeType_Head, //^
     RegExpSynTreeNodeLeafNodeType_Tail, //$
+    // TODO
+    RegExpSynTreeNodeLeafNodeType_Ref, // for back-reference, \1, \2, etc
 };
 
 class RegExpSynTreeNode: public SynTreeNodeBase
@@ -74,9 +74,22 @@ class RegExpSynTreeLeafNode: public RegExpSynTreeNode
         RegExpSynTreeLeafNode(const char* s, const char* e, int pos);
         RegExpSynTreeNodeLeafNodeType GetLeafNodeType() const { return leafType_; }
 
-    private:
+    protected:
 
         RegExpSynTreeNodeLeafNodeType leafType_;
+};
+
+class RegExpSynTreeRefNode: public RegExpSynTreeLeafNode
+{
+    public:
+
+        RegExpSynTreeRefNode(const char*, const char* e, int pos);
+
+        short GetRef() const { return ref_; }
+
+    private:
+
+        int ref_;
 };
 
 #endif

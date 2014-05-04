@@ -67,7 +67,12 @@ SynTreeNodeBase* RegExpSyntaxTree::ConstructSyntaxTreeImp(const char* ps, const 
     if (!ps || !pe || ps > pe) return NULL;
 
     const char* te = tokenizer_->IsToken(ps, pe);
-    if (te) return new RegExpSynTreeLeafNode(ps, te, leafIndex_++);
+    if (te)
+    {
+        if (*ps == '\\' && std::isdigit(*te)) return new RegExpSynTreeRefNode(ps, te, leafIndex_++);
+
+        return new RegExpSynTreeLeafNode(ps, te, leafIndex_++);
+    }
 
     bool is_parenthesis_unit = false;
     const char* us = NULL, *ue = NULL; // unit start, unit end
@@ -90,7 +95,6 @@ SynTreeNodeBase* RegExpSyntaxTree::ConstructSyntaxTreeImp(const char* ps, const 
         {
             RegExpSynTreeNode* rn = dynamic_cast<RegExpSynTreeNode*>(right);
             rn->SetUnit(true);
-            unitMap_.push_back(rn);
         }
     }
     else
