@@ -23,6 +23,7 @@ OUTPUT=testRegExp
 
 $(OUTPUT) : $(OBJECTS) $(foreach i,$(DEPS),$(DEPS_PATH)lib${i}.a)
 	$(CC) -o $@ $^ $(LINKLIBS) $(GTEST_LIB) $(LINKPATH)
+	./$(OUTPUT)
 
 clean:
 	rm *.o $(OUTPUT)

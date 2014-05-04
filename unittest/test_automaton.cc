@@ -252,7 +252,54 @@ TEST(test_reg_exp_nfa_gen, test_automata_gen)
 
     cases.push_back(c12);
 
-       // test (ab){2, 5}
+    // test (ab){2, 5}
+    RegExpNFACase c13("(ab){2,5}");
+    c13.states_[1]['a'].push_back(2);
+    c13.states_[2]['b'].push_back(4);
+    c13.states_[4][STATE_EPSILON].push_back(5);
+
+    c13.states_[5]['a'].push_back(6);
+    c13.states_[6]['b'].push_back(8);
+    c13.states_[8][STATE_EPSILON].push_back(9);
+    c13.states_[8][STATE_EPSILON].push_back(0);
+
+    c13.states_[9]['a'].push_back(10);
+    c13.states_[10]['b'].push_back(12);
+    c13.states_[12][STATE_EPSILON].push_back(13);
+    c13.states_[12][STATE_EPSILON].push_back(0);
+
+    c13.states_[13]['a'].push_back(14);
+    c13.states_[14]['b'].push_back(16);
+    c13.states_[16][STATE_EPSILON].push_back(17);
+    c13.states_[16][STATE_EPSILON].push_back(0);
+
+    c13.states_[17]['a'].push_back(18);
+    c13.states_[18]['b'].push_back(20);
+    c13.states_[20][STATE_EPSILON].push_back(0);
+
+    cases.push_back(c13);
+
+    RegExpNFACase c14("([abcdef][0123456]+,)+");
+    c14.states_[0]['a'].push_back(1);
+    c14.states_[0]['b'].push_back(1);
+    c14.states_[0]['c'].push_back(1);
+    c14.states_[0]['d'].push_back(1);
+    c14.states_[0]['e'].push_back(1);
+    c14.states_[0]['f'].push_back(1);
+    c14.states_[1]['0'].push_back(3);
+    c14.states_[1]['1'].push_back(3);
+    c14.states_[1]['2'].push_back(3);
+    c14.states_[1]['3'].push_back(3);
+    c14.states_[1]['4'].push_back(3);
+    c14.states_[1]['5'].push_back(3);
+    c14.states_[1]['6'].push_back(3);
+    c14.states_[3][STATE_EPSILON].push_back(4);
+    c14.states_[3][STATE_EPSILON].push_back(1);
+    c14.states_[4][','].push_back(6);
+    c14.states_[6][STATE_EPSILON].push_back(0);
+    c14.states_[6][STATE_EPSILON].push_back(7);
+
+    cases.push_back(c14);
 
     // TODO, more cases
     RegExpNFA nfa;
@@ -348,6 +395,82 @@ TEST(test_matching_txt, test_automata_gen)
     c2->AddTestCase("abcara3", false);
     c2->AddTestCase("abcabbaae2", false);
     cases.push_back(c2);
+
+    nfa_case* c3 = new nfa_case("regexp|coding");
+    c3->AddTestCase("regexp", true);
+    c3->AddTestCase("coding", true);
+    c3->AddTestCase("codingv", false);
+    c3->AddTestCase("\\|", false);
+    cases.push_back(c3);
+
+    nfa_case* c3_0 = new nfa_case("(regexp|coding)");
+    c3_0->AddTestCase("regexp", true);
+    c3_0->AddTestCase("coding", true);
+    c3_0->AddTestCase("codingv", false);
+    c3_0->AddTestCase("\\|", false);
+    cases.push_back(c3_0);
+
+    nfa_case* c3_1 = new nfa_case("(regexp|(coding))");
+    c3_1->AddTestCase("regexp", true);
+    c3_1->AddTestCase("coding", true);
+    c3_1->AddTestCase("codingv", false);
+    c3_1->AddTestCase("\\|", false);
+    cases.push_back(c3_1);
+
+    nfa_case* c4 = new nfa_case("([abcdef][0123456]+,)+");
+    c4->AddTestCase("a33", false);
+    c4->AddTestCase("a33,", true);
+    c4->AddTestCase("a2,a3,b4", false);
+    c4->AddTestCase("a2,a3,", true);
+    c4->AddTestCase("a332,b3,b34,", true);
+    c4->AddTestCase("aa332,b3,b34,", false);
+    c4->AddTestCase("aa332,bb3,b34,", false);
+    c4->AddTestCase("a332,bb3,b34,", false);
+    cases.push_back(c4);
+
+    nfa_case* c5 = new nfa_case(".*regexp.*");
+    c5->AddTestCase("regexp", true);
+    c5->AddTestCase("aaregexp", true);
+    c5->AddTestCase("regexpbb", true);
+    c5->AddTestCase("aaregexpbb", true);
+    c5->AddTestCase("aaraegexpbb", false);
+    c5->AddTestCase("aaregexpregexpbb", true);
+    c5->AddTestCase("aaregsexpregexpbb", true);
+    c5->AddTestCase("aaregesxpxpbb", false);
+    cases.push_back(c5);
+
+    nfa_case* c6 = new nfa_case("abc");
+    c6->AddTestCase("", false);
+    cases.push_back(c6);
+
+    nfa_case* c7 = new nfa_case("(ab|cd)e");
+    c7->AddTestCase("abcde", false);
+    c7->AddTestCase("cde", true);
+    c7->AddTestCase("abe", true);
+    cases.push_back(c7);
+
+    nfa_case* c8 = new nfa_case("a([bc]*)(c*d)");
+    c8->AddTestCase("abcd", true);
+    c8->AddTestCase("abccd", true);
+    c8->AddTestCase("cde", false);
+    c8->AddTestCase("ab", false);
+    c8->AddTestCase("abd", true);
+    cases.push_back(c8);
+
+    nfa_case* c9 = new nfa_case("(ab|a)b*c");
+    c9->AddTestCase("abc", true);
+    c9->AddTestCase("abbc", true);
+    c9->AddTestCase("cde", false);
+    c9->AddTestCase("ab", false);
+    c9->AddTestCase("abbc", true);
+    cases.push_back(c9);
+
+    nfa_case* c10 = new nfa_case("((a)(b)c)(d)");
+    c10->AddTestCase("abcd", true);
+    c10->AddTestCase("cde", false);
+    c10->AddTestCase("ab", false);
+    c10->AddTestCase("abc", false);
+    cases.push_back(c10);
 
     for (int i = 0; i < cases.size(); ++i)
     {

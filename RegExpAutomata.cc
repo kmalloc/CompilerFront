@@ -432,3 +432,11 @@ bool RegExpNFA::RunMachine(const char* ps, const char* pe) const
     return !curStat.empty() && std::find(curStat.begin(), curStat.end(), accept_) != curStat.end();
 }
 
+void RegExpNFA::SerializeState() const
+{
+}
+
+void RegExpNFA::DeserializeState()
+{
+}
+

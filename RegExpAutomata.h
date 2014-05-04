@@ -22,6 +22,9 @@ class RegExpNFA: public AutomatonBase
         RegExpNFA();
         ~RegExpNFA();
 
+        virtual void SerializeState() const;
+        virtual void DeserializeState();
+
         virtual int  BuildMachine(SyntaxTreeBase* tree);
         virtual bool RunMachine(const char* ps, const char* pe) const;
 

@@ -22,6 +22,9 @@ class AutomatonBase: public NonCopyable
         int  GetStartState() const { return start_; }
         int  GetAcceptState() const { return accept_; }
 
+        virtual void SerializeState() const = 0;
+        virtual void DeserializeState() = 0;
+
         virtual int  BuildMachine(SyntaxTreeBase* tree) = 0;
         virtual bool RunMachine(const char* ps, const char* pe) const = 0;
 
