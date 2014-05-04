@@ -9,8 +9,9 @@
 #include "RegExpSyntaxTree.h"
 #include "RegExpSynTreeNode.h"
 
-RegExpNFA::RegExpNFA()
+RegExpNFA::RegExpNFA(bool partial)
     :AutomatonBase(AutomatonType_NFA), stateIndex_(0)
+    ,headState_(-1), tailState_(-1), support_partial_match_(partial)
 {
 }
 
@@ -21,19 +22,36 @@ RegExpNFA::~RegExpNFA()
 int RegExpNFA::BuildNFA(RegExpSyntaxTree* tree)
 {
     stateIndex_ = 0;
+    headState_ = tailState_ = -1;
     states_.clear();
     inStates_.clear();
     NFAStatTran_.clear();
 
     states_.reserve(tree->GetNodeNumber() * 2);
     inStates_.reserve(tree->GetNodeNumber() * 2);
-    return BuildNFAImp(dynamic_cast<RegExpSynTreeNode*>(tree->GetSynTree()), start_, accept_);
+    int num = BuildNFAImp(dynamic_cast<RegExpSynTreeNode*>(tree->GetSynTree()), start_, accept_);
+
+    if (support_partial_match_ && headState_ == -1)
+    {
+        for (int i = 0; i < STATE_TRAN_MAX; ++i)
+        {
+            if (NFAStatTran_[start_][i].empty()) NFAStatTran_[start_][i].push_back(start_);
+        }
+    }
+
+    if (support_partial_match_ && tailState_ == -1)
+    {
+        for (int i = 0; i < STATE_TRAN_MAX; ++i)
+        {
+            if (NFAStatTran_[accept_][i].empty()) NFAStatTran_[accept_][i].push_back(accept_);
+        }
+    }
 }
 
 // merge s2 into s1
 void RegExpNFA::MergeState(int s1, int s2)
 {
-    states_[s1].SetType(State_Norm);
+    states_[s1].SetNormType();
     for (int i = 0; i < STATE_TRAN_MAX; ++i)
     {
         NFAStatTran_[s1][i].insert(NFAStatTran_[s1][i].end(),
@@ -122,12 +140,21 @@ int RegExpNFA::BuildStateForLeafNode(RegExpSynTreeLeafNode* ln, int& start, int&
             inStates_[accept][start].push_back(i);
         }
     }
-    else if (lt == RegExpSynTreeNodeLeafNodeType_Head
-            || lt == RegExpSynTreeNodeLeafNodeType_Tail)
+    else if (lt == RegExpSynTreeNodeLeafNodeType_Head)
     {
         std::vector<int> acc(1, accept);
         NFAStatTran_[start][STATE_EPSILON] = acc; // epsilon transition
         inStates_[accept][start].push_back(STATE_EPSILON);
+        states_[start].AppendType(State_Head);
+        headState_ = start;
+    }
+    else if(lt == RegExpSynTreeNodeLeafNodeType_Tail)
+    {
+        std::vector<int> acc(1, accept);
+        NFAStatTran_[start][STATE_EPSILON] = acc; // epsilon transition
+        inStates_[accept][start].push_back(STATE_EPSILON);
+        states_[accept].AppendType(State_Tail);
+        tailState_ = accept;
     }
     else if (lt == RegExpSynTreeNodeLeafNodeType_Alt)
     {
@@ -191,13 +218,13 @@ int RegExpNFA::BuildStateForOrNode(RegExpSynTreeNode* node, int& start, int& acc
     int right_child_state_num = BuildNFAImp(rc, right_child_start, right_child_accept);
     accept = CreateState(State_Accept);
 
-    states_[left_child_start].SetType(State_Norm);
-    states_[right_child_start].SetType(State_Norm);
+    states_[left_child_start].SetNormType();
+    states_[right_child_start].SetNormType();
     NFAStatTran_[start][STATE_EPSILON].push_back(left_child_start); // epsilon transition
     NFAStatTran_[start][STATE_EPSILON].push_back(right_child_start);
 
-    states_[left_child_accept].SetType(State_Norm);
-    states_[right_child_accept].SetType(State_Norm);
+    states_[left_child_accept].SetNormType();
+    states_[right_child_accept].SetNormType();
     inStates_[accept][left_child_accept].push_back(STATE_EPSILON);
     inStates_[accept][right_child_accept].push_back(STATE_EPSILON);
     NFAStatTran_[left_child_accept][STATE_EPSILON].push_back(accept);
@@ -246,8 +273,8 @@ int RegExpNFA::BuildStateForStarNode(RegExpSynTreeStarNode* sn, int& start, int&
         inStates_[accept][start].push_back(STATE_EPSILON);
         NFAStatTran_[start][STATE_EPSILON].push_back(accept);
 
-        states_[child_start].SetType(State_Norm);
-        states_[child_accept].SetType(State_Norm);
+        states_[child_start].SetNormType();
+        states_[child_accept].SetNormType();
 
         inStates_[child_start][child_accept].push_back(STATE_EPSILON);
         NFAStatTran_[child_accept][STATE_EPSILON].push_back(child_start);
@@ -263,8 +290,8 @@ int RegExpNFA::BuildStateForStarNode(RegExpSynTreeStarNode* sn, int& start, int&
         int child_states_num = BuildNFAImp(child, child_start, child_accept);
         accept = CreateState(State_Accept);
 
-        states_[child_start].SetType(State_Norm);
-        states_[child_accept].SetType(State_Norm);
+        states_[child_start].SetNormType();
+        states_[child_accept].SetNormType();
 
         inStates_[child_start][start].push_back(STATE_EPSILON);
         NFAStatTran_[start][STATE_EPSILON].push_back(child_start);
@@ -290,8 +317,8 @@ int RegExpNFA::BuildStateForStarNode(RegExpSynTreeStarNode* sn, int& start, int&
         {
             BuildNFAImp(child, cs, ca);
 
-            states_[ta].SetType(State_Norm);
-            states_[cs].SetType(State_Norm);
+            states_[ta].SetNormType();
+            states_[cs].SetNormType();
             inStates_[cs][ta].push_back(STATE_EPSILON);
             NFAStatTran_[ta][STATE_EPSILON].push_back(cs);
 
@@ -299,7 +326,7 @@ int RegExpNFA::BuildStateForStarNode(RegExpSynTreeStarNode* sn, int& start, int&
             ta = ca;
         }
 
-        states_[ta].SetType(State_Norm);
+        states_[ta].SetNormType();
 
         start = child_start;
         accept = CreateState(State_Accept);
@@ -332,8 +359,8 @@ int RegExpNFA::BuildStateForStarNode(RegExpSynTreeStarNode* sn, int& start, int&
         {
             BuildNFAImp(child, cs, ca);
 
-            states_[ta].SetType(State_Norm);
-            states_[cs].SetType(State_Norm);
+            states_[ta].SetNormType();
+            states_[cs].SetNormType();
             inStates_[cs][ta].push_back(STATE_EPSILON);
             NFAStatTran_[ta][STATE_EPSILON].push_back(cs);
 
@@ -344,8 +371,8 @@ int RegExpNFA::BuildStateForStarNode(RegExpSynTreeStarNode* sn, int& start, int&
         for (int i = min - 1; i < max - 1; ++i)
         {
             BuildNFAImp(child, cs, ca);
-            states_[ta].SetType(State_Norm);
-            states_[cs].SetType(State_Norm);
+            states_[ta].SetNormType();
+            states_[cs].SetNormType();
             inStates_[cs][ta].push_back(STATE_EPSILON);
             NFAStatTran_[ta][STATE_EPSILON].push_back(cs);
 

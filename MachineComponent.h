@@ -3,14 +3,16 @@
 
 enum StateType
 {
-    State_None, // not a state
-    State_Start,
-    State_Accept,
-    State_Epsilon,
-    State_Norm,
-    State_Dead,
+    State_None = 0, // not a state
+    State_Start = 0x1,
+    State_Accept = 0x2,
+    State_Epsilon = 0x4,
+    State_Norm = 0x8,
+    State_Head = 0x10,
+    State_Tail = 0x20,
+    State_Dead = 0x40,
     // TODO
-    State_BackRef,
+    State_BackRef = 0x80,
 };
 
 #define STATE_TRAN_MAX (256)
@@ -23,7 +25,12 @@ struct MachineState
     {
     }
 
+    void SetNormType() { type = (StateType)((type & ~(State_Accept | State_Start)) | State_Norm); }
     void SetType(StateType t) { type = t; }
+    void AppendType(StateType t) { type = (StateType)(type | t); }
+
+    bool IsHeadState() const { return type & State_Head; }
+    bool IsTailState() const { return type & State_Tail; }
 
     int no;
     StateType type;

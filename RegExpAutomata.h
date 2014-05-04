@@ -19,7 +19,15 @@ class RegExpNFA: public AutomatonBase
 
         typedef std::vector<std::vector<std::vector<int> > > NFA_TRAN_T;
 
-        RegExpNFA();
+        /*
+            a) if partial match mode is enabled:
+                1) abc[123]ef, 23ef will match.
+                2) ^abc[123]ef$, 23ef will fail.
+
+            b) if partial match mode is disabled, matching will always from start from beginning to the end.
+               just as if every pattern is prefixed by ^ and has a trailing $.
+        */
+        explicit RegExpNFA(bool enable_partial_match = true);
         ~RegExpNFA();
 
         virtual void SerializeState() const;
@@ -54,6 +62,8 @@ class RegExpNFA: public AutomatonBase
     private:
 
         int stateIndex_;
+        int headState_, tailState_;
+        bool support_partial_match_;
         std::vector<MachineState> states_;
 
         // inStates_[st] records the states which 'st' comes from through those characters in the vector

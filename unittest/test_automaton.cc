@@ -302,7 +302,7 @@ TEST(test_reg_exp_nfa_gen, test_automata_gen)
     cases.push_back(c14);
 
     // TODO, more cases
-    RegExpNFA nfa;
+    RegExpNFA nfa(false);
     RegExpSyntaxTree regSynTree;
 
     int start, accept;
@@ -349,8 +349,8 @@ class nfa_case
 {
     public:
 
-        nfa_case(const char* pattern)
-            :pattern_(pattern)
+        nfa_case(const char* pattern, bool partial = true)
+            :pattern_(pattern), nfa_(partial)
         {
             tree_.BuildSyntaxTree(pattern, pattern + strlen(pattern) - 1);
             nfa_.BuildMachine(&tree_);
@@ -375,7 +375,7 @@ TEST(test_matching_txt, test_automata_gen)
 {
     std::vector<nfa_case*> cases;
 
-    nfa_case* c1 = new nfa_case("([abc]+\\d)*(a|b)+3\\w2e");
+    nfa_case* c1 = new nfa_case("^([abc]+\\d)*(a|b)+3\\w2e");
     c1->AddTestCase("a3b3c2e", true);
     c1->AddTestCase("aa3b3c2e", true);
     c1->AddTestCase("ab3b3c2e", true);
@@ -387,7 +387,7 @@ TEST(test_matching_txt, test_automata_gen)
     c1->AddTestCase("ab3b4c2a3e", false);
     cases.push_back(c1);
 
-    nfa_case* c2 = new nfa_case("(abc)+\\d((ev){2,5})?");
+    nfa_case* c2 = new nfa_case("(abc)+\\d((ev){2,5})?$");
     c2->AddTestCase("abc3", true);
     c2->AddTestCase("abc3evevev", true);
     c2->AddTestCase("abc3evevevevevev", false);
@@ -396,28 +396,29 @@ TEST(test_matching_txt, test_automata_gen)
     c2->AddTestCase("abcabbaae2", false);
     cases.push_back(c2);
 
-    nfa_case* c3 = new nfa_case("regexp|coding");
+    nfa_case* c3 = new nfa_case("regexp|coding", false);
     c3->AddTestCase("regexp", true);
+    c3->AddTestCase("sregexp", false);
     c3->AddTestCase("coding", true);
     c3->AddTestCase("codingv", false);
     c3->AddTestCase("\\|", false);
     cases.push_back(c3);
 
-    nfa_case* c3_0 = new nfa_case("(regexp|coding)");
+    nfa_case* c3_0 = new nfa_case("(regexp|coding)", false);
     c3_0->AddTestCase("regexp", true);
     c3_0->AddTestCase("coding", true);
     c3_0->AddTestCase("codingv", false);
     c3_0->AddTestCase("\\|", false);
     cases.push_back(c3_0);
 
-    nfa_case* c3_1 = new nfa_case("(regexp|(coding))");
+    nfa_case* c3_1 = new nfa_case("(regexp|(coding))", false);
     c3_1->AddTestCase("regexp", true);
     c3_1->AddTestCase("coding", true);
     c3_1->AddTestCase("codingv", false);
     c3_1->AddTestCase("\\|", false);
     cases.push_back(c3_1);
 
-    nfa_case* c4 = new nfa_case("([abcdef][0123456]+,)+");
+    nfa_case* c4 = new nfa_case("([abcdef][0123456]+,)+", false);
     c4->AddTestCase("a33", false);
     c4->AddTestCase("a33,", true);
     c4->AddTestCase("a2,a3,b4", false);
@@ -428,7 +429,7 @@ TEST(test_matching_txt, test_automata_gen)
     c4->AddTestCase("a332,bb3,b34,", false);
     cases.push_back(c4);
 
-    nfa_case* c5 = new nfa_case(".*regexp.*");
+    nfa_case* c5 = new nfa_case(".*regexp.*", false);
     c5->AddTestCase("regexp", true);
     c5->AddTestCase("aaregexp", true);
     c5->AddTestCase("regexpbb", true);
@@ -439,17 +440,24 @@ TEST(test_matching_txt, test_automata_gen)
     c5->AddTestCase("aaregesxpxpbb", false);
     cases.push_back(c5);
 
-    nfa_case* c6 = new nfa_case("abc");
+    nfa_case* c6 = new nfa_case("abc", false);
     c6->AddTestCase("", false);
     cases.push_back(c6);
 
-    nfa_case* c7 = new nfa_case("(ab|cd)e");
+    nfa_case* c7 = new nfa_case("^(ab|cd)e");
     c7->AddTestCase("abcde", false);
     c7->AddTestCase("cde", true);
     c7->AddTestCase("abe", true);
     cases.push_back(c7);
 
-    nfa_case* c8 = new nfa_case("a([bc]*)(c*d)");
+    nfa_case* c7_0 = new nfa_case("(ab|cd)e", false);
+    c7_0->AddTestCase("abcde", false);
+    c7_0->AddTestCase("cde", true);
+    c7_0->AddTestCase("cvde", false);
+    c7_0->AddTestCase("abe", true);
+    cases.push_back(c7_0);
+
+    nfa_case* c8 = new nfa_case("a([bc]*)(c*d)", false);
     c8->AddTestCase("abcd", true);
     c8->AddTestCase("abccd", true);
     c8->AddTestCase("cde", false);
@@ -457,7 +465,16 @@ TEST(test_matching_txt, test_automata_gen)
     c8->AddTestCase("abd", true);
     cases.push_back(c8);
 
-    nfa_case* c9 = new nfa_case("(ab|a)b*c");
+    nfa_case* c8_0 = new nfa_case("a([bc]+)(c*d)", false);
+    c8_0->AddTestCase("abcd", true);
+    c8_0->AddTestCase("abcbccd", true);
+    c8_0->AddTestCase("abccd", true);
+    c8_0->AddTestCase("cde", false);
+    c8_0->AddTestCase("abc", false);
+    c8_0->AddTestCase("abd", true);
+    cases.push_back(c8_0);
+
+    nfa_case* c9 = new nfa_case("(ab|a)b*c", false);
     c9->AddTestCase("abc", true);
     c9->AddTestCase("abbc", true);
     c9->AddTestCase("cde", false);
@@ -465,12 +482,27 @@ TEST(test_matching_txt, test_automata_gen)
     c9->AddTestCase("abbc", true);
     cases.push_back(c9);
 
-    nfa_case* c10 = new nfa_case("((a)(b)c)(d)");
+    nfa_case* c10 = new nfa_case("((a)(b)c)(d)", false);
     c10->AddTestCase("abcd", true);
     c10->AddTestCase("cde", false);
     c10->AddTestCase("ab", false);
     c10->AddTestCase("abc", false);
     cases.push_back(c10);
+
+    nfa_case* c11 = new nfa_case("^(ab|ab+)ef");
+    c11->AddTestCase("abef", true);
+    c11->AddTestCase("abbbbef", true);
+    c11->AddTestCase("ababef", false);
+    cases.push_back(c11);
+
+    nfa_case* c12 = new nfa_case("^(a(bc+|b[eh])g|.h)$");
+    c12->AddTestCase("bbabhg", false);
+    c12->AddTestCase("abh", false);
+    c12->AddTestCase("babh", false);
+    c12->AddTestCase("abccg", true);
+    c12->AddTestCase("abeg", true);
+    c12->AddTestCase("gh", true);
+    cases.push_back(c12);
 
     for (int i = 0; i < cases.size(); ++i)
     {
