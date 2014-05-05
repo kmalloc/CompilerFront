@@ -526,3 +526,8 @@ void RegExpNFA::DeserializeState()
 {
 }
 
+void RegExpNFA::ConvertToDFA(RegExpDFA& dfa) const
+{
+
+}
+

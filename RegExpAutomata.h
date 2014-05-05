@@ -36,7 +36,7 @@ class RegExpNFA: public AutomatonBase
         virtual int  BuildMachine(SyntaxTreeBase* tree);
         virtual bool RunMachine(const char* ps, const char* pe);
 
-        RegExpDFA ConvertToDFA() const;
+        void ConvertToDFA(RegExpDFA& dfa) const;
 
         const NFA_TRAN_T& GetNFATran() const { return NFAStatTran_; }
         const std::vector<MachineState>& GetAllStates() const { return states_; }
