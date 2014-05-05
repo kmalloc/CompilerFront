@@ -34,7 +34,7 @@ class RegExpNFA: public AutomatonBase
         virtual void DeserializeState();
 
         virtual int  BuildMachine(SyntaxTreeBase* tree);
-        virtual bool RunMachine(const char* ps, const char* pe) const;
+        virtual bool RunMachine(const char* ps, const char* pe);
 
         RegExpDFA ConvertToDFA() const;
 
@@ -44,7 +44,11 @@ class RegExpNFA: public AutomatonBase
     protected:
 
         int  BuildNFA(RegExpSyntaxTree* tree);
-        void RunNFA(const char* ps, const char* pe) const;
+        void RunNFA(const char* ps, const char* pe);
+
+#ifdef SUPPORT_REG_EXP_BACK_REFEREENCE
+        void ConstructReferenceState(int st, int to, const char* ps, const char* pe);
+#endif
 
     private:
 
@@ -76,7 +80,7 @@ class RegExpDFA: public AutomatonBase
         ~RegExpDFA();
 
         virtual int  BuildMachine(SyntaxTreeBase* tree);
-        virtual bool RunMachine(const char* ps, const char* pe) const;
+        virtual bool RunMachine(const char* ps, const char* pe);
 
     private:
 
