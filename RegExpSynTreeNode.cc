@@ -1,6 +1,7 @@
 #include "RegExpSynTreeNode.h"
 
 #include <string>
+#include <assert.h>
 
 RegExpSynTreeNode::RegExpSynTreeNode(const char*, const char*,
         RegExpSynTreeNodeType type, int pos)
