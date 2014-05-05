@@ -421,6 +421,14 @@ TEST(test_matching_txt, test_automata_gen)
 {
     std::vector<nfa_case*> cases;
 
+    nfa_case* c8 = new nfa_case("a([bc]*)(c*d)", false);
+    c8->AddTestCase("abcd", true);
+    c8->AddTestCase("abccd", true);
+    c8->AddTestCase("cde", false);
+    c8->AddTestCase("ab", false);
+    c8->AddTestCase("abd", true);
+    cases.push_back(c8);
+
     nfa_case* c1 = new nfa_case("^([abc]+\\d)*(a|b)+3\\w2e");
     c1->AddTestCase("a3b3c2e", true);
     c1->AddTestCase("aa3b3c2e", true);
@@ -503,14 +511,7 @@ TEST(test_matching_txt, test_automata_gen)
     c7_0->AddTestCase("abe", true);
     cases.push_back(c7_0);
 
-    nfa_case* c8 = new nfa_case("a([bc]*)(c*d)", false);
-    c8->AddTestCase("abcd", true);
-    c8->AddTestCase("abccd", true);
-    c8->AddTestCase("cde", false);
-    c8->AddTestCase("ab", false);
-    c8->AddTestCase("abd", true);
-    cases.push_back(c8);
-
+    
     nfa_case* c8_0 = new nfa_case("a([bc]+)(c*d)", false);
     c8_0->AddTestCase("abcd", true);
     c8_0->AddTestCase("abcbccd", true);
@@ -555,8 +556,16 @@ TEST(test_matching_txt, test_automata_gen)
         for (std::map<std::string, bool>::iterator it = cases[i]->txt2match_.begin();
                 it != cases[i]->txt2match_.end(); ++it)
         {
-            EXPECT_EQ(it->second, cases[i]->nfa_.RunMachine(it->first.c_str(), it->first.c_str() + it->first.size() - 1)) \
-                << "case:" << i << ", pattern:" << cases[i]->pattern_ << ", test:" << it->first << std::endl;
+            try
+            {
+                EXPECT_EQ(it->second, cases[i]->nfa_.RunMachine(it->first.c_str(), it->first.c_str() + it->first.size() - 1)) \
+                    << "case:" << i << ", pattern:" << cases[i]->pattern_ << ", test:" << it->first << std::endl;
+            }
+            catch (...)
+            {
+                std::cout << "exception occurs." << std::endl
+                    << "case:" << i << ", pattern:" << cases[i]->pattern_ << ", test:" << it->first << std::endl;
+            }
         }
 
         delete cases[i];
