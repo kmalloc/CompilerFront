@@ -166,11 +166,15 @@ int RegExpNFA::BuildStateForLeafNode(RegExpSynTreeLeafNode* ln, int& start, int&
     }
     else if (lt == RegExpSynTreeNodeLeafNodeType_Ref)
     {
+#ifdef SUPPORT_REG_EXP_BACK_REFEREENCE
         RegExpSynTreeRefNode* rt = dynamic_cast<RegExpSynTreeRefNode*>(ln);
         NFAStatTran_[start][STATE_TRAN_MAX].push_back(accept);
         NFAStatTran_[start][STATE_TRAN_MAX].push_back(rt->GetRef());
         states_[start].AppendType(State_Ref);
-        states_[accept].AppendType(State_Ref);
+        // states_[accept].AppendType(State_Ref);
+#else
+        assert(0);
+#endif
     }
     else
     {
@@ -384,7 +388,28 @@ int RegExpNFA::AddStateWithEpsilon(int st, std::vector<char>& isOn, std::vector<
     return  to.size();
 }
 
-bool RegExpNFA::RunMachine(const char* ps, const char* pe) const
+#ifdef SUPPORT_REG_EXP_BACK_REFEREENCE
+void RegExpNFA::ConstructReferenceState(int st, int to, const char* ps, const char* pe)
+{
+    int new_st;
+
+    states_[st].ClearType(State_Ref);
+    NFAStatTran_[st][STATE_TRAN_MAX].clear();
+    while (ps <= pe)
+    {
+        new_st = CreateState(State_Norm);
+        NFAStatTran_[st][*ps].push_back(new_st);
+        st = new_st;
+    }
+
+    NFAStatTran_[st][STATE_EPSILON].push_back(to);
+}
+#endif
+
+/*
+  unit matching: (e((a)|(b)ef), ((a|b)|(a|c)), (a(b))
+*/
+bool RegExpNFA::RunMachine(const char* ps, const char* pe)
 {
     char ch;
     const char* in = ps;
@@ -415,8 +440,8 @@ bool RegExpNFA::RunMachine(const char* ps, const char* pe) const
     {
         alreadyOn[curStat[i]] = false;
 #ifdef SUPPORT_REG_EXP_BACK_REFEREENCE
-        unit_state_end   += states_[curStat[i]].UnitEnd();
-        unit_state_start += states_[curStat[i]].UnitStart();
+        unit_state_end = std::max(unit_state_end, states_[curStat[i]].UnitEnd());
+        unit_state_start = std::max(unit_state_start, states_[curStat[i]].UnitStart());
 #endif
     }
 
@@ -438,13 +463,14 @@ bool RegExpNFA::RunMachine(const char* ps, const char* pe) const
             const std::vector<int>& vc = NFAStatTran_[st][ch];
 
 #ifdef SUPPORT_REG_EXP_BACK_REFEREENCE
-            if (!states_[st].GetType() & State_Ref)
+            if (states_[st].GetType() & State_Ref)
             {
                 // reference state
                 assert(NFAStatTran_[st][STATE_TRAN_MAX].size() == 2);
 
                 int unit = NFAStatTran_[st][STATE_TRAN_MAX][1];
-                ConstructReferenceState(st, unitTxt[unit]);
+                int to   = NFAStatTran_[st][STATE_TRAN_MAX][0];
+                ConstructReferenceState(st, to, unitTxt[unit].first, unitTxt[unit].second);
             }
 #endif
 
@@ -468,15 +494,8 @@ bool RegExpNFA::RunMachine(const char* ps, const char* pe) const
         for (int i = 0; i < curStat.size(); ++i)
         {
             alreadyOn[curStat[i]] = false;
-            unit_state_end += states_[vc[j]].UnitEnd();
-            unit_state_start += states_[vc[j]].UnitStart();
-        }
-
-        for (int i = 0; i < unit_state_end; ++i)
-        {
-            unitTxt[curUnit].second = in;
-            curUnitStack.pop_back();
-            curUnit = curUnitStack.empty()? -1 : curUnitStack[curUnitStack.size() - 1];
+            unit_state_end = std::max(unit_state_end, states_[curStat[i]].UnitEnd());
+            unit_state_start = std::max(unit_state_start, states_[curStat[i]].UnitStart());
         }
 
         for (int i = 0; i < unit_state_start; ++i)
@@ -484,6 +503,13 @@ bool RegExpNFA::RunMachine(const char* ps, const char* pe) const
             unitTxt.push_back(UnitTxtAddr(in, NULL));
             curUnit = unitTxt.size() - 1;
             curUnitStack.push_back(curUnit);
+        }
+
+        for (int i = 0; i < unit_state_end; ++i)
+        {
+            unitTxt[curUnit].second = in;
+            curUnitStack.pop_back();
+            curUnit = curUnitStack.empty()? -1 : curUnitStack[curUnitStack.size() - 1];
         }
 #else
         for (int i = 0; i < curStat.size(); ++i)
@@ -502,5 +528,10 @@ void RegExpNFA::SerializeState() const
 
 void RegExpNFA::DeserializeState()
 {
+}
+
+void RegExpNFA::ConvertToDFA(RegExpDFA& dfa) const
+{
+
 }
 

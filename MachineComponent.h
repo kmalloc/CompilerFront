@@ -2,7 +2,7 @@
 #define MACHINE_COMPONENT_H_
 
 //to support back referencing, turn on the following macro, not ready yet
-//#define SUPPORT_REG_EXP_BACK_REFEREENCE
+// #define SUPPORT_REG_EXP_BACK_REFEREENCE
 
 enum StateType
 {
@@ -17,12 +17,6 @@ enum StateType
     State_Ref  = 0x80,
 };
 
-enum StateUnitType
-{
-    StateUnit_Start = 1,
-    StateUnit_End,
-};
-
 #define STATE_TRAN_MAX (256)
 #define STATE_EPSILON (STATE_TRAN_MAX - 1)
 
@@ -31,7 +25,7 @@ struct MachineState
     MachineState(int num, StateType t)
         :no(num), type(t)
 #ifdef SUPPORT_REG_EXP_BACK_REFEREENCE
-        ,unit_start(0), unit_end(0)
+        ,unit_type(0)
 #endif
     {
     }
@@ -40,17 +34,17 @@ struct MachineState
     void SetNormType() { type = (StateType)((type & ~(State_Accept | State_Start)) | State_Norm); }
     void SetType(StateType t) { type = t; }
     void AppendType(StateType t) { type = (StateType)(type | t); }
+    void ClearType(StateType t) { type = (StateType)(type & (~t)); }
 
     bool IsHeadState() const { return type & State_Head; }
     bool IsTailState() const { return type & State_Tail; }
 
 #ifdef SUPPORT_REG_EXP_BACK_REFEREENCE
-
     short unit_type;
-    short UnitStart() const { return unit_type == StateUnit_Start; }
-    short UnitEnd() const { return unit_type == StateUnit_End; }
-    void SetStartUnit() { unit_type = StateUnit_Start; }
-    void SetEndUnit() { unit_end = StateUnit_End; }
+    short UnitStart() const { return unit_type & 0x00ff; }
+    short UnitEnd() const { return (unit_type & 0xff00) >> 8; }
+    void SetStartUnit() { unit_type += 0x0001; }
+    void SetEndUnit() { unit_type += 0x0100; }
 #endif
 
     int no;

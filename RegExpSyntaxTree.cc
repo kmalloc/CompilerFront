@@ -69,7 +69,9 @@ SynTreeNodeBase* RegExpSyntaxTree::ConstructSyntaxTreeImp(const char* ps, const 
     const char* te = tokenizer_->IsToken(ps, pe);
     if (te)
     {
+#ifdef  SUPPORT_REG_EXP_BACK_REFEREENCE
         if (*ps == '\\' && std::isdigit(*te)) return new RegExpSynTreeRefNode(ps, te, leafIndex_++);
+#endif
 
         return new RegExpSynTreeLeafNode(ps, te, leafIndex_++);
     }

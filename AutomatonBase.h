@@ -26,7 +26,7 @@ class AutomatonBase: public NonCopyable
         virtual void DeserializeState() = 0;
 
         virtual int  BuildMachine(SyntaxTreeBase* tree) = 0;
-        virtual bool RunMachine(const char* ps, const char* pe) const = 0;
+        virtual bool RunMachine(const char* ps, const char* pe) = 0;
 
     protected:
 
