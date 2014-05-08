@@ -11,7 +11,7 @@ class SyntaxTreeBase: public NonCopyable
         SyntaxTreeBase() {}
         virtual ~SyntaxTreeBase() {}
 
-        virtual SynTreeNodeBase* GetSynTree() const {}
+        virtual SynTreeNodeBase* GetSynTree() const { return NULL; }
 
     protected:
 

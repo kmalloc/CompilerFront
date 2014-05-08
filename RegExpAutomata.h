@@ -44,7 +44,7 @@ class RegExpNFA: public AutomatonBase
     protected:
 
         int  BuildNFA(RegExpSyntaxTree* tree);
-        void RunNFA(const char* ps, const char* pe);
+        bool RunNFA(int start, int accept, const char* ps, const char* pe);
 
 #ifdef SUPPORT_REG_EXP_BACK_REFEREENCE
         void ConstructReferenceState(int st, int to, const char* ps, const char* pe);

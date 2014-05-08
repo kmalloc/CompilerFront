@@ -421,6 +421,12 @@ TEST(test_matching_txt, test_automata_gen)
 {
     std::vector<nfa_case*> cases;
 
+    nfa_case* c8_1 = new nfa_case("a([bc])(cd)", false);
+    c8_1->AddTestCase("abcd", true);
+    c8_1->AddTestCase("abccd", false);
+    c8_1->AddTestCase("abd", false);
+    cases.push_back(c8_1);
+
     nfa_case* c8 = new nfa_case("a([bc]*)(c*d)", false);
     c8->AddTestCase("abcd", true);
     c8->AddTestCase("abccd", true);
@@ -511,7 +517,6 @@ TEST(test_matching_txt, test_automata_gen)
     c7_0->AddTestCase("abe", true);
     cases.push_back(c7_0);
 
-    
     nfa_case* c8_0 = new nfa_case("a([bc]+)(c*d)", false);
     c8_0->AddTestCase("abcd", true);
     c8_0->AddTestCase("abcbccd", true);
@@ -556,15 +561,14 @@ TEST(test_matching_txt, test_automata_gen)
         for (std::map<std::string, bool>::iterator it = cases[i]->txt2match_.begin();
                 it != cases[i]->txt2match_.end(); ++it)
         {
+            std::cout << "case:" << i << ", pattern:" << cases[i]->pattern_ << ", test:" << it->first << std::endl;
             try
             {
-                EXPECT_EQ(it->second, cases[i]->nfa_.RunMachine(it->first.c_str(), it->first.c_str() + it->first.size() - 1)) \
-                    << "case:" << i << ", pattern:" << cases[i]->pattern_ << ", test:" << it->first << std::endl;
+                EXPECT_EQ(it->second, cases[i]->nfa_.RunMachine(it->first.c_str(), it->first.c_str() + it->first.size() - 1));
             }
             catch (...)
             {
-                std::cout << "exception occurs." << std::endl
-                    << "case:" << i << ", pattern:" << cases[i]->pattern_ << ", test:" << it->first << std::endl;
+                std::cout << "exception occurs." << std::endl;
             }
         }
 

@@ -44,10 +44,12 @@ int RegExpNFA::BuildNFA(RegExpSyntaxTree* tree)
             if (NFAStatTran_[accept_][i].empty()) NFAStatTran_[accept_][i].push_back(accept_);
         }
     }
+
+    return num;
 }
 
 // merge s2 into s1
-void RegExpNFA::MergeState(int s1, int s2)
+void RegExpNFA::MergeState(int, int)
 {
 }
 
@@ -136,7 +138,7 @@ int RegExpNFA::BuildStateForLeafNode(RegExpSynTreeLeafNode* ln, int& start, int&
     else if (lt == RegExpSynTreeNodeLeafNodeType_Alt)
     {
         std::vector<int> acc(1, accept);
-        for (int i = 0; i < txt.size(); ++i)
+        for (size_t i = 0; i < txt.size(); ++i)
         {
             NFAStatTran_[start][txt[i]] = acc;
         }
@@ -377,7 +379,7 @@ int RegExpNFA::AddStateWithEpsilon(int st, std::vector<char>& isOn, std::vector<
 {
     isOn[st] = 1;
     to.push_back(st);
-    for (int i = 0; i < NFAStatTran_[st][STATE_EPSILON].size(); ++i)
+    for (size_t i = 0; i < NFAStatTran_[st][STATE_EPSILON].size(); ++i)
     {
         int epsilon = NFAStatTran_[st][STATE_EPSILON][i];
         if (isOn[epsilon]) continue;
@@ -411,6 +413,11 @@ void RegExpNFA::ConstructReferenceState(int st, int to, const char* ps, const ch
 */
 bool RegExpNFA::RunMachine(const char* ps, const char* pe)
 {
+    return RunNFA(start_, accept_, ps, pe);
+}
+
+bool RegExpNFA::RunNFA(int start, int accept, const char* ps, const char* pe)
+{
     char ch;
     const char* in = ps;
 
@@ -434,9 +441,9 @@ bool RegExpNFA::RunMachine(const char* ps, const char* pe)
     curStat.reserve(states_.size());
     toStat.reserve(states_.size());
 
-    AddStateWithEpsilon(start_, alreadyOn, curStat);
+    AddStateWithEpsilon(start, alreadyOn, curStat);
 
-    for (int i = 0; i < curStat.size(); ++i)
+    for (size_t i = 0; i < curStat.size(); ++i)
     {
         alreadyOn[curStat[i]] = false;
 #ifdef SUPPORT_REG_EXP_BACK_REFEREENCE
@@ -457,7 +464,7 @@ bool RegExpNFA::RunMachine(const char* ps, const char* pe)
     while (in <= pe && !curStat.empty())
     {
         ch = *in++;
-        for (int i = 0; i < curStat.size(); ++i)
+        for (size_t i = 0; i < curStat.size(); ++i)
         {
             int st = curStat[i];
             const std::vector<int>& vc = NFAStatTran_[st][ch];
@@ -476,7 +483,7 @@ bool RegExpNFA::RunMachine(const char* ps, const char* pe)
 
             if (vc.empty()) continue;
 
-            for (int j = 0; j < vc.size(); ++j)
+            for (size_t j = 0; j < vc.size(); ++j)
             {
                 if (alreadyOn[vc[j]]) continue;
 
@@ -491,11 +498,18 @@ bool RegExpNFA::RunMachine(const char* ps, const char* pe)
         unit_state_end = 0;
         unit_state_start = 0;
 
-        for (int i = 0; i < curStat.size(); ++i)
+        for (size_t i = 0; i < curStat.size(); ++i)
         {
             alreadyOn[curStat[i]] = false;
             unit_state_end = std::max(unit_state_end, states_[curStat[i]].UnitEnd());
             unit_state_start = std::max(unit_state_start, states_[curStat[i]].UnitStart());
+        }
+
+        for (int i = 0; i < unit_state_end; ++i)
+        {
+            unitTxt[curUnit].second = in;
+            curUnitStack.pop_back();
+            curUnit = curUnitStack.empty()? -1 : curUnitStack[curUnitStack.size() - 1];
         }
 
         for (int i = 0; i < unit_state_start; ++i)
@@ -505,13 +519,7 @@ bool RegExpNFA::RunMachine(const char* ps, const char* pe)
             curUnitStack.push_back(curUnit);
         }
 
-        for (int i = 0; i < unit_state_end; ++i)
-        {
-            unitTxt[curUnit].second = in;
-            curUnitStack.pop_back();
-            curUnit = curUnitStack.empty()? -1 : curUnitStack[curUnitStack.size() - 1];
-        }
-#else
+     #else
         for (int i = 0; i < curStat.size(); ++i)
         {
             alreadyOn[curStat[i]] = false;
@@ -519,7 +527,7 @@ bool RegExpNFA::RunMachine(const char* ps, const char* pe)
 #endif
     }
 
-    return !curStat.empty() && std::find(curStat.begin(), curStat.end(), accept_) != curStat.end();
+    return !curStat.empty() && std::find(curStat.begin(), curStat.end(), accept) != curStat.end();
 }
 
 void RegExpNFA::SerializeState() const
