@@ -7,7 +7,7 @@ DEPS=RegExpParser
 DEPS_PATH=../
 INCLUDE=-I./ -I../
 LINKPATH=-L../
-LINKLIBS=-lpthread -lgtest_main $(foreach i,$(DEPS),-l${i})
+LINKLIBS=$(foreach i,$(DEPS),-l${i}) -lgtest_main -lgtest -lpthread
 
 GTEST_LIB = -L$(GTEST_DIR)/lib/.libs
 GTEST_HEADERS = -I$(GTEST_DIR)/include/gtest
@@ -22,7 +22,7 @@ OUTPUT=testRegExp
 	$(CC) $(CFLAGS) $(INCLUDE) $(GTEST_HEADERS) $< -o $@
 
 $(OUTPUT) : $(OBJECTS) $(foreach i,$(DEPS),$(DEPS_PATH)lib${i}.a)
-	$(CC) -o $@ $^ $(LINKLIBS) $(GTEST_LIB) $(LINKPATH)
+	$(CC) -o $@ $^ $(GTEST_LIB) $(LINKPATH) $(LINKLIBS)
 	./$(OUTPUT)
 
 clean:

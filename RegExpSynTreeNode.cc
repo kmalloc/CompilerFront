@@ -42,7 +42,7 @@ RegExpSynTreeLeafNode::RegExpSynTreeLeafNode(const char* s, const char* e, int p
     {
         leafType_ = RegExpSynTreeNodeLeafNodeType_Esc;
         text_ = *(s + 1);
-        // TODO, handle \1, \2
+        // TODO, to support back referencing we need to handle \1, \2
     }
     else if (*s == '[')
     {

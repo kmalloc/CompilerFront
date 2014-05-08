@@ -166,11 +166,15 @@ int RegExpNFA::BuildStateForLeafNode(RegExpSynTreeLeafNode* ln, int& start, int&
     }
     else if (lt == RegExpSynTreeNodeLeafNodeType_Ref)
     {
+#ifdef SUPPORT_REG_EXP_BACK_REFEREENCE
         RegExpSynTreeRefNode* rt = dynamic_cast<RegExpSynTreeRefNode*>(ln);
         NFAStatTran_[start][STATE_TRAN_MAX].push_back(accept);
         NFAStatTran_[start][STATE_TRAN_MAX].push_back(rt->GetRef());
         states_[start].AppendType(State_Ref);
         // states_[accept].AppendType(State_Ref);
+#else
+        assert(0);
+#endif
     }
     else
     {
