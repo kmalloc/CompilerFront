@@ -368,7 +368,7 @@ TEST(test_reg_exp_nfa_gen, test_automata_gen)
         start = nfa.GetStartState();
         accept = nfa.GetAcceptState();
 
-        RegExpNFA::NFA_TRAN_T trans = nfa.GetNFATran();
+        RegExpNFA::NFA_TRAN_T& trans = nfa.NFAStatTran_;
 
         for (RegExpNFACase::nfa_set::iterator nit = cases[i].states_.begin(); nit != cases[i].states_.end(); ++nit)
         {
@@ -396,7 +396,7 @@ class nfa_case
     public:
 
         nfa_case(const char* pattern, bool partial = true)
-            :pattern_(pattern), nfa_(partial)
+            :pattern_(pattern), nfa_(partial), tree_(), txt2match_()
         {
             tree_.BuildSyntaxTree(pattern, pattern + strlen(pattern) - 1);
             nfa_.BuildMachine(&tree_);
@@ -421,8 +421,9 @@ TEST(test_matching_txt, test_automata_gen)
 {
     std::vector<nfa_case*> cases;
 
-    nfa_case* c8_1 = new nfa_case("a([bc])(cd)", false);
-    c8_1->AddTestCase("abcd", true);
+    nfa_case* c8_1 = new nfa_case("a([bc])(cd)\\0\\1", false);
+    c8_1->AddTestCase("abcdbcd", true);
+    c8_1->AddTestCase("abcdcd", false);
     c8_1->AddTestCase("abccd", false);
     c8_1->AddTestCase("abd", false);
     cases.push_back(c8_1);
@@ -433,6 +434,7 @@ TEST(test_matching_txt, test_automata_gen)
     c8->AddTestCase("cde", false);
     c8->AddTestCase("ab", false);
     c8->AddTestCase("abd", true);
+
     cases.push_back(c8);
 
     nfa_case* c1 = new nfa_case("^([abc]+\\d)*(a|b)+3\\w2e");

@@ -12,6 +12,10 @@
 RegExpNFA::RegExpNFA(bool partial)
     :AutomatonBase(AutomatonType_NFA), stateIndex_(0)
     ,headState_(-1), tailState_(-1), support_partial_match_(partial)
+    ,states_(), NFAStatTran_()
+#ifdef SUPPORT_REG_EXP_BACK_REFERENCE
+    ,unitMatchPair_()
+#endif
 {
 }
 
@@ -26,7 +30,14 @@ int RegExpNFA::BuildNFA(RegExpSyntaxTree* tree)
     states_.clear();
     NFAStatTran_.clear();
 
-    states_.reserve(tree->GetNodeNumber() * 2);
+#ifdef SUPPORT_REG_EXP_BACK_REFERENCE
+    unitMatchPair_.clear();
+#endif
+
+    int leaf_node_num = tree->GetNodeNumber() * 2;
+    states_.reserve(leaf_node_num);
+    NFAStatTran_.reserve(leaf_node_num);
+
     int num = BuildNFAImp(dynamic_cast<RegExpSynTreeNode*>(tree->GetSynTree()), start_, accept_);
 
     if (support_partial_match_ && headState_ == -1)
@@ -96,11 +107,12 @@ int RegExpNFA::BuildNFAImp(RegExpSynTreeNode* root, int& start, int& accept)
         assert(0);
     }
 
-#ifdef SUPPORT_REG_EXP_BACK_REFEREENCE
+#ifdef SUPPORT_REG_EXP_BACK_REFERENCE
     if (root->IsUnit())
     {
         states_[start].SetStartUnit();
         states_[accept].SetEndUnit();
+        unitMatchPair_[start] = accept;
     }
 #endif
 
@@ -168,7 +180,7 @@ int RegExpNFA::BuildStateForLeafNode(RegExpSynTreeLeafNode* ln, int& start, int&
     }
     else if (lt == RegExpSynTreeNodeLeafNodeType_Ref)
     {
-#ifdef SUPPORT_REG_EXP_BACK_REFEREENCE
+#ifdef SUPPORT_REG_EXP_BACK_REFERENCE
         RegExpSynTreeRefNode* rt = dynamic_cast<RegExpSynTreeRefNode*>(ln);
         NFAStatTran_[start][STATE_TRAN_MAX].push_back(accept);
         NFAStatTran_[start][STATE_TRAN_MAX].push_back(rt->GetRef());
@@ -390,7 +402,59 @@ int RegExpNFA::AddStateWithEpsilon(int st, std::vector<char>& isOn, std::vector<
     return  to.size();
 }
 
-#ifdef SUPPORT_REG_EXP_BACK_REFEREENCE
+#ifdef SUPPORT_REG_EXP_BACK_REFERENCE
+bool RegExpNFA::CheckClosureTrans(int st, std::vector<char>& isCheck, char ch) const
+{
+    const std::vector<int>& vc = NFAStatTran_[st][STATE_EPSILON];
+    if (!NFAStatTran_[st][ch].empty()) return true;
+
+    isCheck[st] = 1;
+    for (size_t i = 0; i < vc.size(); ++i)
+    {
+        st = vc[i];
+        if (isCheck[st]) continue;
+
+        if (CheckClosureTrans(st, isCheck, ch)) return true;
+    }
+
+    return false;
+}
+
+bool RegExpNFA::IsStateInEpsilonClosure(int st, int select, std::vector<char>& isCheck) const
+{
+    const std::vector<int>& vc = NFAStatTran_[st][STATE_EPSILON];
+
+    isCheck[st] = 1;
+    for (size_t i = 0; i < vc.size(); ++i)
+    {
+        if (select == vc[i]) return true;
+        if (isCheck[vc[i]]) continue;
+
+        if (IsStateInEpsilonClosure(vc[i], select, isCheck)) return true;
+    }
+
+    return false;
+}
+
+int RegExpNFA::SaveCaptureGroup(const std::vector<UnitStartInfo>& unitStart,
+        int endState, const char* endTxt, std::vector<UnitInfo>& groupCature)
+{
+    int co = 0;
+    for (size_t i = 0; i < unitStart.size(); ++i)
+    {
+        int st = unitStart[i].first;
+        const char* txtStart = unitStart[i].second;
+
+        if (unitMatchPair_[st] == endState)
+        {
+            co++;
+            groupCature.push_back(UnitInfo(st, endState, txtStart, endTxt));
+        }
+    }
+
+    return co;
+}
+
 void RegExpNFA::ConstructReferenceState(int st, int to, const char* ps, const char* pe)
 {
     int new_st;
@@ -402,6 +466,7 @@ void RegExpNFA::ConstructReferenceState(int st, int to, const char* ps, const ch
         new_st = CreateState(State_Norm);
         NFAStatTran_[st][*ps].push_back(new_st);
         st = new_st;
+        ++ps;
     }
 
     NFAStatTran_[st][STATE_EPSILON].push_back(to);
@@ -421,17 +486,20 @@ bool RegExpNFA::RunNFA(int start, int accept, const char* ps, const char* pe)
     char ch;
     const char* in = ps;
 
-#ifdef SUPPORT_REG_EXP_BACK_REFEREENCE
-    int curUnit = -1;
-    short unit_state_end   = 0;
-    short unit_state_start = 0;
+#ifdef SUPPORT_REG_EXP_BACK_REFERENCE
+    std::vector<int> curUnitEndStack;
+    std::vector<int> curUnitStartStack;
+    std::vector<int> tmpUnitStart;
+    std::vector<int> tmpUnitEnd;
+    std::vector<UnitInfo> groupCature;
+    std::vector<UnitStartInfo> curUnitSelectedStack;
 
-    typedef std::pair<const char*, const char*> UnitTxtAddr;
-    std::vector<short> curUnitStack;
-    std::vector<UnitTxtAddr> unitTxt;
-
-    unitTxt.reserve(states_.size());
-    curUnitStack.reserve(states_.size());
+    tmpUnitStart.reserve(states_.size());
+    tmpUnitEnd.reserve(states_.size());
+    curUnitEndStack.reserve(states_.size());
+    curUnitStartStack.reserve(states_.size());
+    groupCature.reserve(states_.size());
+    curUnitSelectedStack.reserve(states_.size());
 #endif
 
     std::vector<int> curStat;
@@ -446,85 +514,98 @@ bool RegExpNFA::RunNFA(int start, int accept, const char* ps, const char* pe)
     for (size_t i = 0; i < curStat.size(); ++i)
     {
         alreadyOn[curStat[i]] = false;
-#ifdef SUPPORT_REG_EXP_BACK_REFEREENCE
-        unit_state_end = std::max(unit_state_end, states_[curStat[i]].UnitEnd());
-        unit_state_start = std::max(unit_state_start, states_[curStat[i]].UnitStart());
+#ifdef SUPPORT_REG_EXP_BACK_REFERENCE
+        if (states_[curStat[i]].UnitStart()) curUnitStartStack.push_back(curStat[i]);
+        if (states_[curStat[i]].UnitEnd()) curUnitEndStack.push_back(curStat[i]);
 #endif
     }
-
-#ifdef SUPPORT_REG_EXP_BACK_REFEREENCE
-    for (int i = 0; i < unit_state_start; ++i)
-    {
-        unitTxt.push_back(UnitTxtAddr(in, NULL));
-        curUnit = unitTxt.size() - 1;
-        curUnitStack.push_back(curUnit);
-    }
-#endif
 
     while (in <= pe && !curStat.empty())
     {
         ch = *in++;
+
+#ifdef SUPPORT_REG_EXP_BACK_REFERENCE
+        tmpUnitStart.clear();
+        for (size_t j = 0; j < curUnitStartStack.size(); ++j)
+        {
+            int st = curUnitStartStack[j];
+
+            std::vector<char> isCheck(states_.size(), 0);
+            if (CheckClosureTrans(st, isCheck, ch))
+            {
+                curUnitSelectedStack.push_back(UnitStartInfo(st, in - 1));
+                continue;
+            }
+
+            tmpUnitStart.push_back(st);
+        }
+
+        tmpUnitStart.swap(curUnitStartStack);
+        tmpUnitEnd.clear();
+
+        for (size_t j = 0; j < curUnitEndStack.size(); ++j)
+        {
+            int st = curUnitEndStack[j];
+            std::vector<char> isCheck(states_.size(), 0);
+
+            if (IsStateInEpsilonClosure(st, st, isCheck))
+            {
+                tmpUnitEnd.push_back(st);
+            }
+            else
+            {
+                SaveCaptureGroup(curUnitSelectedStack, st, in - 2, groupCature);
+            }
+        }
+
+        curUnitEndStack.swap(tmpUnitEnd);
+#endif
+
         for (size_t i = 0; i < curStat.size(); ++i)
         {
             int st = curStat[i];
-            const std::vector<int>& vc = NFAStatTran_[st][ch];
+            const std::vector<int>* vc = &(NFAStatTran_[st][ch]);
 
-#ifdef SUPPORT_REG_EXP_BACK_REFEREENCE
+#ifdef SUPPORT_REG_EXP_BACK_REFERENCE
             if (states_[st].GetType() & State_Ref)
             {
                 // reference state
                 assert(NFAStatTran_[st][STATE_TRAN_MAX].size() == 2);
 
-                int unit = NFAStatTran_[st][STATE_TRAN_MAX][1];
                 int to   = NFAStatTran_[st][STATE_TRAN_MAX][0];
-                ConstructReferenceState(st, to, unitTxt[unit].first, unitTxt[unit].second);
+                int unit = NFAStatTran_[st][STATE_TRAN_MAX][1];
+
+                assert(unit < groupCature.size());
+
+                ConstructReferenceState(st, to,
+                        groupCature[unit].txtStart_, groupCature[unit].txtEnd_);
+
+                alreadyOn.resize(states_.size(), 0);
+                vc = &(NFAStatTran_[st][ch]);
             }
+
 #endif
+            if (vc->empty()) continue;
 
-            if (vc.empty()) continue;
-
-            for (size_t j = 0; j < vc.size(); ++j)
+            for (size_t j = 0; j < vc->size(); ++j)
             {
-                if (alreadyOn[vc[j]]) continue;
+                if (alreadyOn[(*vc)[j]]) continue;
 
-                AddStateWithEpsilon(vc[j], alreadyOn, toStat);
+                AddStateWithEpsilon((*vc)[j], alreadyOn, toStat);
             }
         }
 
         curStat.swap(toStat);
         toStat.clear();
 
-#ifdef SUPPORT_REG_EXP_BACK_REFEREENCE
-        unit_state_end = 0;
-        unit_state_start = 0;
-
         for (size_t i = 0; i < curStat.size(); ++i)
         {
             alreadyOn[curStat[i]] = false;
-            unit_state_end = std::max(unit_state_end, states_[curStat[i]].UnitEnd());
-            unit_state_start = std::max(unit_state_start, states_[curStat[i]].UnitStart());
-        }
-
-        for (int i = 0; i < unit_state_end; ++i)
-        {
-            unitTxt[curUnit].second = in;
-            curUnitStack.pop_back();
-            curUnit = curUnitStack.empty()? -1 : curUnitStack[curUnitStack.size() - 1];
-        }
-
-        for (int i = 0; i < unit_state_start; ++i)
-        {
-            unitTxt.push_back(UnitTxtAddr(in, NULL));
-            curUnit = unitTxt.size() - 1;
-            curUnitStack.push_back(curUnit);
-        }
-
-     #else
-        for (int i = 0; i < curStat.size(); ++i)
-        {
-            alreadyOn[curStat[i]] = false;
-        }
+#ifdef SUPPORT_REG_EXP_BACK_REFERENCE
+            if (states_[curStat[i]].UnitStart()) curUnitStartStack.push_back(curStat[i]);
+            if (states_[curStat[i]].UnitEnd()) curUnitEndStack.push_back(curStat[i]);
 #endif
+        }
     }
 
     return !curStat.empty() && std::find(curStat.begin(), curStat.end(), accept) != curStat.end();

@@ -41,10 +41,21 @@ bool RegExpTokenizer::IsMetaChar(char c) const
     return IsRegExpMetaChar(c);
 }
 
+#ifdef SUPPORT_REG_EXP_BACK_REFERENCE
+bool RegExpTokenizer::IsRefToken(const char* s)
+{
+    return *s == '\\' && std::isdigit(*(s+1));
+}
+#endif
+
 bool RegExpTokenizer::CanCharEscape(char c)
 {
-    //TODO, handle \1, \2, ..,\99
-    return IsRegExpMetaChar(c) || (c == 's' || c == 'w' || c == 'd');
+    return IsRegExpMetaChar(c) || (c == 's' || c == 'w' || c == 'd'
+#ifdef SUPPORT_REG_EXP_BACK_REFERENCE
+            || (c >= '0' && c <= '9'));
+#else
+        );
+#endif
 }
 
 const char* RegExpTokenizer::IsToken(const char* s, const char* e) const
@@ -62,7 +73,11 @@ const char* RegExpTokenizer::IsToken(const char* s, const char* e) const
         return NULL;
     }
 
-    if (*s == '\\' && CanCharEscape(*(s + 1)) && s + 1 == e) return s;
+#ifdef SUPPORT_REG_EXP_BACK_REFERENCE
+    if (IsRefToken(s)) return s + 1 + (std::isdigit(*(s + 2)) != 0);
+#endif
+
+    if (*s == '\\' && CanCharEscape(*(s + 1)) && s + 1 == e) return e;
 
     if (IsPlaceHolderMetaChar(*s) && s == e) return s;
 
@@ -75,7 +90,7 @@ const char* RegExpTokenizer::IsToken(const char* s, const char* e) const
 
 const char* RegExpTokenizer::IsToken(const std::string& str) const
 {
-    if (str.empty()) return false;
+    if (str.empty()) return NULL;
 
     return IsToken(&str[0], &str[str.size() - 1]);
 }
@@ -223,7 +238,7 @@ void RegExpTokenizer::ExtractRegUnit(const char* ps, const char* pe,
         return;
     }
 
-    if ((ec == '(' || ec == '{' || ec == '[' | ec == '|'
+    if ((ec == '(' || ec == '{' || ec == '[' || ec == '|'
             || ec == '*' || ec == '?' || ec == '+') && !IsCharEscape(ps, p)) // *(p - 1) != '\\')
     {
         throw LexErrException("invalid occurance of meta-character", p);

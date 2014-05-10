@@ -1,9 +1,13 @@
 CC=g++
 CFLAGS=-c -Wall -Wextra -g
-SOURCES=$(wildcard *.cc)
+SOURCES=$(wildcard *.cc) $(wildcard ../*.cc)
+
+ifneq (${back_reference},0)
+REG_DEFINE += -DSUPPORT_REG_EXP_BACK_REFERENCE
+endif
 
 LIBS=
-DEPS=RegExpParser
+# DEPS=RegExpParser
 DEPS_PATH=../
 INCLUDE=-I./ -I../
 LINKPATH=-L../
@@ -19,14 +23,16 @@ OBJECTS=$(SOURCES:.cc=.o)
 OUTPUT=testRegExp
 
 .cc.o:
-	$(CC) $(CFLAGS) $(INCLUDE) $(GTEST_HEADERS) $< -o $@
-
-$(OUTPUT) : $(OBJECTS) $(foreach i,$(DEPS),$(DEPS_PATH)lib${i}.a)
+	$(CC) $(CFLAGS) $(INCLUDE) $(REG_DEFINE) $(GTEST_HEADERS) $< -o $@
+#$(foreach i,$(DEPS),$(DEPS_PATH)lib${i}.a)
+$(OUTPUT) : $(OBJECTS)
 	$(CC) -o $@ $^ $(GTEST_LIB) $(LINKPATH) $(LINKLIBS)
 	cp ./$(OUTPUT) ./$(OUTPUT).bak
 	./$(OUTPUT)
 	rm -f ./$(OUTPUT).bak
 
 clean:
+	rm ../*.o
 	rm *.o $(OUTPUT)
+	rm -f $(OUTPUT).bak
 

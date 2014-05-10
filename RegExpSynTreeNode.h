@@ -76,6 +76,10 @@ class RegExpSynTreeLeafNode: public RegExpSynTreeNode
 
     protected:
 
+        RegExpSynTreeLeafNode(int pos);
+
+    protected:
+
         RegExpSynTreeNodeLeafNodeType leafType_;
 };
 

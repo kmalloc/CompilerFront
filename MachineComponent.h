@@ -1,9 +1,6 @@
 #ifndef MACHINE_COMPONENT_H_
 #define MACHINE_COMPONENT_H_
 
-//to support back referencing, turn on the following macro, not ready yet
-// #define SUPPORT_REG_EXP_BACK_REFEREENCE
-
 enum StateType
 {
     State_None = 0, // not a state
@@ -24,7 +21,7 @@ struct MachineState
 {
     MachineState(int num, StateType t)
         :no(num), type(t)
-#ifdef SUPPORT_REG_EXP_BACK_REFEREENCE
+#ifdef SUPPORT_REG_EXP_BACK_REFERENCE
         ,unit_type(0)
 #endif
     {
@@ -39,7 +36,7 @@ struct MachineState
     bool IsHeadState() const { return type & State_Head; }
     bool IsTailState() const { return type & State_Tail; }
 
-#ifdef SUPPORT_REG_EXP_BACK_REFEREENCE
+#ifdef SUPPORT_REG_EXP_BACK_REFERENCE
     short unit_type;
     short UnitStart() const { return unit_type & 0x00ff; }
     short UnitEnd() const { return (unit_type & 0xff00) >> 8; }

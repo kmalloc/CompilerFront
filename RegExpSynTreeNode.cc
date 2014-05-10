@@ -42,7 +42,6 @@ RegExpSynTreeLeafNode::RegExpSynTreeLeafNode(const char* s, const char* e, int p
     {
         leafType_ = RegExpSynTreeNodeLeafNodeType_Esc;
         text_ = *(s + 1);
-        // TODO, to support back referencing we need to handle \1, \2
     }
     else if (*s == '[')
     {
@@ -71,14 +70,19 @@ RegExpSynTreeLeafNode::RegExpSynTreeLeafNode(const char* s, const char* e, int p
     }
 }
 
+RegExpSynTreeLeafNode::RegExpSynTreeLeafNode(int pos)
+    :RegExpSynTreeNode(NULL, NULL, RegExpSynTreeNodeType_Leaf, pos)
+{
+}
 
+// reference node
 RegExpSynTreeRefNode::RegExpSynTreeRefNode(const char* s, const char* e, int pos)
-    :RegExpSynTreeLeafNode(s, e, pos), ref_(0)
+    :RegExpSynTreeLeafNode(pos), ref_(0)
 {
     ++s; // skip '\'
-    while (s <= e) ref_ += *s++;
+    while (s <= e) ref_ = 10 * ref_ + *s++ - '0';
 
-    assert(ref_ < 100 && ref_ > 0);
+    assert(ref_ < 100 && ref_ >= 0);
     leafType_ = RegExpSynTreeNodeLeafNodeType_Ref;
 }
 

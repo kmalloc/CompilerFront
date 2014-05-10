@@ -28,6 +28,8 @@ bool RegExpSyntaxTree::BuildSyntaxTree(const char* ps, const char* pe)
     txtEnd_ = pe;
 
     synTreeRoot_ = dynamic_cast<RegExpSynTreeNode*>(ConstructSyntaxTree(ps, pe));
+
+    return true;
 }
 
 SynTreeNodeBase* RegExpSyntaxTree::ConstructSyntaxTree(const char* ps, const char* pe)
@@ -69,8 +71,8 @@ SynTreeNodeBase* RegExpSyntaxTree::ConstructSyntaxTreeImp(const char* ps, const 
     const char* te = tokenizer_->IsToken(ps, pe);
     if (te)
     {
-#ifdef  SUPPORT_REG_EXP_BACK_REFEREENCE
-        if (*ps == '\\' && std::isdigit(*te)) return new RegExpSynTreeRefNode(ps, te, leafIndex_++);
+#ifdef  SUPPORT_REG_EXP_BACK_REFERENCE
+        if (tokenizer_->IsRefToken(ps)) return new RegExpSynTreeRefNode(ps, te, leafIndex_++);
 #endif
 
         return new RegExpSynTreeLeafNode(ps, te, leafIndex_++);

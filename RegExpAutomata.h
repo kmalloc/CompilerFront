@@ -46,7 +46,29 @@ class RegExpNFA: public AutomatonBase
         int  BuildNFA(RegExpSyntaxTree* tree);
         bool RunNFA(int start, int accept, const char* ps, const char* pe);
 
-#ifdef SUPPORT_REG_EXP_BACK_REFEREENCE
+#ifdef SUPPORT_REG_EXP_BACK_REFERENCE
+        struct UnitInfo
+        {
+            UnitInfo(int s, int e, const char* st, const char* et)
+                :stateStart_(s), stateEnd_(e)
+                 ,txtStart_(st), txtEnd_(et)
+            {
+            }
+
+            UnitInfo() {}
+
+            int stateStart_;
+            int stateEnd_;
+            const char* txtStart_;
+            const char* txtEnd_;
+        };
+        typedef std::pair<int, const char*> UnitStartInfo;
+
+        bool CheckClosureTrans(int st, std::vector<char>& isCheck, char ch) const;
+        bool IsStateInEpsilonClosure(int st, int select, std::vector<char>& isCheck) const;
+        int  SaveCaptureGroup(const std::vector<UnitStartInfo>& unitStart,
+                int endState, const char* endTxt, std::vector<UnitInfo>& groupCature);
+
         void ConstructReferenceState(int st, int to, const char* ps, const char* pe);
 #endif
 
@@ -69,7 +91,11 @@ class RegExpNFA: public AutomatonBase
         int headState_, tailState_;
         bool support_partial_match_;
         std::vector<MachineState> states_;
-        std::vector<std::vector<std::vector<int> > > NFAStatTran_; // state to char to state
+        NFA_TRAN_T NFAStatTran_; // state to char to state
+
+#ifdef SUPPORT_REG_EXP_BACK_REFERENCE
+        std::map<int, int> unitMatchPair_;
+#endif
 };
 
 class RegExpDFA: public AutomatonBase

@@ -6,3 +6,4 @@ tags
 *.o
 count.sh
 testRegExp
+testRegExp.bak
