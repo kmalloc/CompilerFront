@@ -1,6 +1,7 @@
 #ifndef REGEXP_AUTOMA_H_
 #define REGEXP_AUTOMA_H_
 
+#include <set>
 #include <map>
 #include <vector>
 #include "AutomatonBase.h"
@@ -62,23 +63,23 @@ class RegExpNFA: public AutomatonBase
             const char* txtStart_;
             const char* txtEnd_;
         };
-        typedef std::pair<int, const char*> UnitStartInfo;
 
-        bool CheckClosureTrans(int st, std::vector<char>& isCheck, char ch) const;
-        bool IsStateInEpsilonClosure(int st, int select, std::vector<char>& isCheck) const;
-        int  SaveCaptureGroup(const std::vector<UnitStartInfo>& unitStart,
+        bool IfStateClosureHasTrans(int st, std::vector<char>& isCheck, char ch) const;
+        int  SaveCaptureGroup(const std::map<int, const char*>& unitStart,
                 int endState, const char* endTxt, std::vector<UnitInfo>& groupCature);
 
         void ConstructReferenceState(int st, int to, const char* ps, const char* pe);
+        void RestoreRefStates(int st, int to, const char* ps, const char* pe);
 #endif
 
     private:
 
         void MergeState(int s1, int s2);
-        int  AddStateWithEpsilon(int st, std::vector<char>& ison, std::vector<int>& to) const;
+        void ReleaseState(int st);
 
         int CreateState(StateType type);
         int BuildNFAImp(RegExpSynTreeNode* node, int& start, int& accept);
+        int AddStateWithEpsilon(int st, std::vector<char>& ison, std::vector<int>& to) const;
 
         int BuildStateForLeafNode(RegExpSynTreeLeafNode* node, int& start, int& accept);
         int BuildStateForStarNode(RegExpSynTreeStarNode* node, int& start, int& accept);
@@ -90,11 +91,14 @@ class RegExpNFA: public AutomatonBase
         int stateIndex_;
         int headState_, tailState_;
         bool support_partial_match_;
+
+        std::vector<int> recycleStates_;
         std::vector<MachineState> states_;
         NFA_TRAN_T NFAStatTran_; // state to char to state
 
 #ifdef SUPPORT_REG_EXP_BACK_REFERENCE
-        std::map<int, int> unitMatchPair_;
+        std::map<int, std::set<int> > unitMatchPair_;
+        std::vector<UnitInfo> groupCapture_;
 #endif
 };
 

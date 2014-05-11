@@ -7,7 +7,7 @@ REG_DEFINE += -DSUPPORT_REG_EXP_BACK_REFERENCE
 endif
 
 LIBS=
-# DEPS=RegExpParser
+#DEPS=RegExpParser
 DEPS_PATH=../
 INCLUDE=-I./ -I../
 LINKPATH=-L../
@@ -24,15 +24,15 @@ OUTPUT=testRegExp
 
 .cc.o:
 	$(CC) $(CFLAGS) $(INCLUDE) $(REG_DEFINE) $(GTEST_HEADERS) $< -o $@
-#$(foreach i,$(DEPS),$(DEPS_PATH)lib${i}.a)
-$(OUTPUT) : $(OBJECTS)
+
+$(OUTPUT) : $(OBJECTS) $(foreach i,$(DEPS),$(DEPS_PATH)lib${i}.a)
 	$(CC) -o $@ $^ $(GTEST_LIB) $(LINKPATH) $(LINKLIBS)
 	cp ./$(OUTPUT) ./$(OUTPUT).bak
-	./$(OUTPUT)
-	rm -f ./$(OUTPUT).bak
+	-./$(OUTPUT)
+	-rm -f ./$(OUTPUT).bak
 
 clean:
-	rm ../*.o
-	rm *.o $(OUTPUT)
-	rm -f $(OUTPUT).bak
+	-rm ../*.o
+	-rm *.o $(OUTPUT)
+	-rm -f $(OUTPUT).bak
 

@@ -421,6 +421,13 @@ TEST(test_matching_txt, test_automata_gen)
 {
     std::vector<nfa_case*> cases;
 
+#ifdef SUPPORT_REG_EXP_BACK_REFERENCE
+    nfa_case* c8_0 = new nfa_case("(((ab)))\\0\\0\\0", false);
+    c8_0->AddTestCase("abababab", true);
+    c8_0->AddTestCase("ababab", false);
+    c8_0->AddTestCase("ababcdab", false);
+    cases.push_back(c8_0);
+
     nfa_case* c8_1 = new nfa_case("a([bc])(cd)\\0\\1", false);
     c8_1->AddTestCase("abcdbcd", true);
     c8_1->AddTestCase("abcdcd", false);
@@ -428,14 +435,64 @@ TEST(test_matching_txt, test_automata_gen)
     c8_1->AddTestCase("abd", false);
     cases.push_back(c8_1);
 
-    nfa_case* c8 = new nfa_case("a([bc]*)(c*d)", false);
-    c8->AddTestCase("abcd", true);
-    c8->AddTestCase("abccd", true);
+    nfa_case* c8 = new nfa_case("a([bc]*)(c*d)\\0", false);
+    c8->AddTestCase("abcdbc", true);
+    c8->AddTestCase("abccdbcc", true);
     c8->AddTestCase("cde", false);
     c8->AddTestCase("ab", false);
-    c8->AddTestCase("abd", true);
-
+    c8->AddTestCase("abdb", true);
     cases.push_back(c8);
+
+    nfa_case* c8_2 = new nfa_case("a([bc]*)(c*d)\\0\\1vef", false);
+    c8_2->AddTestCase("abcdbccdvef", true);
+    c8_2->AddTestCase("abccdbccccdvef", true);
+    c8_2->AddTestCase("abdbdvef", false);
+    c8_2->AddTestCase("abb", false);
+    c8_2->AddTestCase("abdbdvef", true);
+    cases.push_back(c8_2);
+
+    nfa_case* cg = new nfa_case("(a)(b)(cd)\\0\\2\\1", false);
+    cg->AddTestCase("abcdacdb", true);
+    cg->AddTestCase("acb", false);
+    cg->AddTestCase("abcd", false);
+    cases.push_back(cg);
+
+    nfa_case* cg1 = new nfa_case("(((ab)c)e)\\0\\1\\2", false);
+    cg1->AddTestCase("abceababcabce", true);
+    cg1->AddTestCase("abce", false);
+    cg1->AddTestCase("abceab", false);
+    cases.push_back(cg1);
+
+    nfa_case* cg2 = new nfa_case("(a(b(cd)))\\2\\1\\0", false);
+    cg2->AddTestCase("abcdcdbcdabcd", true);
+    cg2->AddTestCase("abcd", false);
+    cg2->AddTestCase("abcdcd", false);
+    cg2->AddTestCase("abcdcdb", false);
+    cases.push_back(cg2);
+
+    nfa_case* cg3 = new nfa_case("(ab|cd)efv\\0", false);
+    cg3->AddTestCase("abefvab", true);
+    cg3->AddTestCase("cdefvcd", true);
+    cg3->AddTestCase("abefvcd", false);
+    cases.push_back(cg3);
+
+    nfa_case* cg4 = new nfa_case("((ab|nm)|cd)efv\\0\\1", false);
+    cg4->AddTestCase("abefvabab", true);
+    cg4->AddTestCase("nmefvnmnm", true);
+    cg4->AddTestCase("abefvab", false);
+    cases.push_back(cg4);
+
+    nfa_case* cg5 = new nfa_case("((ab|nm)|(gh|cd))efv\\0\\1", false);
+    cg5->AddTestCase("abefvabab", true);
+    cg5->AddTestCase("nmefvnmnm", true);
+    cg5->AddTestCase("ghefvghgh", true);
+    cg5->AddTestCase("cdefvcdcd", true);
+    cg5->AddTestCase("cdefvghcd", false);
+    cg5->AddTestCase("cdefvghgh", false);
+    cg5->AddTestCase("nmefvabnm", false);
+    cases.push_back(cg5);
+
+#endif
 
     nfa_case* c1 = new nfa_case("^([abc]+\\d)*(a|b)+3\\w2e");
     c1->AddTestCase("a3b3c2e", true);
@@ -519,14 +576,14 @@ TEST(test_matching_txt, test_automata_gen)
     c7_0->AddTestCase("abe", true);
     cases.push_back(c7_0);
 
-    nfa_case* c8_0 = new nfa_case("a([bc]+)(c*d)", false);
-    c8_0->AddTestCase("abcd", true);
-    c8_0->AddTestCase("abcbccd", true);
-    c8_0->AddTestCase("abccd", true);
-    c8_0->AddTestCase("cde", false);
-    c8_0->AddTestCase("abc", false);
-    c8_0->AddTestCase("abd", true);
-    cases.push_back(c8_0);
+    nfa_case* c8_00 = new nfa_case("a([bc]+)(c*d)", false);
+    c8_00->AddTestCase("abcd", true);
+    c8_00->AddTestCase("abcbccd", true);
+    c8_00->AddTestCase("abccd", true);
+    c8_00->AddTestCase("cde", false);
+    c8_00->AddTestCase("abc", false);
+    c8_00->AddTestCase("abd", true);
+    cases.push_back(c8_00);
 
     nfa_case* c9 = new nfa_case("(ab|a)b*c", false);
     c9->AddTestCase("abc", true);
@@ -558,19 +615,27 @@ TEST(test_matching_txt, test_automata_gen)
     c12->AddTestCase("gh", true);
     cases.push_back(c12);
 
+    nfa_case* c13 = new nfa_case("1addtest vsl(i)e lsdjfsjfsd efljklsee l(vvwwef) \\w\\d kjsdf.*[abc]dwef\
+            for &&wwwevv122455 // vvdwfff ewwwevf fssdfs asdfs ldfjskldfjs 43953485wewew@#@#\\$%\
+            mapvector lsjfsdf 323rfdslfs ljfs{3,5}");
+    c13->AddTestCase("addtest", false);
+    cases.push_back(c13);
+
+
     for (int i = 0; i < cases.size(); ++i)
     {
         for (std::map<std::string, bool>::iterator it = cases[i]->txt2match_.begin();
                 it != cases[i]->txt2match_.end(); ++it)
         {
-            std::cout << "case:" << i << ", pattern:" << cases[i]->pattern_ << ", test:" << it->first << std::endl;
             try
             {
-                EXPECT_EQ(it->second, cases[i]->nfa_.RunMachine(it->first.c_str(), it->first.c_str() + it->first.size() - 1));
+                EXPECT_EQ(it->second, cases[i]->nfa_.RunMachine(it->first.c_str(), it->first.c_str() + it->first.size() - 1))
+                    << "case:" << i << ", pattern:" << cases[i]->pattern_ << ", test:" << it->first << std::endl;
             }
             catch (...)
             {
-                std::cout << "exception occurs." << std::endl;
+                std::cout << "exception occurs." << std::endl
+                    << "case:" << i << ", pattern:" << cases[i]->pattern_ << ", test:" << it->first << std::endl;
             }
         }
 

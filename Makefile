@@ -24,5 +24,5 @@ $(OUTPUT) : $(OBJECTS)
 	ar rcs $@ $^
 
 clean:
-	rm *.o $(OUTPUT)
+	-rm *.o $(OUTPUT)
 
