@@ -171,9 +171,64 @@ int RegExpNFA::BuildStateForLeafNode(RegExpSynTreeLeafNode* ln, int& start, int&
     else if (lt == RegExpSynTreeNodeLeafNodeType_Alt)
     {
         std::vector<int> acc(1, accept);
-        for (size_t i = 0; i < txt.size(); ++i)
+        bool is_negate = (txt[0] == '^');
+        if (!is_negate)
         {
-            NFAStatTran_[start][txt[i]] = acc;
+            for (size_t i = 0; i < txt.size(); ++i)
+            {
+                if (txt[i] == '-' && (i > 0 && i < txt.size() - 1))
+                {
+                    if (txt[i - 1] > txt[i + 1]) throw LexErrException("range values reversed in []:", ln->GetNodeText().c_str());
+
+                    for (size_t j = txt[i - 1]; j <= txt[i + 1]; ++j)
+                    {
+                        NFAStatTran_[start][j] = acc;
+                    }
+                    i += 1;
+                }
+                else
+                {
+                    if (i < txt.size() - 2 && txt[i] == '\\' && txt[i + 1] == '-')
+                    {
+                        ++i;
+                    }
+                    NFAStatTran_[start][txt[i]] = acc;
+                }
+            }
+        }
+        else
+        {
+            unsigned short chosen[STATE_TRAN_MAX] = {0};
+            for (size_t i = 1; i < txt.size(); ++i)
+            {
+                if (txt[i] == '-' && (i > 0 && i < txt.size() - 1))
+                {
+                    if (txt[i - 1] > txt[i + 1]) throw LexErrException("range values reversed in []:", ln->GetNodeText().c_str());
+
+                    for (size_t j = txt[i - 1]; j <= txt[i + 1]; ++j)
+                    {
+                        chosen[j] = 1;
+                    }
+
+                    i += 1;
+                }
+                else
+                {
+                    if (i < txt.size() - 2 && txt[i] == '\\' && txt[i + 1] == '-')
+                    {
+                        ++i;
+                    }
+
+                    chosen[txt[i]] = 1;
+                }
+            }
+
+            for (size_t i = 1; i < STATE_TRAN_MAX; ++i)
+            {
+                if (chosen[i]) continue;
+
+                NFAStatTran_[start][i] = acc;
+            }
         }
     }
     else if (lt == RegExpSynTreeNodeLeafNodeType_Esc && (txt[0] == 's' || txt[0] == 'w' || txt[0] == 'd'))

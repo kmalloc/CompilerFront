@@ -621,6 +621,95 @@ TEST(test_matching_txt, test_automata_gen)
     c13->AddTestCase("addtest", false);
     cases.push_back(c13);
 
+    nfa_case* c14 = new nfa_case("abc[vbe-i]yy", false);
+    c14->AddTestCase("abcvyy", true);
+    c14->AddTestCase("abcbyy", true);
+    c14->AddTestCase("abceyy", true);
+    c14->AddTestCase("abcfyy", true);
+    c14->AddTestCase("abcgyy", true);
+    c14->AddTestCase("abchyy", true);
+    c14->AddTestCase("abciyy", true);
+    c14->AddTestCase("abcnyy", false);
+    c14->AddTestCase("abclyy", false);
+    cases.push_back(c14);
+
+    nfa_case* c14_0 = new nfa_case("ab[va-b]c", false);
+    c14_0->AddTestCase("abvc", true);
+    c14_0->AddTestCase("abac", true);
+    c14_0->AddTestCase("abbc", true);
+    c14_0->AddTestCase("abec", false);
+    cases.push_back(c14_0);
+
+    nfa_case* c14_1 = new nfa_case("ab[vb-b]c", false);
+    c14_1->AddTestCase("abbc", true);
+    c14_1->AddTestCase("abec", false);
+    cases.push_back(c14_1);
+
+    nfa_case* c14_2 = new nfa_case("ab[-vb-f]c", false);
+    c14_2->AddTestCase("abbc", true);
+    c14_2->AddTestCase("ab-c", true);
+    c14_2->AddTestCase("abec", true);
+    c14_2->AddTestCase("abmc", false);
+    c14_2->AddTestCase("abpc", false);
+    cases.push_back(c14_2);
+
+    nfa_case* c14_3 = new nfa_case("ab[vb-f\\-]c", false);
+    c14_3->AddTestCase("abbc", true);
+    c14_3->AddTestCase("ab-c", true);
+    c14_3->AddTestCase("ab\\c", true);
+    c14_3->AddTestCase("abec", true);
+    c14_3->AddTestCase("abmc", false);
+    c14_3->AddTestCase("abpc", false);
+    cases.push_back(c14_3);
+
+    nfa_case* c14_4 = new nfa_case("ab[ab\\-f]c", false);
+    c14_4->AddTestCase("abac", true);
+    c14_4->AddTestCase("abbc", true);
+    c14_4->AddTestCase("ab-c", true);
+    c14_4->AddTestCase("abfc", true);
+    c14_4->AddTestCase("ab\\c", false);
+    c14_4->AddTestCase("abcc", false);
+    c14_4->AddTestCase("abec", false);
+    cases.push_back(c14_4);
+
+    nfa_case* c15 = new nfa_case("ab[^qwerty]vn", false);
+    c15->AddTestCase("ab[vn", true);
+    c15->AddTestCase("ab[vn", true);
+    c15->AddTestCase("abuvn", true);
+    c15->AddTestCase("abgvn", true);
+    c15->AddTestCase("abqvn", false);
+    c15->AddTestCase("abwvn", false);
+    c15->AddTestCase("abevn", false);
+    c15->AddTestCase("abrvn", false);
+    c15->AddTestCase("abtvn", false);
+    c15->AddTestCase("abyvn", false);
+    cases.push_back(c15);
+
+    nfa_case* c15_0 = new nfa_case("ab[^qwa-d\\-p]vn", false);
+    c15_0->AddTestCase("ab[vn", true);
+    c15_0->AddTestCase("ab[vn", true);
+    c15_0->AddTestCase("abuvn", true);
+    c15_0->AddTestCase("abgvn", true);
+    c15_0->AddTestCase("ab-vn", false);
+    c15_0->AddTestCase("abpvn", false);
+    c15_0->AddTestCase("abqvn", false);
+    c15_0->AddTestCase("abwvn", false);
+    c15_0->AddTestCase("abavn", false);
+    c15_0->AddTestCase("abbvn", false);
+    c15_0->AddTestCase("abcvn", false);
+    c15_0->AddTestCase("abdvn", false);
+    cases.push_back(c15_0);
+
+    nfa_case* c16 = new nfa_case("ab[vb^n\\g\\-h]my", false);
+    c16->AddTestCase("abvmy", true);
+    c16->AddTestCase("abbmy", true);
+    c16->AddTestCase("abnmy", true);
+    c16->AddTestCase("ab\\my", true);
+    c16->AddTestCase("abgmy", true);
+    c16->AddTestCase("ab-my", true);
+    c16->AddTestCase("abhmy", true);
+    c16->AddTestCase("ab^my", true);
+    cases.push_back(c16);
 
     for (int i = 0; i < cases.size(); ++i)
     {

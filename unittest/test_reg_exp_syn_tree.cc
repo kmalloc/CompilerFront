@@ -263,6 +263,9 @@ TEST(test_construct_reg_syn_tree, test_reg_exp_automata_gen)
         "^abc(ef){1,23}([abcefg]{1,4}|gve)",
         "(abc)+\\d((ev){2,5})?",
         "a",
+        "[ve-jf]+abc", // 21
+        "[^ve-jf]+abc", // 21
+        "[b^ve-jf]+abc", // 21
     };
 
     RegExpSyntaxTree regSynTree;
