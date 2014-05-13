@@ -8,6 +8,7 @@
 RegExpSyntaxTree::RegExpSyntaxTree()
     :synTreeRoot_(NULL), leafIndex_(0)
     ,tokenizer_(new RegExpTokenizer())
+    ,unitCounter_(-1)
 {
 }
 
@@ -26,6 +27,7 @@ bool RegExpSyntaxTree::BuildSyntaxTree(const char* ps, const char* pe)
     leafIndex_ = 0;
     txtStart_ = ps;
     txtEnd_ = pe;
+    unitCounter_ = -1;
 
     synTreeRoot_ = dynamic_cast<RegExpSynTreeNode*>(ConstructSyntaxTree(ps, pe));
 
@@ -72,7 +74,15 @@ SynTreeNodeBase* RegExpSyntaxTree::ConstructSyntaxTreeImp(const char* ps, const 
     if (te)
     {
 #ifdef  SUPPORT_REG_EXP_BACK_REFERENCE
-        if (tokenizer_->IsRefToken(ps)) return new RegExpSynTreeRefNode(ps, te, leafIndex_++);
+        if (tokenizer_->IsRefToken(ps))
+        {
+            int co = *(ps + 1) - '0';
+            if (std::isdigit(*(ps + 2))) co = co * 10 + *(ps + 2);
+
+            if (co > unitCounter_) throw LexErrException("invalid back reference number, out of range", ps);
+
+            return new RegExpSynTreeRefNode(ps, te, leafIndex_++);
+        }
 #endif
 
         return new RegExpSynTreeLeafNode(ps, te, leafIndex_++);
@@ -93,6 +103,7 @@ SynTreeNodeBase* RegExpSyntaxTree::ConstructSyntaxTreeImp(const char* ps, const 
 
     if (is_parenthesis_unit)
     {
+        ++unitCounter_;
         right = ConstructSyntaxTree(us, ue);
 
         if (right)

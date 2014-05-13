@@ -32,6 +32,7 @@ int RegExpNFA::BuildNFA(RegExpSyntaxTree* tree)
     recycleStates_.clear();
 
 #ifdef SUPPORT_REG_EXP_BACK_REFERENCE
+    groupCapture_.clear();
     unitMatchPair_.clear();
 #endif
 
@@ -131,8 +132,8 @@ int RegExpNFA::BuildNFAImp(RegExpSynTreeNode* root, int& start, int& accept)
 #ifdef SUPPORT_REG_EXP_BACK_REFERENCE
     if (root->IsUnit())
     {
-        states_[start].SetStartUnit();
-        states_[accept].SetEndUnit();
+        states_[start].SetStartUnit(root->IsUnit());
+        states_[accept].SetEndUnit(root->IsUnit());
         unitMatchPair_[start].insert(accept);
     }
 #endif
@@ -511,7 +512,14 @@ int RegExpNFA::SaveCaptureGroup(const std::map<int, const char*>& unitStart,
         if (unitMatchPair_[st].find(endState) != unitMatchPair_[st].end())
         {
             co++;
-            groupCapture_.push_back(UnitInfo(st, endState, txtStart, endTxt));
+            int start_repeat = states_[st].UnitStart();
+            int end_repeat = states_[endState].UnitEnd();
+            int min = std::min(start_repeat, end_repeat);
+
+            for (int i = 0; i < min; ++i)
+            {
+                groupCapture_.push_back(UnitInfo(st, endState, txtStart, endTxt));
+            }
         }
     }
 

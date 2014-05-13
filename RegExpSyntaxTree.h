@@ -27,6 +27,7 @@ class RegExpSyntaxTree: public SyntaxTreeBase
     private:
 
         int leafIndex_;
+        int unitCounter_;
         const char* txtEnd_;
         const char* txtStart_;
 

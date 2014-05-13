@@ -40,8 +40,8 @@ struct MachineState
     short unit_type;
     short UnitStart() const { return unit_type & 0x00ff; }
     short UnitEnd() const { return (unit_type & 0xff00) >> 8; }
-    void SetStartUnit() { unit_type += 0x0001; }
-    void SetEndUnit() { unit_type += 0x0100; }
+    void SetStartUnit(int num = 1) { unit_type += num; }
+    void SetEndUnit(int num = 1) { unit_type += (num << 8); }
 #endif
 
     int no;

@@ -422,7 +422,7 @@ TEST(test_matching_txt, test_automata_gen)
     std::vector<nfa_case*> cases;
 
 #ifdef SUPPORT_REG_EXP_BACK_REFERENCE
-    nfa_case* c8_0 = new nfa_case("(((ab)))\\0\\0\\0", false);
+    nfa_case* c8_0 = new nfa_case("(((ab)))\\0\\1\\2", false);
     c8_0->AddTestCase("abababab", true);
     c8_0->AddTestCase("ababab", false);
     c8_0->AddTestCase("ababcdab", false);
