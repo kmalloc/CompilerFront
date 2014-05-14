@@ -1,7 +1,7 @@
 #ifndef SYNTAX_TREE_BASE_H_
 #define SYNTAX_TREE_BASE_H_
 
-#include "NonCopyable.h"
+#include "Basic/NonCopyable.h"
 #include "SyntaxTreeNodeBase.h"
 
 class SyntaxTreeBase: public NonCopyable

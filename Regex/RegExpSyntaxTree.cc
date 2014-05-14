@@ -1,7 +1,7 @@
 #include "RegExpSyntaxTree.h"
 
 #include <limits.h>
-#include "LexException.h"
+#include "Parsing/LexException.h"
 #include "RegExpTokenizer.h"
 #include "RegExpSynTreeNode.h"
 

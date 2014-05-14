@@ -9,7 +9,7 @@ endif
 LIBS=
 #DEPS=RegExpParser
 DEPS_PATH=../
-INCLUDE=-I./ -I../
+INCLUDE=-I./ -I../ -I../../
 LINKPATH=-L../
 LINKLIBS=$(foreach i,$(DEPS),-l${i}) -lgtest_main -lgtest -lpthread
 

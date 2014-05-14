@@ -1,7 +1,7 @@
 #ifndef REG_EX_SYNTAX_TREE_NODE_H_
 #define REG_EX_SYNTAX_TREE_NODE_H_
 
-#include "SyntaxTreeNodeBase.h"
+#include "Parsing/SyntaxTreeNodeBase.h"
 
 enum RegExpSynTreeNodeType
 {

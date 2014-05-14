@@ -4,7 +4,7 @@
 #include <stdlib.h>
 #include <assert.h>
 #include <algorithm>
-#include "LexException.h"
+#include "Parsing/LexException.h"
 #include "RegExpTokenizer.h"
 #include "RegExpSyntaxTree.h"
 #include "RegExpSynTreeNode.h"

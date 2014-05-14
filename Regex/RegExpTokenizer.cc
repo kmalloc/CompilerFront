@@ -3,7 +3,7 @@
 #include <string>
 #include <limits.h>
 #include <assert.h>
-#include "LexException.h"
+#include "Parsing/LexException.h"
 
 bool RegExpTokenizer::IsCharEscape(const char* ps, const char* pc)
 {

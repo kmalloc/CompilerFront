@@ -2,7 +2,7 @@
 #define SYNTAX_TREE_NODE_BASE_H_
 
 #include <string>
-#include "NonCopyable.h"
+#include "Basic/NonCopyable.h"
 
 class SynTreeNodeBase: public NonCopyable
 {

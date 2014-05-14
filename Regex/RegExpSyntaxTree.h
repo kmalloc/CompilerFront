@@ -2,7 +2,7 @@
 #define REG_EXP_SYNTAX_TREE_H_
 
 #include <vector>
-#include "SyntaxTreeBase.h"
+#include "Parsing/SyntaxTreeBase.h"
 #include "RegExpSynTreeNode.h"
 
 class RegExpTokenizer;

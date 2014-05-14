@@ -1,7 +1,7 @@
 #ifndef REGEXP_TOKENIZER_H_
 #define REGEXP_TOKENIZER_H_
 
-#include "LexTokenizerBase.h"
+#include "Parsing/LexTokenizerBase.h"
 
 class RegExpTokenizer: public LexTokenizerBase
 {

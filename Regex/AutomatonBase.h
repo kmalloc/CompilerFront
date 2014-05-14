@@ -3,8 +3,8 @@
 
 #include <vector>
 #include <string>
-#include "NonCopyable.h"
-#include "SyntaxTreeBase.h"
+#include "Basic/NonCopyable.h"
+#include "Parsing/SyntaxTreeBase.h"
 
 enum AutomatonType
 {

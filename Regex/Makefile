@@ -10,6 +10,7 @@ endif
 
 LIBS=
 INCLUDE=-I./
+INCLUDE+=-I../
 
 OBJECTS=$(SOURCES:.cc=.o)
 
