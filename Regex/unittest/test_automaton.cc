@@ -48,6 +48,8 @@ TEST(test_matching_txt, test_automata_gen)
     // TODO, a(bc)(\\0df)(n\\1)
     nfa_case* c8_5 = new nfa_case("a(bc)*fe\\0", false);
     c8_5->AddTestCase("afe", true);
+    c8_5->AddTestCase("abcfebc", true);
+    c8_5->AddTestCase("abcbcfebc", true);
     c8_5->AddTestCase("afefe", false);
     cases.push_back(c8_5);
 
@@ -368,12 +370,26 @@ TEST(test_matching_txt, test_automata_gen)
     cases.push_back(c17);
 
     nfa_case* c17_0 = new nfa_case("(ev){2,5}", false);
+    c17_0->AddTestCase("evevevevev", true);
+    c17_0->AddTestCase("evevevev", true);
     c17_0->AddTestCase("evevev", true);
     c17_0->AddTestCase("evev", true);
     c17_0->AddTestCase("ev", false);
-    c17_0->AddTestCase("evevevevev", false);
     c17_0->AddTestCase("evevevevevev", false);
     cases.push_back(c17_0);
+
+    nfa_case* c18_0 = new nfa_case("(ab){2, 4}\\0", false);
+    c18_0->AddTestCase("ababababab", true);
+    c18_0->AddTestCase("ababab", true);
+    c18_0->AddTestCase("abababababababab", false);
+    cases.push_back(c18_0);
+
+    nfa_case* c18_1 = new nfa_case("(ab){2, 4}ce\\0mn", false);
+    c18_1->AddTestCase("ababababceabmn", true);
+    c18_1->AddTestCase("ababceabmn", true);
+    c18_1->AddTestCase("abababababceababceabmn", false);
+    cases.push_back(c18_1);
+
 
     for (int i = 0; i < cases.size(); ++i)
     {

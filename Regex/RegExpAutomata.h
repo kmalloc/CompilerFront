@@ -78,13 +78,13 @@ class RegExpNFA: public AutomatonBase
         void ReleaseState(int st);
 
         int CreateState(StateType type);
-        int BuildNFAImp(RegExpSynTreeNode* node, int& start, int& accept);
+        int BuildNFAImp(RegExpSynTreeNode* node, int& start, int& accept, bool ignoreUnit = false);
         int AddStateWithEpsilon(int st, std::vector<char>& ison, std::vector<int>& to) const;
 
         int BuildStateForLeafNode(RegExpSynTreeLeafNode* node, int& start, int& accept);
-        int BuildStateForStarNode(RegExpSynTreeStarNode* node, int& start, int& accept);
-        int BuildStateForOrNode(RegExpSynTreeNode* node, int& start, int& accept);
-        int BuildStateForCatNode(RegExpSynTreeNode* node, int& start, int& accept);
+        int BuildStateForStarNode(RegExpSynTreeStarNode* node, int& start, int& accept, bool ignoreUnit);
+        int BuildStateForOrNode(RegExpSynTreeNode* node, int& start, int& accept, bool ignoreUnit);
+        int BuildStateForCatNode(RegExpSynTreeNode* node, int& start, int& accept, bool ignoreUnit);
 
     private:
 
