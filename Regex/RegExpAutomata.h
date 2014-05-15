@@ -68,7 +68,7 @@ class RegExpNFA: public AutomatonBase
         int  SaveCaptureGroup(const std::vector<int>&, const std::map<int, const char*>& unitStart,
                 int endState, const char* endTxt, std::vector<UnitInfo>& groupCature);
 
-        void ConstructReferenceState(int st, int to, const char* ps, const char* pe);
+        bool ConstructReferenceState(int st);
         void RestoreRefStates(int st, int to, const char* ps, const char* pe);
 #endif
 
