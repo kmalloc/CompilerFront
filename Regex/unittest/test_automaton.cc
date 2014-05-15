@@ -422,6 +422,29 @@ TEST(test_matching_txt, test_automata_gen)
     std::vector<nfa_case*> cases;
 
 #ifdef SUPPORT_REG_EXP_BACK_REFERENCE
+
+    // TODO, a(bc)(\\0df)(n\\1)
+    nfa_case* c8_5 = new nfa_case("a(bc)*fe\\0", false);
+    c8_5->AddTestCase("afe", true);
+    c8_5->AddTestCase("afefe", false);
+    cases.push_back(c8_5);
+
+    nfa_case* c8_3 = new nfa_case("(a*)*", false);
+    c8_3->AddTestCase("a", true);
+    c8_3->AddTestCase("aa", true);
+    c8_3->AddTestCase("aaa", true);
+    c8_3->AddTestCase("ab", false);
+    c8_3->AddTestCase("bb", false);
+    cases.push_back(c8_3);
+
+    nfa_case* c8_4 = new nfa_case("(a*)*bc\\0", false);
+    c8_4->AddTestCase("abca", true);
+    c8_4->AddTestCase("aabcaa", true);
+    c8_4->AddTestCase("aabca", false);
+    c8_4->AddTestCase("abc", false);
+    c8_4->AddTestCase("bbc", false);
+    cases.push_back(c8_4);
+
     nfa_case* c8_0 = new nfa_case("(((ab)))\\0\\1\\2", false);
     c8_0->AddTestCase("abababab", true);
     c8_0->AddTestCase("ababab", false);

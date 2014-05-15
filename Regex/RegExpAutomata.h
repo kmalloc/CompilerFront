@@ -65,7 +65,7 @@ class RegExpNFA: public AutomatonBase
         };
 
         bool IfStateClosureHasTrans(int st, std::vector<char>& isCheck, char ch) const;
-        int  SaveCaptureGroup(const std::map<int, const char*>& unitStart,
+        int  SaveCaptureGroup(const std::vector<int>&, const std::map<int, const char*>& unitStart,
                 int endState, const char* endTxt, std::vector<UnitInfo>& groupCature);
 
         void ConstructReferenceState(int st, int to, const char* ps, const char* pe);
