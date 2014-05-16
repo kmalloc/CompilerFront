@@ -539,8 +539,13 @@ bool RegExpNFA::IfStateClosureHasTrans(int st, int parentUnit, std::vector<char>
 
         if (curParentUnit == -1) continue;
 
-        if (IfStateClosureHasTrans(st, parentUnit, isCheck, ch)) return true;
+        if (IfStateClosureHasTrans(st, parentUnit, isCheck, ch) ||
+                states_[st].IsRefState())
+        {
+            return true;
+        }
     }
+
 
     return false;
 }

@@ -44,13 +44,23 @@ TEST(test_matching_txt, test_automata_gen)
     std::vector<nfa_case*> cases;
 
 #ifdef SUPPORT_REG_EXP_BACK_REFERENCE
-        // TODO, a(bc)(\\0df)(n\\1)
-    nfa_case* c8_5 = new nfa_case("a(bc)*fe\\0", false);
-    c8_5->AddTestCase("afe", true);
-    // c8_5->AddTestCase("abcfebc", true);
-    // c8_5->AddTestCase("abcbcfebc", true);
-    // c8_5->AddTestCase("afefe", false);
-    cases.push_back(c8_5);
+    // TODO, a(bc)(\\0df)(n\\1)
+    nfa_case* b1_0 = new nfa_case("a(bc)(\\0df)(g\\1)e", false);
+    b1_0->AddTestCase("abcbcdfgbcdfe", true);
+    cases.push_back(b1_0);
+
+    nfa_case* b1_1 = new nfa_case("a(bc)(\\0ef)*v", false);
+    b1_1->AddTestCase("abcbcefbcefv", true);
+    b1_1->AddTestCase("abcbcefbccefv", false);
+    b1_1->AddTestCase("abcv", true);
+    cases.push_back(b1_1);
+
+    nfa_case* b1_2 = new nfa_case("a(bc)(ef\\0*)v", false);
+    b1_2->AddTestCase("abcefv", true);
+    b1_2->AddTestCase("abcefbcv", true);
+    b1_2->AddTestCase("abcefbcbcv", true);
+    b1_2->AddTestCase("abcv", false);
+    cases.push_back(b1_2);
 
     nfa_case* c8_3 = new nfa_case("(a*)*", false);
     c8_3->AddTestCase("a", true);
@@ -60,13 +70,27 @@ TEST(test_matching_txt, test_automata_gen)
     c8_3->AddTestCase("bb", false);
     cases.push_back(c8_3);
 
-    nfa_case* c8_4 = new nfa_case("(a*)bc\\0", false);
+    nfa_case* c8_4 = new nfa_case("(a*)*bc\\0", false);
     c8_4->AddTestCase("abca", true);
-    c8_4->AddTestCase("aabcaa", true);
-    c8_4->AddTestCase("aabca", false);
+    c8_4->AddTestCase("aabcaa", false);
+    c8_4->AddTestCase("aabca", true);
     c8_4->AddTestCase("abc", false);
     c8_4->AddTestCase("bbc", false);
+    c8_4->AddTestCase("bc", true);
     cases.push_back(c8_4);
+
+    nfa_case* c8_5 = new nfa_case("a(bc)*fe\\0", false);
+    c8_5->AddTestCase("afe", true);
+    c8_5->AddTestCase("abcfebc", true);
+    c8_5->AddTestCase("abcbcfebc", true);
+    c8_5->AddTestCase("afefe", false);
+    cases.push_back(c8_5);
+
+    nfa_case* c8_6 = new nfa_case("(a*)bc\\0", false);
+    c8_6->AddTestCase("aabca", false);
+    c8_6->AddTestCase("aabcaa", true);
+    c8_6->AddTestCase("bc", true);
+    cases.push_back(c8_6);
 
     nfa_case* c8_0 = new nfa_case("(((ab)))\\0\\1\\2", false);
     c8_0->AddTestCase("abababab", true);

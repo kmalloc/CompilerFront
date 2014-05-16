@@ -3,6 +3,7 @@
 #include <string>
 #include <sstream>
 #include <climits>
+#include <stdlib.h>
 
 #define private public
 
@@ -126,6 +127,9 @@ TEST(test_extract_unit, test_reg_exp_automata_gen)
         RegUnit("a", 0, 0, -1, 1),
         RegUnit("a*", 0, 0, -1, 1),
         RegUnit("abc", 2, 2, 1, 3),
+#ifdef SUPPORT_REG_EXP_BACK_REFERENCE
+        RegUnit("\\0abc", 4, 4, 3, 5),
+#endif
         RegUnit("abc+", 2, 2, 1, 3),
         RegUnit("abc.?", 3, 3, 2, 4),
         RegUnit("abc{1,2}", 2, 2, 1, 3),
@@ -136,6 +140,7 @@ TEST(test_extract_unit, test_reg_exp_automata_gen)
         RegUnit("abc(ef\\\\)\\\\\\)", 11, 12, 10, 13),
         RegUnit("((a))", 1, 3, -1, 5),
         RegUnit("(a)*", 1, 1, -1, 3),
+        RegUnit("(\\0ab)", 1, 4, -1, 6),
         RegUnit("(a|b|(\\s+))+", 1, 9, -1, 11),
         RegUnit("(abc|efg)?", 1, 7, -1, 9),
         RegUnit("(ab)(efg)(vv)*", 10, 11, 8, 13),
@@ -152,6 +157,7 @@ TEST(test_extract_unit, test_reg_exp_automata_gen)
         tokenizer.ExtractRegUnit(s, s + strlen(s) - 1, us, ue, bu, au);
 
         EXPECT_EQ(cases[i].GetUnitStart(), us) << "us case: " << i << endl;
+        char buf[8];
         EXPECT_EQ(cases[i].GetUnitEnd(), ue) << "ue case: " << i << endl;
         EXPECT_EQ(cases[i].GetBeforeUnit(), bu) << "bu case: " << i << endl;
         EXPECT_EQ(cases[i].GetAfterUnit(), au) << "au case: " << i << endl;
@@ -211,6 +217,15 @@ static string ConstructRegExpFromSynTree(RegExpSynTreeNode* root)
 
         if (sn->GetLeafNodeType() == RegExpSynTreeNodeLeafNodeType_Esc) out = "\\" + out;
         if (sn->GetLeafNodeType() == RegExpSynTreeNodeLeafNodeType_Alt) out = "[" + out + "]";
+#ifdef SUPPORT_REG_EXP_BACK_REFERENCE
+        if (sn->GetLeafNodeType() == RegExpSynTreeNodeLeafNodeType_Ref)
+        {
+            char buf[8];
+            RegExpSynTreeRefNode* rn = dynamic_cast<RegExpSynTreeRefNode*>(sn);
+            snprintf(buf, sizeof(buf), "%d", rn->GetRef());
+            out = "\\" + string(buf);
+        }
+#endif
     }
     else
     {
@@ -233,6 +248,10 @@ TEST(test_construct_reg_syn_tree, test_reg_exp_automata_gen)
 {
     const char* cases[] =
     {
+#ifdef SUPPORT_REG_EXP_BACK_REFERENCE
+        "(\\0df)",
+        "a(bc)(\\0df)(g\\1)e",
+#endif
         "\\+vv", // 3
         ".*",
         ".?", // 1

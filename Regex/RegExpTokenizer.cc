@@ -74,7 +74,10 @@ const char* RegExpTokenizer::IsToken(const char* s, const char* e) const
     }
 
 #ifdef SUPPORT_REG_EXP_BACK_REFERENCE
-    if (IsRefToken(s)) return s + 1 + (std::isdigit(*(s + 2)) != 0);
+    if (IsRefToken(s) && (s + 1 == e || (s + 2 == e && std::isdigit(*(s + 2)))))
+    {
+        return s + 1 + (std::isdigit(*(s + 2)) != 0);
+    }
 #endif
 
     if (*s == '\\' && CanCharEscape(*(s + 1)) && s + 1 == e) return e;
