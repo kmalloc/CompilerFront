@@ -23,6 +23,7 @@ struct MachineState
         :no(num), type(t)
 #ifdef SUPPORT_REG_EXP_BACK_REFERENCE
         ,unit_type(0)
+        ,parentUnit(-1)
 #endif
     {
     }
@@ -38,12 +39,15 @@ struct MachineState
 
 #ifdef SUPPORT_REG_EXP_BACK_REFERENCE
     short unit_type;
+    int   parentUnit;
     short UnitStart() const { return unit_type & 0x00ff; }
     short UnitEnd() const { return (unit_type & 0xff00) >> 8; }
     void SetStartUnit(int num = 1) { unit_type += num; }
     void SetEndUnit(int num = 1) { unit_type += (num << 8); }
 
     bool IsRefState() const { return type & State_Ref; }
+    int  GetParentUnit() const { return parentUnit; }
+    void SetParentUnit(int unit) { parentUnit = unit; }
 #endif
 
     int no;

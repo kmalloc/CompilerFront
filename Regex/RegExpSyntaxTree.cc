@@ -84,7 +84,6 @@ SynTreeNodeBase* RegExpSyntaxTree::ConstructSyntaxTreeImp(const char* ps, const 
             return new RegExpSynTreeRefNode(ps, te, leafIndex_++);
         }
 #endif
-
         return new RegExpSynTreeLeafNode(ps, te, leafIndex_++);
     }
 

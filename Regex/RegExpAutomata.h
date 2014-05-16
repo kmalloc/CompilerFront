@@ -64,9 +64,12 @@ class RegExpNFA: public AutomatonBase
             const char* txtEnd_;
         };
 
-        bool IfStateClosureHasTrans(int st, std::vector<char>& isCheck, char ch) const;
-        int  SaveCaptureGroup(const std::vector<int>&, const std::map<int, const char*>& unitStart,
-                int endState, const char* endTxt, std::vector<UnitInfo>& groupCature);
+        bool IfStateClosureHasTrans(int st, int parentUnit,
+                std::vector<char>& isCheck, char ch) const;
+        int  SaveCaptureGroup(const std::vector<int>&,
+                const std::map<int, const char*>& unitStart,
+                int endState, const char* endTxt);
+        int  DoSaveGroup(int st, int ac, const char* txtStart, const char* txtEnd);
 
         bool ConstructReferenceState(int st);
         void RestoreRefStates(int st, int to, const char* ps, const char* pe);
@@ -78,13 +81,23 @@ class RegExpNFA: public AutomatonBase
         void ReleaseState(int st);
 
         int CreateState(StateType type);
-        int BuildNFAImp(RegExpSynTreeNode* node, int& start, int& accept, bool ignoreUnit = false);
         int AddStateWithEpsilon(int st, std::vector<char>& ison, std::vector<int>& to) const;
 
+        void GenStatesClosure(char ch, const std::vector<int>& curStat,
+                std::vector<int>& toStat, std::vector<char>& flag,
+                std::vector<int>& ref, bool ignoreRef);
+
+        int BuildNFAImp(RegExpSynTreeNode* node, int& start, int& accept,
+                bool ignoreUnit = false, int parentUnit = -1);
+
+        int BuildStateForStarNode(RegExpSynTreeStarNode* node, int& start,
+                int& accept, bool ignoreUnit, int parentUnit);
+        int BuildStateForOrNode(RegExpSynTreeNode* node, int& start,
+                int& accept, bool ignoreUnit, int parentUnit);
+        int BuildStateForCatNode(RegExpSynTreeNode* node,
+                int& start, int& accept, bool ignoreUnit, int parentUnit);
+
         int BuildStateForLeafNode(RegExpSynTreeLeafNode* node, int& start, int& accept);
-        int BuildStateForStarNode(RegExpSynTreeStarNode* node, int& start, int& accept, bool ignoreUnit);
-        int BuildStateForOrNode(RegExpSynTreeNode* node, int& start, int& accept, bool ignoreUnit);
-        int BuildStateForCatNode(RegExpSynTreeNode* node, int& start, int& accept, bool ignoreUnit);
 
     private:
 
@@ -99,6 +112,10 @@ class RegExpNFA: public AutomatonBase
 #ifdef SUPPORT_REG_EXP_BACK_REFERENCE
         std::map<int, std::set<int> > unitMatchPair_;
         std::vector<UnitInfo> groupCapture_;
+
+        // auxiliary structur for capturing group.
+        // end state to group index.
+        std::map<std::pair<int, int>, std::vector<int> > groupWatcher_;
 #endif
 };
 

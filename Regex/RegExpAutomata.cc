@@ -33,6 +33,7 @@ int RegExpNFA::BuildNFA(RegExpSyntaxTree* tree)
 
 #ifdef SUPPORT_REG_EXP_BACK_REFERENCE
     groupCapture_.clear();
+    groupWatcher_.clear();
     unitMatchPair_.clear();
 #endif
 
@@ -41,7 +42,7 @@ int RegExpNFA::BuildNFA(RegExpSyntaxTree* tree)
     recycleStates_.reserve(leaf_node_num/2);
     NFAStatTran_.reserve(leaf_node_num);
 
-    int num = BuildNFAImp(dynamic_cast<RegExpSynTreeNode*>(tree->GetSynTree()), start_, accept_);
+    int num = BuildNFAImp(dynamic_cast<RegExpSynTreeNode*>(tree->GetSynTree()), start_, accept_, false, -1);
 
     if (support_partial_match_ && headState_ == -1)
     {
@@ -97,9 +98,16 @@ void RegExpNFA::ReleaseState(int st)
     states_[st].SetType(State_None);
 }
 
-int RegExpNFA::BuildNFAImp(RegExpSynTreeNode* root, int& start, int& accept, bool ignoreUnit)
+int RegExpNFA::BuildNFAImp(RegExpSynTreeNode* root, int& start, int& accept, bool ignoreUnit, int parentUnit)
 {
     if (!root) return 0;
+
+    int unit_start = parentUnit;
+    int unit_accept = -1;
+    if (root->IsUnit() && !ignoreUnit)
+    {
+        unit_start = CreateState(State_Start);
+    }
 
     int num = 0;
     if (root->IsLeafNode())
@@ -114,15 +122,15 @@ int RegExpNFA::BuildNFAImp(RegExpSynTreeNode* root, int& start, int& accept, boo
         RegExpSynTreeStarNode* sn = dynamic_cast<RegExpSynTreeStarNode*>(root);
         assert(sn);
 
-        num = BuildStateForStarNode(sn, start, accept, ignoreUnit);
+        num = BuildStateForStarNode(sn, start, accept, ignoreUnit, unit_start);
     }
     else if (root->GetNodeType() == RegExpSynTreeNodeType_Or)
     {
-        num = BuildStateForOrNode(root, start, accept, ignoreUnit);
+        num = BuildStateForOrNode(root, start, accept, ignoreUnit, unit_start);
     }
     else if (root->GetNodeType() == RegExpSynTreeNodeType_Concat)
     {
-        num = BuildStateForCatNode(root, start, accept, ignoreUnit);
+        num = BuildStateForCatNode(root, start, accept, ignoreUnit, unit_start);
     }
     else
     {
@@ -130,10 +138,28 @@ int RegExpNFA::BuildNFAImp(RegExpSynTreeNode* root, int& start, int& accept, boo
     }
 
 #ifdef SUPPORT_REG_EXP_BACK_REFERENCE
+
+    if (states_[start].GetParentUnit() == -1) states_[start].SetParentUnit(unit_start);
+    if (states_[accept].GetParentUnit() == -1) states_[accept].SetParentUnit(unit_start);
+
     if (root->IsUnit() && !ignoreUnit)
     {
+        unit_accept = CreateState(State_Accept);
+
+        states_[start].SetNormType();
+        states_[accept].SetNormType();
+
+        NFAStatTran_[unit_start][STATE_EPSILON].push_back(start);
+        NFAStatTran_[accept][STATE_EPSILON].push_back(unit_accept);
+
+        start = unit_start;
+        accept = unit_accept;
+
         states_[start].SetStartUnit(root->IsUnit());
         states_[accept].SetEndUnit(root->IsUnit());
+
+        states_[start].SetParentUnit(parentUnit);
+        states_[accept].SetParentUnit(start);
         unitMatchPair_[start].insert(accept);
     }
 #endif
@@ -270,7 +296,7 @@ int RegExpNFA::BuildStateForLeafNode(RegExpSynTreeLeafNode* ln, int& start, int&
     return 2;
 }
 
-int RegExpNFA::BuildStateForOrNode(RegExpSynTreeNode* node, int& start, int& accept, bool ignoreUnit)
+int RegExpNFA::BuildStateForOrNode(RegExpSynTreeNode* node, int& start, int& accept, bool ignoreUnit, int parentUnit)
 {
     int left_child_start, left_child_accept;
     int right_child_start, right_child_accept;
@@ -281,8 +307,8 @@ int RegExpNFA::BuildStateForOrNode(RegExpSynTreeNode* node, int& start, int& acc
     assert(lc);
     assert(rc);
 
-    int left_child_state_num = BuildNFAImp(lc, left_child_start, left_child_accept, ignoreUnit);
-    int right_child_state_num = BuildNFAImp(rc, right_child_start, right_child_accept, ignoreUnit);
+    int left_child_state_num = BuildNFAImp(lc, left_child_start, left_child_accept, ignoreUnit, parentUnit);
+    int right_child_state_num = BuildNFAImp(rc, right_child_start, right_child_accept, ignoreUnit, parentUnit);
 
     states_[right_child_start].SetNormType();
     states_[right_child_accept].SetNormType();
@@ -295,7 +321,7 @@ int RegExpNFA::BuildStateForOrNode(RegExpSynTreeNode* node, int& start, int& acc
     return left_child_state_num + right_child_state_num;
 }
 
-int RegExpNFA::BuildStateForCatNode(RegExpSynTreeNode* node, int& start, int& accept, bool ignoreUnit)
+int RegExpNFA::BuildStateForCatNode(RegExpSynTreeNode* node, int& start, int& accept, bool ignoreUnit, int parentUnit)
 {
     int left_child_start, left_child_accept;
     int right_child_start, right_child_accept;
@@ -306,8 +332,8 @@ int RegExpNFA::BuildStateForCatNode(RegExpSynTreeNode* node, int& start, int& ac
     assert(lc);
     assert(rc);
 
-    int left_child_state_num = BuildNFAImp(lc, left_child_start, left_child_accept, ignoreUnit);
-    int right_child_state_num = BuildNFAImp(rc, right_child_start, right_child_accept, ignoreUnit);
+    int left_child_state_num = BuildNFAImp(lc, left_child_start, left_child_accept, ignoreUnit, parentUnit);
+    int right_child_state_num = BuildNFAImp(rc, right_child_start, right_child_accept, ignoreUnit, parentUnit);
 
     states_[left_child_accept].SetNormType();
     states_[right_child_start].SetNormType();
@@ -323,7 +349,7 @@ int RegExpNFA::BuildStateForCatNode(RegExpSynTreeNode* node, int& start, int& ac
 #define InsertIfNotExist(vec, val) \
     if (std::find((vec).begin(), (vec).end(), (val)) == (vec).end()) (vec).push_back((val));
 
-int RegExpNFA::BuildStateForStarNode(RegExpSynTreeStarNode* sn, int& start, int& accept, bool ignoreUnit)
+int RegExpNFA::BuildStateForStarNode(RegExpSynTreeStarNode* sn, int& start, int& accept, bool ignoreUnit, int parentUnit)
 {
     int child_start, child_accept;
     RegExpSynTreeNode* child = dynamic_cast<RegExpSynTreeNode*>(sn->GetLeftChild());
@@ -336,7 +362,7 @@ int RegExpNFA::BuildStateForStarNode(RegExpSynTreeStarNode* sn, int& start, int&
     if (min == 0 && max == INT_MAX)
     {
         // (ab)*
-        int child_states_num = BuildNFAImp(child, start, accept, ignoreUnit);
+        int child_states_num = BuildNFAImp(child, start, accept, ignoreUnit, parentUnit);
 
         InsertIfNotExist(NFAStatTran_[start][STATE_EPSILON], accept);
         InsertIfNotExist(NFAStatTran_[accept][STATE_EPSILON], start);
@@ -350,7 +376,7 @@ int RegExpNFA::BuildStateForStarNode(RegExpSynTreeStarNode* sn, int& start, int&
         int cs, ca; // child start, child accept
         int cs2, ca2;
         int last_cs, last_ca;
-        int child_states_num = BuildNFAImp(child, last_cs, last_ca, ignoreUnit);
+        int child_states_num = BuildNFAImp(child, last_cs, last_ca, ignoreUnit, parentUnit);
 
         cs = last_cs;
         ca = last_ca;
@@ -362,7 +388,7 @@ int RegExpNFA::BuildStateForStarNode(RegExpSynTreeStarNode* sn, int& start, int&
         // construct state from right to left
         for (int i = 0; i < max - 1; ++i)
         {
-            child_states_num += BuildNFAImp(child, cs, ca, true);
+            child_states_num += BuildNFAImp(child, cs, ca, true, -1);
             states_[ca].SetNormType();
             states_[cs2].SetNormType();
             NFAStatTran_[ca][STATE_EPSILON].push_back(cs2);
@@ -380,7 +406,7 @@ int RegExpNFA::BuildStateForStarNode(RegExpSynTreeStarNode* sn, int& start, int&
     {
         // (ab){3, INT_MAX}
         // (ab)+
-        int child_states_num = BuildNFAImp(child, child_start, child_accept, ignoreUnit);
+        int child_states_num = BuildNFAImp(child, child_start, child_accept, ignoreUnit, parentUnit);
 
         int cs, ca;
         int ts = child_start;
@@ -389,7 +415,7 @@ int RegExpNFA::BuildStateForStarNode(RegExpSynTreeStarNode* sn, int& start, int&
         child->SetUnit(false);
         for (int i = 0; i < min - 1; ++i)
         {
-            BuildNFAImp(child, cs, ca, true);
+            BuildNFAImp(child, cs, ca, true, -1);
 
             states_[ta].SetNormType();
             states_[cs].SetNormType();
@@ -414,13 +440,13 @@ int RegExpNFA::BuildStateForStarNode(RegExpSynTreeStarNode* sn, int& start, int&
         int cs2, ca2;
         child->SetUnit(false);
 
-        int num = BuildNFAImp(child, cs2, ca2, ignoreUnit);
+        int num = BuildNFAImp(child, cs2, ca2, ignoreUnit, parentUnit);
         start = cs2;
 
         // construct state from left to right
         for (int i = 0; i < min - 1; ++i)
         {
-            num += BuildNFAImp(child, cs, ca, true);
+            num += BuildNFAImp(child, cs, ca, true, -1);
 
             states_[ca2].SetNormType();
             states_[cs].SetNormType();
@@ -433,7 +459,7 @@ int RegExpNFA::BuildStateForStarNode(RegExpSynTreeStarNode* sn, int& start, int&
         int min_end = ca2;
         if (max > min)
         {
-            num += BuildNFAImp(child, cs, ca, true);
+            num += BuildNFAImp(child, cs, ca, true, -1);
 
             states_[ca2].SetNormType();
             NFAStatTran_[ca2][STATE_EPSILON].push_back(ca);
@@ -446,7 +472,7 @@ int RegExpNFA::BuildStateForStarNode(RegExpSynTreeStarNode* sn, int& start, int&
         // construct state from right to left
         for (int i = min; i < max - 1; ++i)
         {
-            num += BuildNFAImp(child, cs, ca, true);
+            num += BuildNFAImp(child, cs, ca, true, -1);
             states_[ca].SetNormType();
             states_[cs2].SetNormType();
             NFAStatTran_[ca][STATE_EPSILON].push_back(cs2);
@@ -494,7 +520,7 @@ int RegExpNFA::AddStateWithEpsilon(int st, std::vector<char>& isOn, std::vector<
 #ifdef SUPPORT_REG_EXP_BACK_REFERENCE
 // if closure of state st has transition on input ch then return true;
 // otherwise return false
-bool RegExpNFA::IfStateClosureHasTrans(int st, std::vector<char>& isCheck, char ch) const
+bool RegExpNFA::IfStateClosureHasTrans(int st, int parentUnit, std::vector<char>& isCheck, char ch) const
 {
     const std::vector<int>& vc = NFAStatTran_[st][STATE_EPSILON];
     if (!NFAStatTran_[st][ch].empty()) return true;
@@ -505,47 +531,71 @@ bool RegExpNFA::IfStateClosureHasTrans(int st, std::vector<char>& isCheck, char 
         st = vc[i];
         if (isCheck[st]) continue;
 
-        if (IfStateClosureHasTrans(st, isCheck, ch)) return true;
+        int curParentUnit = states_[st].GetParentUnit();
+        while (curParentUnit != -1 && curParentUnit != parentUnit)
+        {
+            curParentUnit = states_[curParentUnit].GetParentUnit();
+        }
+
+        if (curParentUnit == -1) continue;
+
+        if (IfStateClosureHasTrans(st, parentUnit, isCheck, ch)) return true;
     }
 
     return false;
 }
 
-int RegExpNFA::SaveCaptureGroup(const std::vector<int>& curStart, const std::map<int, const char*>& unitStart,
-        int endState, const char* endTxt, std::vector<UnitInfo>& groupCapture_)
+int RegExpNFA::DoSaveGroup(int st, int ac, const char* txtStart, const char* txtEnd)
+{
+    if (unitMatchPair_[st].find(ac) != unitMatchPair_[st].end())
+    {
+        int start_repeat = states_[st].UnitStart();
+        int end_repeat = states_[ac].UnitEnd();
+        int min = std::min(start_repeat, end_repeat);
+
+        std::map<std::pair<int, int>, std::vector<int> >::iterator iter =
+            groupWatcher_.find(std::pair<int, int>(st, ac));
+
+        if (iter != groupWatcher_.end())
+        {
+            for (size_t i = 0; i < iter->second.size(); ++i)
+            {
+                groupCapture_[iter->second[i]] = UnitInfo(st, ac, txtStart, txtEnd);
+            }
+        }
+        else
+        {
+            std::vector<int>& vc = groupWatcher_[std::pair<int, int>(st, ac)];
+            for (int i = 0; i < min; ++i)
+            {
+                vc.push_back(groupCapture_.size());
+                groupCapture_.push_back(UnitInfo(st, ac, txtStart, txtEnd));
+            }
+        }
+
+        return min;
+    }
+
+    return 0;
+}
+
+int RegExpNFA::SaveCaptureGroup(const std::vector<int>& unitStart,
+        const std::map<int, const char*>& unitSelect, int endState, const char* endTxt)
 {
     int co = 0;
-    std::map<int, const char*>::const_iterator it = unitStart.begin();
-    for (; it != unitStart.end(); ++it)
+    std::map<int, const char*>::const_iterator it = unitSelect.begin();
+
+    for (; it != unitSelect.end(); ++it)
     {
         int st = it->first;
         const char* txtStart = it->second;
 
-        if (unitMatchPair_[st].find(endState) != unitMatchPair_[st].end())
-        {
-            co++;
-            int start_repeat = states_[st].UnitStart();
-            int end_repeat = states_[endState].UnitEnd();
-            int min = std::min(start_repeat, end_repeat);
-
-            for (int i = 0; i < min; ++i)
-            {
-                if (endTxt < txtStart)
-                    groupCapture_.push_back(UnitInfo(st, endState, "", ""));
-                else
-                    groupCapture_.push_back(UnitInfo(st, endState, txtStart, endTxt));
-            }
-        }
+        co += DoSaveGroup(st, endState, txtStart, endTxt);
     }
 
-    for (size_t i = 0; i < curStart.size(); ++i)
+    for (size_t i = 0; i < unitStart.size(); ++i)
     {
-        int st = curStart[i];
-        if (st >= 0 && unitMatchPair_[st].find(endState) != unitMatchPair_[st].end())
-        {
-            co++;
-            groupCapture_.push_back(UnitInfo(st, endState, "", ""));
-        }
+        co += DoSaveGroup(unitStart[i], endState, "", "");
     }
 
     return co;
@@ -581,7 +631,7 @@ bool RegExpNFA::ConstructReferenceState(int st)
 
 void RegExpNFA::RestoreRefStates(int st, int to, const char* ps, const char* pe)
 {
-    if (*ps == '\0')
+    if (*ps == '\0' || ps > pe)
     {
         NFAStatTran_[st][STATE_EPSILON].clear();
         return;
@@ -611,6 +661,35 @@ void RegExpNFA::RestoreRefStates(int st, int to, const char* ps, const char* pe)
 
 #endif
 
+void RegExpNFA::GenStatesClosure(char ch, const std::vector<int>& curStat,
+        std::vector<int>& toStat, std::vector<char>& alreadyOn,
+        std::vector<int>& refStates, bool ignoreRef)
+{
+    for (size_t i = 0; i < curStat.size(); ++i)
+    {
+        int st = curStat[i];
+        const std::vector<int>* vc = &(NFAStatTran_[st][ch]);
+
+#ifdef SUPPORT_REG_EXP_BACK_REFERENCE
+        if (!ignoreRef && states_[st].IsRefState() && ConstructReferenceState(st))
+        {
+            vc = &(NFAStatTran_[st][ch]);
+
+            refStates.push_back(st);
+            alreadyOn.resize(states_.size(), 0);
+        }
+#endif
+        if (vc->empty()) continue;
+
+        for (size_t j = 0; j < vc->size(); ++j)
+        {
+            if (alreadyOn[(*vc)[j]]) continue;
+
+            AddStateWithEpsilon((*vc)[j], alreadyOn, toStat);
+        }
+    }
+}
+
 /*
   unit matching: (e((a)|(b)ef), ((a|b)|(a|c)), (a(b))
 */
@@ -618,6 +697,8 @@ bool RegExpNFA::RunMachine(const char* ps, const char* pe)
 {
 #ifdef SUPPORT_REG_EXP_BACK_REFERENCE
     groupCapture_.clear();
+    groupWatcher_.clear();
+    groupCapture_.reserve(states_.size());
 #endif
     return RunNFA(start_, accept_, ps, pe);
 }
@@ -627,8 +708,8 @@ bool RegExpNFA::RunNFA(int start, int accept, const char* ps, const char* pe)
     char ch;
     const char* in = ps;
 
-#ifdef SUPPORT_REG_EXP_BACK_REFERENCE
     std::vector<int> refStates;
+#ifdef SUPPORT_REG_EXP_BACK_REFERENCE
     std::vector<int> curUnitEndStack;
     std::vector<int> curUnitStartStack;
     std::map<int, const char*> curUnitSelectedStack;
@@ -636,7 +717,6 @@ bool RegExpNFA::RunNFA(int start, int accept, const char* ps, const char* pe)
     refStates.reserve(states_.size());
     curUnitEndStack.reserve(states_.size());
     curUnitStartStack.reserve(states_.size());
-    groupCapture_.reserve(states_.size());
 #endif
 
     std::vector<int> curStat;
@@ -656,8 +736,7 @@ bool RegExpNFA::RunNFA(int start, int accept, const char* ps, const char* pe)
         {
             alreadyOn[curStat[i]] = false;
 #ifdef SUPPORT_REG_EXP_BACK_REFERENCE
-            if (states_[curStat[i]].UnitStart()
-                    && curUnitSelectedStack.find(curStat[i]) == curUnitSelectedStack.end())
+            if (states_[curStat[i]].UnitStart())
             {
                 curUnitStartStack.push_back(curStat[i]);
             }
@@ -675,29 +754,21 @@ bool RegExpNFA::RunNFA(int start, int accept, const char* ps, const char* pe)
             int st = curUnitStartStack[j];
 
             std::vector<char> isCheck(states_.size(), 0);
-            if (IfStateClosureHasTrans(st, isCheck, ch))
+            if (IfStateClosureHasTrans(st, st, isCheck, ch))
             {
                 curUnitStartStack[j] = -1;
                 curUnitSelectedStack[st] = in - 1;
                 continue;
             }
+            else if (curUnitSelectedStack.find(st) != curUnitSelectedStack.end())
+            {
+                curUnitStartStack[j] = -1;
+            }
         }
 
         if (!curUnitEndStack.empty())
         {
-            for (size_t i = 0; i < curStat.size(); ++i)
-            {
-                int st = curStat[i];
-                const std::vector<int>& vc = NFAStatTran_[st][ch];
-                if (vc.empty()) continue;
-
-                for (size_t j = 0; j < vc.size(); ++j)
-                {
-                    if (alreadyOn[vc[j]]) continue;
-
-                    AddStateWithEpsilon(vc[j], alreadyOn, toStat);
-                }
-            }
+            GenStatesClosure(ch, curStat, toStat, alreadyOn, refStates, true);
 
             for (size_t j = 0; j < curUnitEndStack.size(); ++j)
             {
@@ -705,7 +776,23 @@ bool RegExpNFA::RunNFA(int start, int accept, const char* ps, const char* pe)
 
                 if (std::find(toStat.begin(), toStat.end(), st) == toStat.end())
                 {
-                    SaveCaptureGroup(curUnitStartStack, curUnitSelectedStack, st, in - 2, groupCapture_);
+                    size_t i = 0;
+                    int parentUnit = states_[st].GetParentUnit();
+                    for (; i < toStat.size(); ++i)
+                    {
+                        int curParentUnit = states_[toStat[i]].GetParentUnit();
+                        while (parentUnit != curParentUnit && curParentUnit != -1)
+                        {
+                            curParentUnit = states_[curParentUnit].GetParentUnit();
+                        }
+
+                        if (curParentUnit != -1) break;
+                    }
+
+                    if (i == toStat.size())
+                    {
+                        SaveCaptureGroup(curUnitStartStack, curUnitSelectedStack, st, in - 2);
+                    }
                 }
             }
         }
@@ -714,40 +801,19 @@ bool RegExpNFA::RunNFA(int start, int accept, const char* ps, const char* pe)
         curUnitStartStack.clear();
 #endif
 
-        for (size_t i = 0; i < curStat.size(); ++i)
-        {
-            int st = curStat[i];
-            const std::vector<int>* vc = &(NFAStatTran_[st][ch]);
-
-#ifdef SUPPORT_REG_EXP_BACK_REFERENCE
-            if (states_[st].IsRefState() && ConstructReferenceState(st))
-            {
-                vc = &(NFAStatTran_[st][ch]);
-
-                refStates.push_back(st);
-                alreadyOn.resize(states_.size(), 0);
-            }
-#endif
-            if (vc->empty()) continue;
-
-            for (size_t j = 0; j < vc->size(); ++j)
-            {
-                if (alreadyOn[(*vc)[j]]) continue;
-
-                AddStateWithEpsilon((*vc)[j], alreadyOn, toStat);
-            }
-        }
+        GenStatesClosure(ch, curStat, toStat, alreadyOn, refStates, false);
 
         curStat.swap(toStat);
         toStat.clear();
     }
 
 #ifdef SUPPORT_REG_EXP_BACK_REFERENCE
+    // (a(b(cd)))\\0 , abcd
+    // a(bc*)fe\\0 , afe
     for (size_t i = 0; i < curStat.size(); ++i)
     {
         alreadyOn[curStat[i]] = false;
-        if (states_[curStat[i]].UnitStart()
-                && curUnitSelectedStack.find(curStat[i]) == curUnitSelectedStack.end())
+        if (states_[curStat[i]].UnitStart())
         {
             curUnitStartStack.push_back(curStat[i]);
         }
@@ -763,7 +829,7 @@ bool RegExpNFA::RunNFA(int start, int accept, const char* ps, const char* pe)
         for (size_t j = 0; j < curUnitEndStack.size(); ++j)
         {
             int st = curUnitEndStack[j];
-            SaveCaptureGroup(curUnitStartStack, curUnitSelectedStack, st, pe, groupCapture_);
+            SaveCaptureGroup(curUnitStartStack, curUnitSelectedStack, st, pe);
         }
     }
 
@@ -775,7 +841,7 @@ bool RegExpNFA::RunNFA(int start, int accept, const char* ps, const char* pe)
             refStates.push_back(st);
             alreadyOn.resize(states_.size(), 0);
         }
-        AddStateWithEpsilon(curStat[j], alreadyOn, toStat);
+        AddStateWithEpsilon(st, alreadyOn, toStat);
     }
 
     curStat.swap(toStat);
