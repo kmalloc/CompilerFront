@@ -15,10 +15,11 @@ class RegExpSyntaxTree: public SyntaxTreeBase
         ~RegExpSyntaxTree();
 
         bool BuildSyntaxTree(const char* ps, const char* pe);
-        virtual SynTreeNodeBase* GetSynTree() const { return synTreeRoot_; }
-
+#ifdef SUPPORT_REG_EXP_BACK_REFERENCE
+        bool HasRefNode() const { return hasReferNode_; }
+#endif
         virtual int GetNodeNumber() const { return leafIndex_ + 1; }
-
+        virtual SynTreeNodeBase* GetSynTree() const { return synTreeRoot_; }
     private:
 
         virtual SynTreeNodeBase* ConstructSyntaxTree(const char* ps, const char* pe);
@@ -28,6 +29,9 @@ class RegExpSyntaxTree: public SyntaxTreeBase
 
         int leafIndex_;
         int unitCounter_;
+#ifdef SUPPORT_REG_EXP_BACK_REFERENCE
+        bool  hasReferNode_;
+#endif
         const char* txtEnd_;
         const char* txtStart_;
 

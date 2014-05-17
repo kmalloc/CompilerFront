@@ -35,6 +35,8 @@ int RegExpNFA::BuildNFA(RegExpSyntaxTree* tree)
     groupCapture_.clear();
     groupWatcher_.clear();
     unitMatchPair_.clear();
+
+    hasReferNode_ = tree->HasRefNode();
 #endif
 
     int leaf_node_num = tree->GetNodeNumber() * 2;
@@ -719,9 +721,12 @@ bool RegExpNFA::RunNFA(int start, int accept, const char* ps, const char* pe)
     std::vector<int> curUnitStartStack;
     std::map<int, const char*> curUnitSelectedStack;
 
-    refStates.reserve(states_.size());
-    curUnitEndStack.reserve(states_.size());
-    curUnitStartStack.reserve(states_.size());
+    if (hasReferNode_)
+    {
+        refStates.reserve(states_.size());
+        curUnitEndStack.reserve(states_.size());
+        curUnitStartStack.reserve(states_.size());
+    }
 #endif
 
     std::vector<int> curStat;
@@ -741,12 +746,12 @@ bool RegExpNFA::RunNFA(int start, int accept, const char* ps, const char* pe)
         {
             alreadyOn[curStat[i]] = false;
 #ifdef SUPPORT_REG_EXP_BACK_REFERENCE
-            if (states_[curStat[i]].UnitStart())
+            if (hasReferNode_ && states_[curStat[i]].UnitStart())
             {
                 curUnitStartStack.push_back(curStat[i]);
             }
 
-            if (states_[curStat[i]].UnitEnd())
+            if (hasReferNode_ && states_[curStat[i]].UnitEnd())
             {
                 curUnitEndStack.push_back(curStat[i]);
             }
@@ -815,51 +820,54 @@ bool RegExpNFA::RunNFA(int start, int accept, const char* ps, const char* pe)
 #ifdef SUPPORT_REG_EXP_BACK_REFERENCE
     // (a(b(cd)))\\0 , abcd
     // a(bc*)fe\\0 , afe
-    for (size_t i = 0; i < curStat.size(); ++i)
+    if (hasReferNode_)
     {
-        alreadyOn[curStat[i]] = false;
-        if (states_[curStat[i]].UnitStart())
+        for (size_t i = 0; i < curStat.size(); ++i)
         {
-            curUnitStartStack.push_back(curStat[i]);
+            alreadyOn[curStat[i]] = false;
+            if (states_[curStat[i]].UnitStart())
+            {
+                curUnitStartStack.push_back(curStat[i]);
+            }
+
+            if (states_[curStat[i]].UnitEnd())
+            {
+                curUnitEndStack.push_back(curStat[i]);
+            }
         }
 
-        if (states_[curStat[i]].UnitEnd())
+        if (!curUnitEndStack.empty())
         {
-            curUnitEndStack.push_back(curStat[i]);
+            for (size_t j = 0; j < curUnitEndStack.size(); ++j)
+            {
+                int st = curUnitEndStack[j];
+                SaveCaptureGroup(curUnitStartStack, curUnitSelectedStack, st, pe);
+            }
         }
-    }
 
-    if (!curUnitEndStack.empty())
-    {
-        for (size_t j = 0; j < curUnitEndStack.size(); ++j)
+        for (size_t j = 0; j < curStat.size(); ++j)
         {
-            int st = curUnitEndStack[j];
-            SaveCaptureGroup(curUnitStartStack, curUnitSelectedStack, st, pe);
+            int st = curStat[j];
+            if (states_[st].IsRefState() && ConstructReferenceState(st))
+            {
+                refStates.push_back(st);
+                alreadyOn.resize(states_.size(), 0);
+            }
+            AddStateWithEpsilon(st, alreadyOn, toStat);
         }
-    }
 
-    for (size_t j = 0; j < curStat.size(); ++j)
-    {
-        int st = curStat[j];
-        if (states_[st].IsRefState() && ConstructReferenceState(st))
+        curStat.swap(toStat);
+
+        // restore ref states
+        for (size_t i = 0; i < refStates.size(); ++i)
         {
-            refStates.push_back(st);
-            alreadyOn.resize(states_.size(), 0);
+            int st   = refStates[i];
+            int to   = NFAStatTran_[st][STATE_TRAN_MAX][0];
+            int unit = NFAStatTran_[st][STATE_TRAN_MAX][1];
+
+            RestoreRefStates(st, to, groupCapture_[unit].txtStart_, groupCapture_[unit].txtEnd_);
+            states_[st].AppendType(State_Ref);
         }
-        AddStateWithEpsilon(st, alreadyOn, toStat);
-    }
-
-    curStat.swap(toStat);
-
-    // restore ref states
-    for (size_t i = 0; i < refStates.size(); ++i)
-    {
-        int st   = refStates[i];
-        int to   = NFAStatTran_[st][STATE_TRAN_MAX][0];
-        int unit = NFAStatTran_[st][STATE_TRAN_MAX][1];
-
-        RestoreRefStates(st, to, groupCapture_[unit].txtStart_, groupCapture_[unit].txtEnd_);
-        states_[st].AppendType(State_Ref);
     }
 #else
     for (size_t j = 0; j < curStat.size(); ++j)

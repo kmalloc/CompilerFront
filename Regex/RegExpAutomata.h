@@ -110,6 +110,7 @@ class RegExpNFA: public AutomatonBase
         NFA_TRAN_T NFAStatTran_; // state to char to state
 
 #ifdef SUPPORT_REG_EXP_BACK_REFERENCE
+        bool hasReferNode_;
         std::map<int, std::set<int> > unitMatchPair_;
         std::vector<UnitInfo> groupCapture_;
 

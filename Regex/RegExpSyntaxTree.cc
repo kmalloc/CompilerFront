@@ -81,6 +81,7 @@ SynTreeNodeBase* RegExpSyntaxTree::ConstructSyntaxTreeImp(const char* ps, const 
 
             if (co > unitCounter_) throw LexErrException("invalid back reference number, out of range", ps);
 
+            hasReferNode_ = true;
             return new RegExpSynTreeRefNode(ps, te, leafIndex_++);
         }
 #endif

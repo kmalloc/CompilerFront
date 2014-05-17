@@ -47,6 +47,8 @@ TEST(test_matching_txt, test_automata_gen)
     // TODO, a(bc)(\\0df)(n\\1)
     nfa_case* b1_0 = new nfa_case("a(bc)(\\0df)(g\\1)e", false);
     b1_0->AddTestCase("abcbcdfgbcdfe", true);
+    b1_0->AddTestCase("abcbedfgbcdfe", false);
+    b1_0->AddTestCase("abcbcdfbcdfe", false);
     cases.push_back(b1_0);
 
     nfa_case* b1_1 = new nfa_case("a(bc)(\\0ef)*v", false);
@@ -61,6 +63,19 @@ TEST(test_matching_txt, test_automata_gen)
     b1_2->AddTestCase("abcefbcbcv", true);
     b1_2->AddTestCase("abcv", false);
     cases.push_back(b1_2);
+
+    nfa_case* b1_3 = new nfa_case("a(bc)(ef\\0)\\1v\\1", false);
+    b1_3->AddTestCase("abcefbcefbcvefbc", true);
+    b1_3->AddTestCase("abcbcefbccefv", false);
+    b1_3->AddTestCase("abcv", false);
+    cases.push_back(b1_3);
+
+    nfa_case* b1_4 = new nfa_case("(ming|dong)\\0", false);
+    b1_4->AddTestCase("mingming", true);
+    b1_4->AddTestCase("dongdong", true);
+    b1_4->AddTestCase("mingdong", false);
+    b1_4->AddTestCase("dongming", false);
+    cases.push_back(b1_4);
 
     nfa_case* c8_3 = new nfa_case("(a*)*", false);
     c8_3->AddTestCase("a", true);
@@ -113,7 +128,6 @@ TEST(test_matching_txt, test_automata_gen)
     c8->AddTestCase("abdb", true);
     cases.push_back(c8);
 
-
     nfa_case* c8_2 = new nfa_case("a([bc]*)(c*d)\\0\\1vef", false);
     c8_2->AddTestCase("abcdbcdvef", true);
     c8_2->AddTestCase("abccdbccdvef", true);
@@ -144,7 +158,6 @@ TEST(test_matching_txt, test_automata_gen)
     cg2->AddTestCase("abcdcdb", false);
     cases.push_back(cg2);
 
-
     nfa_case* cg3 = new nfa_case("(ab|cd)efv\\0", false);
     cg3->AddTestCase("abefvab", true);
     cg3->AddTestCase("cdefvcd", true);
@@ -173,7 +186,7 @@ TEST(test_matching_txt, test_automata_gen)
     c18_0->AddTestCase("abababababababab", false);
     cases.push_back(c18_0);
 
-    nfa_case* c18_1 = new nfa_case("(ab){2, 4}ce\\0mn", false);
+    nfa_case* c18_1 = new nfa_case("(ab){2,4}ce\\0mn", false);
     c18_1->AddTestCase("ababababceabmn", true);
     c18_1->AddTestCase("ababceabmn", true);
     c18_1->AddTestCase("abababababceababceabmn", false);
@@ -416,6 +429,26 @@ TEST(test_matching_txt, test_automata_gen)
     c17_0->AddTestCase("ev", false);
     c17_0->AddTestCase("evevevevevev", false);
     cases.push_back(c17_0);
+
+    // match even number 0 and odd number 1
+    nfa_case* ct_0 = new nfa_case("((1|0(00)*01)((11|10(00)*01))*|(0(00)*1|(1|0(00)*01)((11|10(00)*01))*(0|10(00)*1))((1(00)*1|(0|1(00)*01)((11|10(00)*01))*(0|10(00)*1)))*(0|1(00)*01)((11|10(00)*01))*)", false);
+   ct_0->AddTestCase("0111000", true);
+   ct_0->AddTestCase("01110000", false);
+   ct_0->AddTestCase("000011111", true);
+   ct_0->AddTestCase("0000111111", false);
+   ct_0->AddTestCase("0000011111", false);
+   ct_0->AddTestCase("00000111110", true);
+   cases.push_back(ct_0);
+
+   nfa_case* ct_1 = new nfa_case("M{0,4}(CM|CD|D?C{0,3})(XC|XL|L?X{0,3})(IX|IV|V?I{0,3})", false);
+   ct_1->AddTestCase("CMXCIV", true);
+   ct_1->AddTestCase("MMCMXCIV", true);
+   ct_1->AddTestCase("MMCMDXCIV", false);
+   ct_1->AddTestCase("MMDCXCIV", true);
+   ct_1->AddTestCase("MMDCCCXCIV", true);
+   ct_1->AddTestCase("MMMMCMXCIV", true);
+   ct_1->AddTestCase("MMMMMCMXCIV", false);
+   cases.push_back(ct_1);
 
     for (int i = 0; i < cases.size(); ++i)
     {
