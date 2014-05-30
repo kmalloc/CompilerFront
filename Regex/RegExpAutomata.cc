@@ -506,8 +506,12 @@ int RegExpNFA::BuildMachine(SyntaxTreeBase* tree)
 
 int RegExpNFA::AddStateWithEpsilon(int st, std::vector<char>& isOn, std::vector<int>& to) const
 {
-    isOn[st] = 1;
-    to.push_back(st);
+    if (!isOn[st])
+    {
+        isOn[st] = 1;
+        to.push_back(st);
+    }
+
     for (size_t i = 0; i < NFAStatTran_[st][STATE_EPSILON].size(); ++i)
     {
         int epsilon = NFAStatTran_[st][STATE_EPSILON][i];
@@ -672,6 +676,9 @@ void RegExpNFA::GenStatesClosure(char ch, const std::vector<int>& curStat,
         std::vector<int>& toStat, std::vector<char>& alreadyOn,
         std::vector<int>& refStates, bool ignoreRef)
 {
+    std::vector<int> newCurStat;
+    newCurStat.reserve(curStat.size());
+
     for (size_t i = 0; i < curStat.size(); ++i)
     {
         int st = curStat[i];
@@ -681,9 +688,12 @@ void RegExpNFA::GenStatesClosure(char ch, const std::vector<int>& curStat,
         if (!ignoreRef && states_[st].IsRefState() && ConstructReferenceState(st))
         {
             vc = &(NFAStatTran_[st][ch]);
-
             refStates.push_back(st);
             alreadyOn.resize(states_.size(), 0);
+
+            std::vector<char> isOn(states_.size(), 0);
+            isOn[st] = 1;
+            AddStateWithEpsilon(st, isOn, newCurStat);
         }
 #endif
         if (vc->empty()) continue;
@@ -694,6 +704,11 @@ void RegExpNFA::GenStatesClosure(char ch, const std::vector<int>& curStat,
 
             AddStateWithEpsilon((*vc)[j], alreadyOn, toStat);
         }
+    }
+
+    if (!newCurStat.empty())
+    {
+        GenStatesClosure(ch, newCurStat, toStat, alreadyOn, refStates, ignoreRef);
     }
 }
 
@@ -735,7 +750,6 @@ bool RegExpNFA::RunNFA(int start, int accept, const char* ps, const char* pe)
 
     curStat.reserve(states_.size());
     toStat.reserve(states_.size());
-
     AddStateWithEpsilon(start, alreadyOn, curStat);
 
     while (in <= pe && !curStat.empty())
@@ -763,6 +777,7 @@ bool RegExpNFA::RunNFA(int start, int accept, const char* ps, const char* pe)
         {
             int st = curUnitStartStack[j];
 
+            // (ab)* ((ab)*)
             std::vector<char> isCheck(states_.size(), 0);
             if (IfStateClosureHasTrans(st, st, isCheck, ch))
             {
@@ -869,13 +884,6 @@ bool RegExpNFA::RunNFA(int start, int accept, const char* ps, const char* pe)
             states_[st].AppendType(State_Ref);
         }
     }
-#else
-    for (size_t j = 0; j < curStat.size(); ++j)
-    {
-        int st = curStat[j];
-        AddStateWithEpsilon(curStat[j], alreadyOn, toStat);
-    }
-    curStat.swap(toStat);
 #endif
 
     return !curStat.empty() && std::find(curStat.begin(), curStat.end(), accept) != curStat.end();

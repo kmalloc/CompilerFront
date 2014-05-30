@@ -29,6 +29,10 @@ bool RegExpSyntaxTree::BuildSyntaxTree(const char* ps, const char* pe)
     txtEnd_ = pe;
     unitCounter_ = -1;
 
+#ifdef SUPPORT_REG_EXP_BACK_REFERENCE
+    hasReferNode_ = false;
+#endif
+
     synTreeRoot_ = dynamic_cast<RegExpSynTreeNode*>(ConstructSyntaxTree(ps, pe));
 
     return true;

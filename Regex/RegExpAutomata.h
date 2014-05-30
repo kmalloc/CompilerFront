@@ -114,7 +114,7 @@ class RegExpNFA: public AutomatonBase
         std::map<int, std::set<int> > unitMatchPair_;
         std::vector<UnitInfo> groupCapture_;
 
-        // auxiliary structur for capturing group.
+        // auxiliary structure for capturing group.
         // end state to group index.
         std::map<std::pair<int, int>, std::vector<int> > groupWatcher_;
 #endif

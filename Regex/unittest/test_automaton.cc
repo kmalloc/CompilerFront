@@ -1,4 +1,4 @@
-#include "gtest.h"
+#include "gtest/gtest.h"
 
 #include <map>
 #include <string>
@@ -44,7 +44,6 @@ TEST(test_matching_txt, test_automata_gen)
     std::vector<nfa_case*> cases;
 
 #ifdef SUPPORT_REG_EXP_BACK_REFERENCE
-    // TODO, a(bc)(\\0df)(n\\1)
     nfa_case* b1_0 = new nfa_case("a(bc)(\\0df)(g\\1)e", false);
     b1_0->AddTestCase("abcbcdfgbcdfe", true);
     b1_0->AddTestCase("abcbedfgbcdfe", false);
@@ -191,6 +190,45 @@ TEST(test_matching_txt, test_automata_gen)
     c18_1->AddTestCase("ababceabmn", true);
     c18_1->AddTestCase("abababababceababceabmn", false);
     cases.push_back(c18_1);
+
+    nfa_case* c18_2 = new nfa_case("((ab)*de)fn\\0\\1", false);
+    c18_2->AddTestCase("ababdefnabab", false);
+    c18_2->AddTestCase("ababdefnababab", false);
+    c18_2->AddTestCase("ababdefnababde", false);
+    c18_2->AddTestCase("ababdefnabababde", true);
+    c18_2->AddTestCase("defnde", true);
+    c18_2->AddTestCase("defn", false);
+    cases.push_back(c18_2);
+
+    nfa_case* c18_3 = new nfa_case("(ab(cd)*ef)gn\\0\\1", false);
+    c18_3->AddTestCase("abcdcdefgncdcdcdef", false);
+    c18_3->AddTestCase("abcdcdefgncdabcdcdef", true);
+    c18_3->AddTestCase("abcdcdefgncdcdef", false);
+    c18_3->AddTestCase("abcdcdefgncdef", false);
+    c18_3->AddTestCase("abefgnef", false);
+    c18_3->AddTestCase("abefgnabef", true);
+    c18_3->AddTestCase("abefgnefef", false);
+    cases.push_back(c18_3);
+
+    nfa_case* c18_4 = new nfa_case("(ab(cd)*)gn\\0\\1", false);
+    c18_4->AddTestCase("abcdcdgncdabcdcd", true);
+    c18_4->AddTestCase("abcdcdgncdcdabcdcd", false);
+    c18_4->AddTestCase("abcdgncdabcd", true);
+    c18_4->AddTestCase("abcdgncd", false);
+    c18_4->AddTestCase("abcdgnab", false);
+    cases.push_back(c18_4);
+
+    nfa_case* c18_5 = new nfa_case("((ab)*)cd\\0\\1", false);
+    c18_5->AddTestCase("ababcdababab", true);
+    c18_5->AddTestCase("ababcdabab", false);
+    cases.push_back(c18_5);
+
+    nfa_case* c18_6 = new nfa_case("(ab)*cd\\0", false);
+    c18_6->AddTestCase("ababcdababab", false);
+    c18_6->AddTestCase("ababcdabab", false);
+    c18_6->AddTestCase("ababcdab", true);
+    c18_6->AddTestCase("ababcd", false);
+    cases.push_back(c18_6);
 
 #endif
 
@@ -374,7 +412,10 @@ TEST(test_matching_txt, test_automata_gen)
 
     nfa_case* c15 = new nfa_case("ab[^qwerty]vn", false);
     c15->AddTestCase("ab[vn", true);
-    c15->AddTestCase("ab[vn", true);
+    c15->AddTestCase("ab]vn", true);
+    c15->AddTestCase("ab^vn", true);
+    c15->AddTestCase("abavn", true);
+    c15->AddTestCase("abbvn", true);
     c15->AddTestCase("abuvn", true);
     c15->AddTestCase("abgvn", true);
     c15->AddTestCase("abqvn", false);
