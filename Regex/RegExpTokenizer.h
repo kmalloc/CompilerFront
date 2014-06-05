@@ -3,6 +3,9 @@
 
 #include "Parsing/LexTokenizerBase.h"
 
+#define STATE_TRAN_MAX (128)
+#define STATE_EPSILON (STATE_TRAN_MAX - 1)
+
 class RegExpTokenizer: public LexTokenizerBase
 {
     public:
@@ -21,6 +24,10 @@ class RegExpTokenizer: public LexTokenizerBase
                 const char*& beforeUnit, const char*& afterUnit) const;
 
         bool ExtractRepeatCount(const char* s, const char* e, int& min, int& max) const;
+
+        // TODO, support 2-bytes char.
+        static std::string ConstructEscapeString(const char* s, const char* e);
+        static std::string ConstructOptionString(const char* s, const char* e);
 };
 
 #endif

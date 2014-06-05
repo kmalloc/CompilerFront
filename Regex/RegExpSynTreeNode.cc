@@ -3,6 +3,9 @@
 #include <string>
 #include <assert.h>
 
+#include "RegExpTokenizer.h"
+#include "Parsing/LexException.h"
+
 RegExpSynTreeNode::RegExpSynTreeNode(const char*, const char*,
         RegExpSynTreeNodeType type, int pos)
     :isUnit_(0), position_(pos), type_(type)
@@ -36,17 +39,20 @@ RegExpSynTreeStarNode::RegExpSynTreeStarNode(int min, int max)
 
 RegExpSynTreeLeafNode::RegExpSynTreeLeafNode(const char* s, const char* e, int pos)
     :RegExpSynTreeNode(s, e, RegExpSynTreeNodeType_Leaf, pos)
+    ,textOrig_(s, e - s + 1)
     ,leafType_(RegExpSynTreeNodeLeafNodeType_None)
 {
     if (*s == '\\')
     {
         leafType_ = RegExpSynTreeNodeLeafNodeType_Esc;
-        text_ = *(s + 1);
+        text_ = RegExpTokenizer::ConstructEscapeString(s + 1, e);
     }
     else if (*s == '[')
     {
+        if (*e != ']') throw LexErrException("[] does not match!", s);
+
         leafType_ = RegExpSynTreeNodeLeafNodeType_Alt;
-        text_ = std::string(s + 1, e - s - 1);
+        text_ = RegExpTokenizer::ConstructOptionString(s + 1, e - 1);
     }
     else if (*s == '^')
     {

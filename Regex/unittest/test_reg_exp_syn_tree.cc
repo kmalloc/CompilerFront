@@ -213,10 +213,8 @@ static string ConstructRegExpFromSynTree(RegExpSynTreeNode* root)
     else if (root->IsLeafNode())
     {
         RegExpSynTreeLeafNode* sn = dynamic_cast<RegExpSynTreeLeafNode*>(root);
-        out = root->GetNodeText();
+        out = root->GetOrigText();
 
-        if (sn->GetLeafNodeType() == RegExpSynTreeNodeLeafNodeType_Esc) out = "\\" + out;
-        if (sn->GetLeafNodeType() == RegExpSynTreeNodeLeafNodeType_Alt) out = "[" + out + "]";
 #ifdef SUPPORT_REG_EXP_BACK_REFERENCE
         if (sn->GetLeafNodeType() == RegExpSynTreeNodeLeafNodeType_Ref)
         {
@@ -285,6 +283,7 @@ TEST(test_construct_reg_syn_tree, test_reg_exp_automata_gen)
         "[ve-jf]+abc", // 21
         "[^ve-jf]+abc", // 21
         "[b^ve-jf]+abc", // 21
+        "ab[^qwerty]vn",
     };
 
     RegExpSyntaxTree regSynTree;
@@ -376,3 +375,59 @@ TEST(test_reg_exp_tokenizer, test_reg_exp_automata_gen)
     }
 }
 
+class StrToken
+{
+    public:
+
+        StrToken(const char* str, const char* expect)
+            :str_(str), expect_(expect)
+        {
+        }
+
+        void test(const std::string& s)
+        {
+            EXPECT_STREQ(expect_.c_str(), s.c_str()); // << "actual:" << s << endl << "expect:" << expect_ << endl;
+        }
+
+        const std::string& get() const { return str_; }
+
+    private:
+
+        std::string str_;
+        std::string expect_;
+};
+
+std::string GenNegString(const std::string& s)
+{
+    string neg;
+    for (int i = 1; i < STATE_TRAN_MAX - 1; ++i)
+    {
+        if (s.find(i) != std::string::npos) continue;
+
+        neg.push_back(i);
+    }
+
+    return neg;
+}
+
+TEST(test_string_constructor, test_reg_exp_tokenizer)
+{
+    StrToken cases[] =
+    {
+        StrToken("abcd", "abcd"),
+        StrToken("abcdnnnw", "abcdnw"),
+        StrToken("1234", "1234"),
+        StrToken("vb-f\\-", "-\\bcdefv"),
+        StrToken("^1234", GenNegString("1234").c_str()),
+        StrToken("^qwerty", GenNegString("qwerty").c_str()),
+        StrToken("^qwa-d\\-p", GenNegString("qwabcd-p").c_str()),
+        StrToken("ab-fi-l", "abcdefijkl"),
+    };
+
+    for (int i = 0; i < ArrSize(cases); ++i)
+    {
+        const char* s = &((cases[i].get())[0]);
+        const char* e = &((cases[i].get())[cases[i].get().size() - 1]);
+        cases[i].test(RegExpTokenizer::ConstructOptionString(s, e));
+    }
+}

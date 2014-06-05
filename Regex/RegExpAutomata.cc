@@ -4,18 +4,15 @@
 #include <stdlib.h>
 #include <assert.h>
 #include <algorithm>
-#include "Parsing/LexException.h"
+
 #include "RegExpTokenizer.h"
 #include "RegExpSyntaxTree.h"
 #include "RegExpSynTreeNode.h"
+#include "Parsing/LexException.h"
 
 RegExpNFA::RegExpNFA(bool partial)
     :AutomatonBase(AutomatonType_NFA), stateIndex_(0)
     ,headState_(-1), tailState_(-1), support_partial_match_(partial)
-    ,states_(), NFAStatTran_()
-#ifdef SUPPORT_REG_EXP_BACK_REFERENCE
-    ,unitMatchPair_()
-#endif
 {
 }
 
@@ -140,7 +137,6 @@ int RegExpNFA::BuildNFAImp(RegExpSynTreeNode* root, int& start, int& accept, boo
     }
 
 #ifdef SUPPORT_REG_EXP_BACK_REFERENCE
-
     if (states_[start].GetParentUnit() == -1) states_[start].SetParentUnit(unit_start);
     if (states_[accept].GetParentUnit() == -1) states_[accept].SetParentUnit(unit_start);
 
@@ -174,7 +170,7 @@ int RegExpNFA::BuildStateForLeafNode(RegExpSynTreeLeafNode* ln, int& start, int&
     start = CreateState(State_Start);
     accept = CreateState(State_Accept);
 
-    std::string txt = ln->GetNodeText();
+    const std::string& txt = ln->GetNodeText();
     RegExpSynTreeNodeLeafNodeType lt = ln->GetLeafNodeType();
     if (lt == RegExpSynTreeNodeLeafNodeType_Dot)
     {
@@ -197,86 +193,17 @@ int RegExpNFA::BuildStateForLeafNode(RegExpSynTreeLeafNode* ln, int& start, int&
     }
     else if (lt == RegExpSynTreeNodeLeafNodeType_Alt)
     {
-        bool is_negate = (txt[0] == '^');
-        if (!is_negate)
+        for (size_t i = 0; i < txt.size(); ++i)
         {
-            for (size_t i = 0; i < txt.size(); ++i)
-            {
-                if (txt[i] == '-' && (i > 0 && i < txt.size() - 1))
-                {
-                    if (txt[i - 1] > txt[i + 1]) throw LexErrException("range values reversed in []:", ln->GetNodeText().c_str());
-
-                    for (size_t j = txt[i - 1]; j <= txt[i + 1]; ++j)
-                    {
-                        NFAStatTran_[start][j].push_back(accept);
-                    }
-                    i += 1;
-                }
-                else
-                {
-                    if (i < txt.size() - 2 && txt[i] == '\\' && txt[i + 1] == '-')
-                    {
-                        ++i;
-                    }
-                    NFAStatTran_[start][txt[i]].push_back(accept);
-                }
-            }
-        }
-        else
-        {
-            unsigned short chosen[STATE_TRAN_MAX] = {0};
-            for (size_t i = 1; i < txt.size(); ++i)
-            {
-                if (txt[i] == '-' && (i > 0 && i < txt.size() - 1))
-                {
-                    if (txt[i - 1] > txt[i + 1]) throw LexErrException("range values reversed in []:", ln->GetNodeText().c_str());
-
-                    for (size_t j = txt[i - 1]; j <= txt[i + 1]; ++j)
-                    {
-                        chosen[j] = 1;
-                    }
-
-                    i += 1;
-                }
-                else
-                {
-                    if (i < txt.size() - 2 && txt[i] == '\\' && txt[i + 1] == '-')
-                    {
-                        ++i;
-                    }
-
-                    chosen[txt[i]] = 1;
-                }
-            }
-
-            for (size_t i = 1; i < STATE_TRAN_MAX; ++i)
-            {
-                if (chosen[i]) continue;
-
-                NFAStatTran_[start][i].push_back(accept);
-            }
+            assert(txt[i] < STATE_TRAN_MAX - 1);
+            NFAStatTran_[start][txt[i]].push_back(accept);
         }
     }
-    else if (lt == RegExpSynTreeNodeLeafNodeType_Esc && (txt[0] == 's' || txt[0] == 'w' || txt[0] == 'd'))
+    else if (lt == RegExpSynTreeNodeLeafNodeType_Esc)
     {
-        if (txt[0] == 's')
+        for (size_t i = 0; i < txt.size(); ++i)
         {
-            NFAStatTran_[start][' '].push_back(accept);
-        }
-        else if (txt[0] == 'w')
-        {
-            for(int i = 'a'; i <= 'z'; ++i)
-            {
-                NFAStatTran_[start][i].push_back(accept);
-                NFAStatTran_[start][i + 'A' - 'a'].push_back(accept);
-            }
-        }
-        else
-        {
-            for(int i = '0'; i <= '9'; ++i)
-            {
-                NFAStatTran_[start][i].push_back(accept);
-            }
+            NFAStatTran_[start][txt[i]].push_back(accept);
         }
     }
     else if (lt == RegExpSynTreeNodeLeafNodeType_Ref)

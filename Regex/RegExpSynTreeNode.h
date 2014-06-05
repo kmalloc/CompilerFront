@@ -40,6 +40,8 @@ class RegExpSynTreeNode: public SynTreeNodeBase
 
         RegExpSynTreeNodeType GetNodeType() const { return type_; }
 
+        virtual const std::string& GetOrigText() const { return GetNodeText(); }
+
     protected:
 
         RegExpSynTreeNode(const char* s, const char* e,
@@ -49,6 +51,7 @@ class RegExpSynTreeNode: public SynTreeNodeBase
 
         int isUnit_;
         int position_;
+
         RegExpSynTreeNodeType type_;
 };
 
@@ -74,12 +77,16 @@ class RegExpSynTreeLeafNode: public RegExpSynTreeNode
         RegExpSynTreeLeafNode(const char* s, const char* e, int pos);
         RegExpSynTreeNodeLeafNodeType GetLeafNodeType() const { return leafType_; }
 
+        const std::string& GetOrigText() const { return textOrig_; }
+
     protected:
 
         RegExpSynTreeLeafNode(int pos);
 
     protected:
 
+        // TODO, currently only support ascil char.
+        std::string textOrig_;
         RegExpSynTreeNodeLeafNodeType leafType_;
 };
 

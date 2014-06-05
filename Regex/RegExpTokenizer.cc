@@ -1,5 +1,6 @@
 #include "RegExpTokenizer.h"
 
+#include <vector>
 #include <string>
 #include <limits.h>
 #include <assert.h>
@@ -265,5 +266,130 @@ void RegExpTokenizer::ExtractRegUnit(const char* ps, const char* pe,
     }
 
     return;
+}
+
+std::string RegExpTokenizer::ConstructEscapeString(const char* s, const char* e)
+{
+    char c = *s;
+    std::string ret;
+
+    ret.reserve(8);
+
+    if (c == 's')
+    {
+        ret.push_back(' ');
+    }
+    else if (c == 'w')
+    {
+        for(int i = 'a'; i <= 'z'; ++i)
+        {
+            ret.push_back(i);
+            ret.push_back(i + 'A' - 'a');
+        }
+    }
+    else if (c == 'd')
+    {
+        for(int i = '0'; i <= '9'; ++i)
+        {
+            ret.push_back(i);
+        }
+    }
+    else
+    {
+        ret.push_back(*s);
+    }
+
+    return ret;
+}
+
+std::string RegExpTokenizer::ConstructOptionString(const char* s, const char* e)
+{
+    const char* p = s;
+    bool is_negate = (*p == '^');
+
+    std::string ret;
+    std::vector<short> sel(STATE_TRAN_MAX, 0);
+
+    ret.reserve(2 * (e - s));
+
+    if (!is_negate)
+    { // [abc]
+        while (p <= e)
+        {
+            if (*p == '-' && (p > s && p < e))
+            {
+                // [a-h]
+                if (*(p - 1) > *(p + 1))
+                {
+                    throw LexErrException("range values reversed in []:",
+                            std::string(s, e - s + 1).c_str());
+                }
+
+                for (size_t j = *(p - 1); j <= *(p + 1); ++j)
+                {
+                    sel[j] = 1;
+                }
+            }
+            else
+            {
+                if (p < e - 1 && *p == '\\' && *(p + 1) == '-')
+                {
+                    ++p;
+                }
+
+                sel[*p] = 1;
+            }
+
+            ++p;
+        }
+
+        for (size_t i = 1; i < STATE_TRAN_MAX - 1; ++i)
+        {
+            if (!sel[i]) continue;
+
+            ret.push_back(i);
+        }
+    }
+    else
+    {// [^abc]
+        ++p;
+
+        while (p <= e)
+        {
+            if (*p == '-' && (p > s && p < e))
+            {
+                if (*(p - 1) > *(p + 1))
+                {
+                    throw LexErrException("range values reversed in []:",
+                            std::string(s, e - s + 1).c_str());
+                }
+
+                for (size_t j = *(p - 1); j <= *(p + 1); ++j)
+                {
+                    sel[j] = 1;
+                }
+            }
+            else
+            {
+                if (p < e - 1 && *p == '\\' && *(p + 1) == '-')
+                {
+                    ++p;
+                }
+
+                sel[*p] = 1;
+            }
+
+            ++p;
+        }
+
+        for (size_t i = 1; i < STATE_TRAN_MAX - 1; ++i)
+        {
+            if (sel[i]) continue;
+
+            ret.push_back(i);
+        }
+    }
+
+    return ret;
 }
 

@@ -14,9 +14,6 @@ enum StateType
     State_Ref  = 0x80,
 };
 
-#define STATE_TRAN_MAX (256)
-#define STATE_EPSILON (STATE_TRAN_MAX - 1)
-
 struct MachineState
 {
     MachineState(int num, StateType t)

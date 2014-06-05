@@ -428,7 +428,7 @@ TEST(test_matching_txt, test_automata_gen)
 
     nfa_case* c15_0 = new nfa_case("ab[^qwa-d\\-p]vn", false);
     c15_0->AddTestCase("ab[vn", true);
-    c15_0->AddTestCase("ab[vn", true);
+    c15_0->AddTestCase("ab]vn", true);
     c15_0->AddTestCase("abuvn", true);
     c15_0->AddTestCase("abgvn", true);
     c15_0->AddTestCase("ab-vn", false);
