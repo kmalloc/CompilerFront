@@ -422,6 +422,7 @@ TEST(test_string_constructor, test_reg_exp_tokenizer)
         StrToken("^qwerty", GenNegString("qwerty").c_str()),
         StrToken("^qwa-d\\-p", GenNegString("qwabcd-p").c_str()),
         StrToken("ab-fi-l", "abcdefijkl"),
+        StrToken("ab-fg2-5l", "2345abcdefgl"),
     };
 
     for (int i = 0; i < ArrSize(cases); ++i)
@@ -429,5 +430,20 @@ TEST(test_string_constructor, test_reg_exp_tokenizer)
         const char* s = &((cases[i].get())[0]);
         const char* e = &((cases[i].get())[cases[i].get().size() - 1]);
         cases[i].test(RegExpTokenizer::ConstructOptionString(s, e));
+    }
+
+    StrToken cases2[] =
+    {
+        StrToken("\\w", "aAbBcCdDeEfFgGhHiIjJkKlLmMnNoOpPqQrRsStTuUvVwWxXyYzZ"),
+        StrToken("\\d", "0123456789"),
+        StrToken("\\s", " "),
+        StrToken("\\g", "g"),
+    };
+
+    for (int i = 0; i < ArrSize(cases2); ++i)
+    {
+        const char* s = &((cases2[i].get())[0]);
+        const char* e = &((cases2[i].get())[cases2[i].get().size() - 1]);
+        cases2[i].test(RegExpTokenizer::ConstructEscapeString(s, e));
     }
 }

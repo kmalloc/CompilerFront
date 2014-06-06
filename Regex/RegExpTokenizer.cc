@@ -270,6 +270,9 @@ void RegExpTokenizer::ExtractRegUnit(const char* ps, const char* pe,
 
 std::string RegExpTokenizer::ConstructEscapeString(const char* s, const char* e)
 {
+    if (*s != '\\') throw LexErrException("not an escape string:", s);
+
+    ++s;
     char c = *s;
     std::string ret;
 
@@ -311,7 +314,6 @@ std::string RegExpTokenizer::ConstructOptionString(const char* s, const char* e)
     std::vector<short> sel(STATE_TRAN_MAX, 0);
 
     ret.reserve(2 * (e - s));
-
     if (!is_negate)
     { // [abc]
         while (p <= e)
@@ -352,8 +354,8 @@ std::string RegExpTokenizer::ConstructOptionString(const char* s, const char* e)
     }
     else
     {// [^abc]
-        ++p;
 
+        ++p;
         while (p <= e)
         {
             if (*p == '-' && (p > s && p < e))

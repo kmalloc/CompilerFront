@@ -45,7 +45,7 @@ RegExpSynTreeLeafNode::RegExpSynTreeLeafNode(const char* s, const char* e, int p
     if (*s == '\\')
     {
         leafType_ = RegExpSynTreeNodeLeafNodeType_Esc;
-        text_ = RegExpTokenizer::ConstructEscapeString(s + 1, e);
+        text_ = RegExpTokenizer::ConstructEscapeString(s, e);
     }
     else if (*s == '[')
     {

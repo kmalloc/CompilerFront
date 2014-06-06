@@ -179,6 +179,14 @@ TEST(test_matching_txt, test_automata_gen)
     cg5->AddTestCase("nmefvabnm", false);
     cases.push_back(cg5);
 
+    nfa_case* cg6 = new nfa_case("((ab)*ef(gnw)((vm)*))tu\\0\\1\\2\\3g\\4\\2end", false);
+    cg6->AddTestCase("abefgnwvmvmtuabgnwvmvmvmgabefgnwvmvmvmend", true);
+    cg6->AddTestCase("abababefgnwvmvmtuabgnwvmvmvmgabababefgnwvmvmvmend", true);
+    cg6->AddTestCase("abababefgnwvmvmtuabgnwvmvmvmgababefgnwvmvmvmend", false);
+    cg6->AddTestCase("efgnwtugnwgefgnwend", true);
+    cg6->AddTestCase("efgnwtugnwgefgnwefend", false);
+    cases.push_back(cg6);
+
     nfa_case* c18_0 = new nfa_case("(ab){2, 4}\\0", false);
     c18_0->AddTestCase("ababababab", true);
     c18_0->AddTestCase("ababab", true);

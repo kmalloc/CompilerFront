@@ -34,12 +34,12 @@ class RegExpSynTreeNode: public SynTreeNodeBase
 
         int IsUnit() const { return isUnit_; }
         void SetUnit(bool isUnit) { isUnit_ += isUnit; }
-        virtual bool IsLeafNode() const;
-        virtual const std::string& GetNodeText() const;
-        virtual int  GetNodePosition() const { return position_; }
 
+        virtual bool IsLeafNode() const;
+        virtual int  GetNodePosition() const { return position_; }
         RegExpSynTreeNodeType GetNodeType() const { return type_; }
 
+        virtual const std::string& GetNodeText() const;
         virtual const std::string& GetOrigText() const { return GetNodeText(); }
 
     protected:
