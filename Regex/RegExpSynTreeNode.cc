@@ -49,7 +49,7 @@ RegExpSynTreeLeafNode::RegExpSynTreeLeafNode(const char* s, const char* e, int p
     }
     else if (*s == '[')
     {
-        if (*e != ']') throw LexErrException("[] does not match!", s);
+        if (*e != ']') throw LexErrException(s, "[] does not match!");
 
         leafType_ = RegExpSynTreeNodeLeafNodeType_Alt;
         text_ = RegExpTokenizer::ConstructOptionString(s + 1, e - 1);

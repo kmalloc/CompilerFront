@@ -65,7 +65,7 @@ TEST(test_extract_repeat_count, test_reg_exp_automata_gen)
     RegExpTokenizer tokenizer;
 
     int min, max;
-    for (int i = 0; i < ArrSize(cases); ++i)
+    for (size_t i = 0; i < ArrSize(cases); ++i)
     {
         string s = cases[i].GetText();
         tokenizer.ExtractRepeatCount(&s[0], &s[s.size() - 1], min, max);
@@ -145,19 +145,18 @@ TEST(test_extract_unit, test_reg_exp_automata_gen)
         RegUnit("(abc|efg)?", 1, 7, -1, 9),
         RegUnit("(ab)(efg)(vv)*", 10, 11, 8, 13),
         RegUnit("([abc]+\\w)*(a|b)+", 12, 14, 10, 16),
-        RegUnit("(abc)+\\d((ev){2,5})?", 9, 17, 7, 19), 
+        RegUnit("(abc)+\\d((ev){2,5})?", 9, 17, 7, 19),
     };
 
     RegExpTokenizer tokenizer;
     const char* us, *ue, *bu, *au;
 
-    for (int i = 0; i < ArrSize(cases); ++i)
+    for (size_t i = 0; i < ArrSize(cases); ++i)
     {
         const char* s = cases[i].GetText();
         tokenizer.ExtractRegUnit(s, s + strlen(s) - 1, us, ue, bu, au);
 
         EXPECT_EQ(cases[i].GetUnitStart(), us) << "us case: " << i << endl;
-        char buf[8];
         EXPECT_EQ(cases[i].GetUnitEnd(), ue) << "ue case: " << i << endl;
         EXPECT_EQ(cases[i].GetBeforeUnit(), bu) << "bu case: " << i << endl;
         EXPECT_EQ(cases[i].GetAfterUnit(), au) << "au case: " << i << endl;
@@ -287,7 +286,7 @@ TEST(test_construct_reg_syn_tree, test_reg_exp_automata_gen)
     };
 
     RegExpSyntaxTree regSynTree;
-    for (int i = 0; i < ArrSize(cases); ++i)
+    for (size_t i = 0; i < ArrSize(cases); ++i)
     {
         try
         {
@@ -366,7 +365,7 @@ TEST(test_reg_exp_tokenizer, test_reg_exp_automata_gen)
     };
 
     RegExpTokenizer tokenizer;
-    for (int i = 0; i < ArrSize(cases); ++i)
+    for (size_t i = 0; i < ArrSize(cases); ++i)
     {
         const char* s = cases[i].GetText();
         const char* e = s + strlen(s) - 1;
@@ -400,7 +399,7 @@ class StrToken
 std::string GenNegString(const std::string& s)
 {
     string neg;
-    for (int i = 1; i < STATE_TRAN_MAX - 1; ++i)
+    for (size_t i = 1; i < REG_EXP_CHAR_MAX - 1; ++i)
     {
         if (s.find(i) != std::string::npos) continue;
 
@@ -425,7 +424,7 @@ TEST(test_string_constructor, test_reg_exp_tokenizer)
         StrToken("ab-fg2-5l", "2345abcdefgl"),
     };
 
-    for (int i = 0; i < ArrSize(cases); ++i)
+    for (size_t i = 0; i < ArrSize(cases); ++i)
     {
         const char* s = &((cases[i].get())[0]);
         const char* e = &((cases[i].get())[cases[i].get().size() - 1]);
@@ -440,7 +439,7 @@ TEST(test_string_constructor, test_reg_exp_tokenizer)
         StrToken("\\g", "g"),
     };
 
-    for (int i = 0; i < ArrSize(cases2); ++i)
+    for (size_t i = 0; i < ArrSize(cases2); ++i)
     {
         const char* s = &((cases2[i].get())[0]);
         const char* e = &((cases2[i].get())[cases2[i].get().size() - 1]);

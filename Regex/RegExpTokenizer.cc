@@ -118,7 +118,7 @@ bool RegExpTokenizer::ExtractRepeatCount(const char* ps, const char* pe, int& mi
        }
        else if (*ps != ' ')
        {
-           throw LexErrException("invalid repeat number, left", ps);
+           throw LexErrException(ps, "invalid repeat number, left");
        }
 
        ++ps;
@@ -139,7 +139,7 @@ bool RegExpTokenizer::ExtractRepeatCount(const char* ps, const char* pe, int& mi
         }
         else if (*ps != ' ')
         {
-            throw LexErrException("invalid repeat number, right", ps);
+            throw LexErrException(ps, "invalid repeat number, right");
         }
 
         ++ps;
@@ -153,7 +153,7 @@ bool RegExpTokenizer::ExtractRepeatCount(const char* ps, const char* pe, int& mi
 
     if (f > l)
     {
-        throw LexErrException("invalid repeat number, min > max", ps);
+        throw LexErrException(ps, "invalid repeat number, min > max");
     }
 
     min = f;
@@ -210,7 +210,7 @@ void RegExpTokenizer::ExtractRegUnit(const char* ps, const char* pe,
         }
 
         // error, no matching () or {}
-        if (*p != mc) throw LexErrException("unmatch parenthesis:\"(\", \"{\", or \"[\".", p);
+        if (*p != mc) throw LexErrException(p, "unmatch parenthesis:\"(\", \"{\", or \"[\".");
 
         if (ec == ']')
         {
@@ -220,7 +220,7 @@ void RegExpTokenizer::ExtractRegUnit(const char* ps, const char* pe,
         else if (ec == '}')
         {
             ExtractRegUnit(ps, p - 1, us, ue, bu, au);
-            if (au != p) throw LexErrException("invalid expression before {}", p);
+            if (au != p) throw LexErrException(p, "invalid expression before {}");
 
             return;
         }
@@ -245,7 +245,7 @@ void RegExpTokenizer::ExtractRegUnit(const char* ps, const char* pe,
     if ((ec == '(' || ec == '{' || ec == '[' || ec == '|'
             || ec == '*' || ec == '?' || ec == '+') && !IsCharEscape(ps, p)) // *(p - 1) != '\\')
     {
-        throw LexErrException("invalid occurance of meta-character", p);
+        throw LexErrException(p, "invalid occurance of meta-character");
     }
 
     ue = p;
@@ -254,7 +254,7 @@ void RegExpTokenizer::ExtractRegUnit(const char* ps, const char* pe,
     if (IsCharEscape(ps, p)) // *(p - 1) == '\\')
     {
         // escape meta-character
-        if (!CanCharEscape(ec)) throw LexErrException("invalid escape character", p);
+        if (!CanCharEscape(ec)) throw LexErrException(p, "invalid escape character");
 
         us = p - 1;
         bu = p - 2;
@@ -268,9 +268,9 @@ void RegExpTokenizer::ExtractRegUnit(const char* ps, const char* pe,
     return;
 }
 
-std::string RegExpTokenizer::ConstructEscapeString(const char* s, const char* e)
+std::string RegExpTokenizer::ConstructEscapeString(const char* s, const char*)
 {
-    if (*s != '\\') throw LexErrException("not an escape string:", s);
+    if (*s != '\\') throw LexErrException(s, "not an escape string:");
 
     ++s;
     char c = *s;
@@ -311,7 +311,7 @@ std::string RegExpTokenizer::ConstructOptionString(const char* s, const char* e)
     bool is_negate = (*p == '^');
 
     std::string ret;
-    std::vector<short> sel(STATE_TRAN_MAX, 0);
+    std::vector<short> sel(REG_EXP_CHAR_MAX, 0);
 
     ret.reserve(2 * (e - s));
     if (!is_negate)
@@ -323,11 +323,11 @@ std::string RegExpTokenizer::ConstructOptionString(const char* s, const char* e)
                 // [a-h]
                 if (*(p - 1) > *(p + 1))
                 {
-                    throw LexErrException("range values reversed in []:",
-                            std::string(s, e - s + 1).c_str());
+                    throw LexErrException(std::string(s, e - s + 1).c_str(),
+                            "range values reversed in []:");
                 }
 
-                for (size_t j = *(p - 1); j <= *(p + 1); ++j)
+                for (short j = *(p - 1); j <= *(p + 1); ++j)
                 {
                     sel[j] = 1;
                 }
@@ -345,7 +345,7 @@ std::string RegExpTokenizer::ConstructOptionString(const char* s, const char* e)
             ++p;
         }
 
-        for (size_t i = 1; i < STATE_TRAN_MAX - 1; ++i)
+        for (short i = 1; i < REG_EXP_CHAR_MAX - 1; ++i)
         {
             if (!sel[i]) continue;
 
@@ -362,11 +362,11 @@ std::string RegExpTokenizer::ConstructOptionString(const char* s, const char* e)
             {
                 if (*(p - 1) > *(p + 1))
                 {
-                    throw LexErrException("range values reversed in []:",
-                            std::string(s, e - s + 1).c_str());
+                    throw LexErrException(std::string(s, e - s + 1).c_str(),
+                            "range values reversed in []:");
                 }
 
-                for (size_t j = *(p - 1); j <= *(p + 1); ++j)
+                for (short j = *(p - 1); j <= *(p + 1); ++j)
                 {
                     sel[j] = 1;
                 }
@@ -384,7 +384,7 @@ std::string RegExpTokenizer::ConstructOptionString(const char* s, const char* e)
             ++p;
         }
 
-        for (size_t i = 1; i < STATE_TRAN_MAX - 1; ++i)
+        for (short i = 1; i < REG_EXP_CHAR_MAX - 1; ++i)
         {
             if (sel[i]) continue;
 

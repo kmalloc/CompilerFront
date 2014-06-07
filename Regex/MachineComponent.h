@@ -34,6 +34,9 @@ struct MachineState
     bool IsHeadState() const { return type & State_Head; }
     bool IsTailState() const { return type & State_Tail; }
 
+    int no;
+    StateType type;
+
 #ifdef SUPPORT_REG_EXP_BACK_REFERENCE
     short unit_type;
     int   parentUnit;
@@ -47,8 +50,6 @@ struct MachineState
     void SetParentUnit(int unit) { parentUnit = unit; }
 #endif
 
-    int no;
-    StateType type;
 };
 
 struct MachineEdge

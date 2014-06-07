@@ -6,9 +6,10 @@
 #include "RegExpSynTreeNode.h"
 
 RegExpSyntaxTree::RegExpSyntaxTree()
-    :synTreeRoot_(NULL), leafIndex_(0)
-    ,tokenizer_(new RegExpTokenizer())
+    :leafIndex_(0)
     ,unitCounter_(-1)
+    ,tokenizer_(new RegExpTokenizer())
+    ,synTreeRoot_(NULL)
 {
 }
 
@@ -83,7 +84,7 @@ SynTreeNodeBase* RegExpSyntaxTree::ConstructSyntaxTreeImp(const char* ps, const 
             int co = *(ps + 1) - '0';
             if (std::isdigit(*(ps + 2))) co = co * 10 + *(ps + 2);
 
-            if (co > unitCounter_) throw LexErrException("invalid back reference number, out of range", ps);
+            if (co > unitCounter_) throw LexErrException(ps, "invalid back reference number, out of range");
 
             hasReferNode_ = true;
             return new RegExpSynTreeRefNode(ps, te, leafIndex_++);

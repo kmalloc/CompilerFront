@@ -499,7 +499,7 @@ TEST(test_matching_txt, test_automata_gen)
    ct_1->AddTestCase("MMMMMCMXCIV", false);
    cases.push_back(ct_1);
 
-    for (int i = 0; i < cases.size(); ++i)
+    for (size_t i = 0; i < cases.size(); ++i)
     {
         for (std::map<std::string, bool>::iterator it = cases[i]->txt2match_.begin();
                 it != cases[i]->txt2match_.end(); ++it)
