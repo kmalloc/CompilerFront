@@ -42,6 +42,10 @@ class RegExpNFA: public AutomatonBase
         const NFA_TRAN_T& GetNFATran() const { return NFAStatTran_; }
         const std::vector<MachineState>& GetAllStates() const { return states_; }
 
+#ifdef SUPPORT_REG_EXP_BACK_REFERENCE
+        std::vector<std::string> GetCaptureGroup() const;
+#endif
+
     protected:
 
         int  BuildNFA(RegExpSyntaxTree* tree);
@@ -71,8 +75,8 @@ class RegExpNFA: public AutomatonBase
                 int endState, const char* endTxt);
         int  DoSaveGroup(int st, int ac, const char* txtStart, const char* txtEnd);
 
+        void RestoreRefStates(int st);
         bool ConstructReferenceState(int st);
-        void RestoreRefStates(int st, int to, const char* ps, const char* pe);
 #endif
 
     private:
@@ -83,7 +87,7 @@ class RegExpNFA: public AutomatonBase
         int CreateState(StateType type);
         int AddStateWithEpsilon(int st, std::vector<char>& ison, std::vector<int>& to) const;
 
-        void GenStatesClosure(char ch, const std::vector<int>& curStat,
+        void GenStatesClosure(short ch, const std::vector<int>& curStat,
                 std::vector<int>& toStat, std::vector<char>& flag,
                 std::vector<int>& ref, bool ignoreRef);
 

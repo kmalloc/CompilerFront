@@ -29,6 +29,21 @@ class nfa_case
             txt2match_[txt] = ismatch;
         }
 
+#ifdef SUPPORT_REG_EXP_BACK_REFERENCE
+        std::string GetGroupInfo() const
+        {
+            std::string ret;
+            std::vector<std::string> group = nfa_.GetCaptureGroup();
+
+            for (size_t i = 0; i < group.size(); ++i)
+            {
+                ret += "\"" + group[i] + "\" ";
+            }
+
+            return ret;
+        }
+#endif
+
         bool IsMatch(const std::string& txt) { return txt2match_[txt]; }
 
     private:
@@ -44,6 +59,7 @@ TEST(test_matching_txt, test_automata_gen)
     std::vector<nfa_case*> cases;
 
 #ifdef SUPPORT_REG_EXP_BACK_REFERENCE
+
     nfa_case* b1_0 = new nfa_case("a(bc)(\\0df)(g\\1)e", false);
     b1_0->AddTestCase("abcbcdfgbcdfe", true);
     b1_0->AddTestCase("abcbedfgbcdfe", false);
@@ -166,7 +182,9 @@ TEST(test_matching_txt, test_automata_gen)
     nfa_case* cg4 = new nfa_case("((ab|nm)|cd)efv\\0\\1", false);
     cg4->AddTestCase("abefvabab", true);
     cg4->AddTestCase("nmefvnmnm", true);
+    cg4->AddTestCase("cdefvcd", true);
     cg4->AddTestCase("abefvab", false);
+    cg4->AddTestCase("anefvanan", false);
     cases.push_back(cg4);
 
     nfa_case* cg5 = new nfa_case("((ab|nm)|(gh|cd))efv\\0\\1", false);
@@ -186,6 +204,28 @@ TEST(test_matching_txt, test_automata_gen)
     cg6->AddTestCase("efgnwtugnwgefgnwend", true);
     cg6->AddTestCase("efgnwtugnwgefgnwefend", false);
     cases.push_back(cg6);
+
+    nfa_case* cg7 = new nfa_case("((ab|nm)*|cd)efv\\1\\0", false);
+    cg7->AddTestCase("abefvabab", true);
+    cg7->AddTestCase("abnmefvabab", false);
+    cg7->AddTestCase("abnmefvabnmnm", true); //\\0 match nm, \\1 match abnm.
+    cg7->AddTestCase("nmefvnmnm", true);
+    cg7->AddTestCase("cdefvcd", true);
+    cg7->AddTestCase("abefvab", false);
+    cg7->AddTestCase("anefvanan", false);
+    cases.push_back(cg7);
+
+    nfa_case* cg8 = new nfa_case("((ab|cd)|gh)*ef\\1\\0", false);
+    cg8->AddTestCase("ef", true);
+    cg8->AddTestCase("abef", false);
+    cg8->AddTestCase("abefab", false);
+    cg8->AddTestCase("abefabab", true);
+    cg8->AddTestCase("ababefabab", true);
+    cg8->AddTestCase("abababefabab", true);
+    cg8->AddTestCase("abcdefcdcd", true);
+    cg8->AddTestCase("abcdefcdab", false);
+    cg8->AddTestCase("abcdghefgh", true); // still has bug for this.
+    cases.push_back(cg8);
 
     nfa_case* c18_0 = new nfa_case("(ab){2, 4}\\0", false);
     c18_0->AddTestCase("ababababab", true);
@@ -507,7 +547,11 @@ TEST(test_matching_txt, test_automata_gen)
             try
             {
                 EXPECT_EQ(it->second, cases[i]->nfa_.RunMachine(it->first.c_str(), it->first.c_str() + it->first.size() - 1))
-                    << "case:" << i << ", pattern:" << cases[i]->pattern_ << ", test:" << it->first << std::endl;
+                    << "case:" << i << ", pattern:" << cases[i]->pattern_ << ", test:" << it->first
+#ifdef SUPPORT_REG_EXP_BACK_REFERENCE
+                    << ", group:" << cases[i]->GetGroupInfo()
+#endif
+                    << std::endl;
             }
             catch (...)
             {

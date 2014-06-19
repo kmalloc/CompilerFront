@@ -546,8 +546,12 @@ bool RegExpNFA::ConstructReferenceState(int st)
     int to   = NFAStatTran_[st][REG_EXP_CHAR_MAX][0];
     int unit = NFAStatTran_[st][REG_EXP_CHAR_MAX][1];
 
-    assert(unit < static_cast<int>(groupCapture_.size()));
-    // if (unit >= groupCapture_.size()) return false;
+    // assert(unit < static_cast<int>(groupCapture_.size()));
+    if (unit >= groupCapture_.size())
+    {
+        NFAStatTran_[st][REG_EXP_CHAR_EPSILON].push_back(to);
+        return true;
+    }
 
     int new_st;
     const char* ps = groupCapture_[unit].txtStart_;
@@ -566,8 +570,22 @@ bool RegExpNFA::ConstructReferenceState(int st)
     return true;
 }
 
-void RegExpNFA::RestoreRefStates(int st, int to, const char* ps, const char* pe)
+void RegExpNFA::RestoreRefStates(int st)
 {
+    int to   = NFAStatTran_[st][REG_EXP_CHAR_MAX][0];
+    int unit = NFAStatTran_[st][REG_EXP_CHAR_MAX][1];
+
+    states_[st].AppendType(State_Ref);
+
+    if (unit >= groupCapture_.size())
+    {
+        NFAStatTran_[st][REG_EXP_CHAR_EPSILON].clear();
+        return;
+    }
+
+    const char* ps = groupCapture_[unit].txtStart_;
+    const char* pe = groupCapture_[unit].txtEnd_;
+
     if (*ps == '\0' || ps > pe)
     {
         NFAStatTran_[st][REG_EXP_CHAR_EPSILON].clear();
@@ -598,7 +616,7 @@ void RegExpNFA::RestoreRefStates(int st, int to, const char* ps, const char* pe)
 
 #endif
 
-void RegExpNFA::GenStatesClosure(char ch, const std::vector<int>& curStat,
+void RegExpNFA::GenStatesClosure(short ch, const std::vector<int>& curStat,
         std::vector<int>& toStat, std::vector<char>& alreadyOn,
         std::vector<int>& refStates, bool ignoreRef)
 {
@@ -728,11 +746,10 @@ bool RegExpNFA::RunNFA(int start, int accept, const char* ps, const char* pe)
             for (size_t j = 0; j < curUnitEndStack.size(); ++j)
             {
                 int st = curUnitEndStack[j];
-
                 if (std::find(toStat.begin(), toStat.end(), st) == toStat.end())
                 {
                     size_t i = 0;
-                    int parentUnit = states_[st].GetParentUnit();
+                    const int parentUnit = states_[st].GetParentUnit();
                     for (; i < toStat.size(); ++i)
                     {
                         int curParentUnit = states_[toStat[i]].GetParentUnit();
@@ -769,7 +786,7 @@ bool RegExpNFA::RunNFA(int start, int accept, const char* ps, const char* pe)
     {
         for (size_t i = 0; i < curStat.size(); ++i)
         {
-            alreadyOn[curStat[i]] = false;
+            // alreadyOn[curStat[i]] = false;
             if (states_[curStat[i]].UnitStart())
             {
                 curUnitStartStack.push_back(curStat[i]);
@@ -790,28 +807,15 @@ bool RegExpNFA::RunNFA(int start, int accept, const char* ps, const char* pe)
             }
         }
 
-        for (size_t j = 0; j < curStat.size(); ++j)
-        {
-            int st = curStat[j];
-            if (states_[st].IsRefState() && ConstructReferenceState(st))
-            {
-                refStates.push_back(st);
-                alreadyOn.resize(states_.size(), 0);
-            }
-            AddStateWithEpsilon(st, alreadyOn, toStat);
-        }
-
-        curStat.swap(toStat);
+        GenStatesClosure(REG_EXP_CHAR_EPSILON, curStat, toStat, alreadyOn, refStates, false);
+        curStat.insert(curStat.end(), toStat.begin(), toStat.end());
 
         // restore ref states
         for (size_t i = 0; i < refStates.size(); ++i)
         {
             int st   = refStates[i];
-            int to   = NFAStatTran_[st][REG_EXP_CHAR_MAX][0];
-            int unit = NFAStatTran_[st][REG_EXP_CHAR_MAX][1];
 
-            RestoreRefStates(st, to, groupCapture_[unit].txtStart_, groupCapture_[unit].txtEnd_);
-            states_[st].AppendType(State_Ref);
+            RestoreRefStates(st);
         }
     }
 #endif
@@ -829,5 +833,19 @@ void RegExpNFA::DeserializeState()
 
 void RegExpNFA::ConvertToDFA(RegExpDFA&) const
 {
+}
+
+std::vector<std::string> RegExpNFA::GetCaptureGroup() const
+{
+    std::vector<std::string> ret;
+    for (size_t i = 0; i < groupCapture_.size(); ++i)
+    {
+        const char* start = groupCapture_[i].txtStart_;
+        const char* end   = groupCapture_[i].txtEnd_;
+
+        ret.push_back(std::string(start, end - start + 1));
+    }
+
+    return ret;
 }
 
