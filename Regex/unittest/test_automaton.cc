@@ -202,6 +202,9 @@ TEST(test_matching_txt, test_automata_gen)
     cg6->AddTestCase("abababefgnwvmvmtuabgnwvmvmvmgabababefgnwvmvmvmend", true);
     cg6->AddTestCase("abababefgnwvmvmtuabgnwvmvmvmgababefgnwvmvmvmend", false);
     cg6->AddTestCase("efgnwtugnwgefgnwend", true);
+    cg6->AddTestCase("efgnwtuefgnwggnwend", false);
+    cg6->AddTestCase("efgnwtuefgnwgnwgend", false);
+    cg6->AddTestCase("efgnwtugnwefgnwgend", false);
     cg6->AddTestCase("efgnwtugnwgefgnwefend", false);
     cases.push_back(cg6);
 
@@ -224,7 +227,7 @@ TEST(test_matching_txt, test_automata_gen)
     cg8->AddTestCase("abababefabab", true);
     cg8->AddTestCase("abcdefcdcd", true);
     cg8->AddTestCase("abcdefcdab", false);
-    cg8->AddTestCase("abcdghefgh", true); // still has bug for this.
+    cg8->AddTestCase("abcdghefgh", true);
     cases.push_back(cg8);
 
     nfa_case* c18_0 = new nfa_case("(ab){2, 4}\\0", false);
@@ -277,6 +280,14 @@ TEST(test_matching_txt, test_automata_gen)
     c18_6->AddTestCase("ababcdab", true);
     c18_6->AddTestCase("ababcd", false);
     cases.push_back(c18_6);
+
+    nfa_case* c18_7 = new nfa_case("a(b(cd)*ef)*gm\\0\\1", false);
+    c18_7->AddTestCase("abefbefgmbef", true);
+    c18_7->AddTestCase("abefbcdefgmcdbcdef", true);
+    c18_7->AddTestCase("abefbcdefgmbcdefcd", false);
+    c18_7->AddTestCase("abefbcdefgmcd", false);
+    c18_7->AddTestCase("abefbcdefgmbcdef", false);
+    cases.push_back(c18_7);
 
 #endif
 

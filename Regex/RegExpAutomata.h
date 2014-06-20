@@ -71,7 +71,7 @@ class RegExpNFA: public AutomatonBase
         bool IfStateClosureHasTrans(int st, int parentUnit,
                 std::vector<char>& isCheck, char ch) const;
         int  SaveCaptureGroup(const std::vector<int>&,
-                const std::map<int, const char*>& unitStart,
+                std::map<int, const char*>& unitStart,
                 int endState, const char* endTxt);
         int  DoSaveGroup(int st, int ac, const char* txtStart, const char* txtEnd);
 

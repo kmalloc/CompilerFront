@@ -517,17 +517,26 @@ int RegExpNFA::DoSaveGroup(int st, int ac, const char* txtStart, const char* txt
 }
 
 int RegExpNFA::SaveCaptureGroup(const std::vector<int>& unitStart,
-        const std::map<int, const char*>& unitSelect, int endState, const char* endTxt)
+        std::map<int, const char*>& unitSelect, int endState, const char* endTxt)
 {
     int co = 0;
-    std::map<int, const char*>::const_iterator it = unitSelect.begin();
+    std::map<int, const char*>::iterator it = unitSelect.begin();
 
-    for (; it != unitSelect.end(); ++it)
+    for (; it != unitSelect.end();)
     {
         int st = it->first;
         const char* txtStart = it->second;
 
-        co += DoSaveGroup(st, endState, txtStart, endTxt);
+        int c = DoSaveGroup(st, endState, txtStart, endTxt);
+        if (c)
+        {
+            co += c;
+            unitSelect.erase(it++);
+        }
+        else
+        {
+            ++it;
+        }
     }
 
     for (size_t i = 0; i < unitStart.size(); ++i)
@@ -807,14 +816,16 @@ bool RegExpNFA::RunNFA(int start, int accept, const char* ps, const char* pe)
             }
         }
 
-        GenStatesClosure(REG_EXP_CHAR_EPSILON, curStat, toStat, alreadyOn, refStates, false);
-        curStat.insert(curStat.end(), toStat.begin(), toStat.end());
+        if (!curStat.empty())
+        {
+            GenStatesClosure(REG_EXP_CHAR_EPSILON, curStat, toStat, alreadyOn, refStates, false);
+            curStat.insert(curStat.end(), toStat.begin(), toStat.end());
+        }
 
         // restore ref states
         for (size_t i = 0; i < refStates.size(); ++i)
         {
-            int st   = refStates[i];
-
+            int st = refStates[i];
             RestoreRefStates(st);
         }
     }
@@ -835,6 +846,7 @@ void RegExpNFA::ConvertToDFA(RegExpDFA&) const
 {
 }
 
+#ifdef SUPPORT_REG_EXP_BACK_REFERENCE
 std::vector<std::string> RegExpNFA::GetCaptureGroup() const
 {
     std::vector<std::string> ret;
@@ -848,4 +860,5 @@ std::vector<std::string> RegExpNFA::GetCaptureGroup() const
 
     return ret;
 }
+#endif
 
