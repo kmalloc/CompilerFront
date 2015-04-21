@@ -65,22 +65,26 @@ struct ExpAst
     Type expr_;
 };
 
-static std::map<std::string, OpType> gs_op_map = boost::assign::map_list_of("==", OT_2_Eq)
-    ("+", OT_2_Add)("-", OT_2_Sub)("*", OT_2_Mul)("/", OT_2_Div)
-    ("%", OT_2_Mod)("^", OT_2_Xor)("&", OT_2_And)("|", OT_2_Or)
-    ("left", OT_2_Left)("right", OT_2_Right)("concat", OT_2_Concat)
-    ("if", OT_3_If);
+static std::map<std::string, OpType> gs_op1_map = boost::assign::map_list_of
+    ("+", OT_1_Pos)("-", OT_1_Neg);
 
-static std::map<OpType, std::string> gs_op_map2 = boost::assign::map_list_of(OT_2_Eq, "==")
+static std::map<std::string, OpType> gs_op2_map = boost::assign::map_list_of("==", OT_2_Eq)
+    ("+", OT_2_Add)("-", OT_2_Sub)("*", OT_2_Mul)("/", OT_2_Div)
+    ("%", OT_2_Mod)("^", OT_2_Xor)("&", OT_2_And)("|", OT_2_Or);
+
+static std::map<std::string, OpType> gs_op_fun_map = boost::assign::map_list_of("if", OT_3_If)
+    ("left", OT_2_Left)("right", OT_2_Right)("concat", OT_2_Concat);
+
+static std::map<OpType, std::string> gs_op_map_reverse = boost::assign::map_list_of(OT_2_Eq, "==")
     (OT_2_Add, "+")(OT_2_Sub, "-")(OT_2_Mul, "*")(OT_2_Div, "/")
     (OT_2_Mod, "%")(OT_2_Xor, "^")(OT_2_And, "&")(OT_2_Or, "|")
     (OT_2_Left, "left")(OT_2_Right, "right")(OT_2_Concat, "concat")
-    (OT_3_If, "if")(OT_NOP, "nop");
+    (OT_1_Pos, "+")(OT_1_Neg, "-")(OT_3_If, "if")(OT_NOP, "nop");
 
 struct binary_op
 {
     binary_op(const string& op, const ExpAst& left)
-            : op_(gs_op_map[op]), left_(left), right_(nil())
+            : op_(gs_op2_map[op]), left_(left), right_(nil())
     {
         if (op_ == OT_NOP) throw ErrException(string("unrecognized operator:") + op);
     }
@@ -93,7 +97,7 @@ struct binary_op
 struct unary_op
 {
     explicit unary_op(const string& op)
-        : op_(gs_op_map[op]), subject_(nil())
+        : op_(gs_op1_map[op]), subject_(nil())
     {
         if (op_ == OT_NOP) throw ErrException(string("unrecognized operator:") + op);
     }
@@ -105,7 +109,7 @@ struct unary_op
 struct func_op
 {
     explicit func_op(const string& op)
-        : op_(gs_op_map[op])
+        : op_(gs_op_fun_map[op])
     {
         if (op_ == OT_NOP) throw ErrException(string("unrecognized operator:") + op);
 
@@ -437,7 +441,7 @@ OperandType FuncHandlerBase::Func2(OpType op, OperandType a1, OperandType a2) co
     } catch (...) {
         ostringstream oss;
         oss.precision(16);
-        oss << "Invaliad operation: " << gs_op_map2[op] << "(" << a1 << ", " << a2 << ")";
+        oss << "Invaliad operation: " << gs_op_map_reverse[op] << "(" << a1 << ", " << a2 << ")";
         throw ErrException(oss.str());
     }
 
