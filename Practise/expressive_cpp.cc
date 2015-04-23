@@ -18,6 +18,14 @@ void format(const std::string& fmt, const Exp& exp)
     format(fmt, child_c<0>(exp));
 }
 
+struct map_grammar
+    : boost::proto::or_<boost::proto::terminal<map_>,
+    boost::proto::function<map_grammar, boost::proto::terminal<const char*>,
+    boost::proto::terminal<const char*> > // end proto::function
+    > // end proto::or_
+{
+};
+
 void format(const std::string& s, boost::proto::terminal<map_>::type&)
 {
 }

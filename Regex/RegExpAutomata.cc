@@ -41,7 +41,8 @@ int RegExpNFA::BuildNFA(RegExpSyntaxTree* tree)
     recycleStates_.reserve(leaf_node_num/2);
     NFAStatTran_.reserve(leaf_node_num);
 
-    int num = BuildNFAImp(dynamic_cast<RegExpSynTreeNode*>(tree->GetSynTree()), start_, accept_, false, -1);
+    int num = BuildNFAImp(dynamic_cast<RegExpSynTreeNode*>(tree->GetSynTree()),
+            start_, accept_, false, -1);
 
     if (support_partial_match_ && headState_ == -1)
     {
@@ -97,7 +98,8 @@ void RegExpNFA::ReleaseState(int st)
     states_[st].SetType(State_None);
 }
 
-int RegExpNFA::BuildNFAImp(RegExpSynTreeNode* root, int& start, int& accept, bool ignoreUnit, int parentUnit)
+int RegExpNFA::BuildNFAImp(RegExpSynTreeNode* root, int& start,
+        int& accept, bool ignoreUnit, int parentUnit)
 {
     if (!root) return 0;
 
@@ -225,7 +227,8 @@ int RegExpNFA::BuildStateForLeafNode(RegExpSynTreeLeafNode* ln, int& start, int&
     return 2;
 }
 
-int RegExpNFA::BuildStateForOrNode(RegExpSynTreeNode* node, int& start, int& accept, bool ignoreUnit, int parentUnit)
+int RegExpNFA::BuildStateForOrNode(RegExpSynTreeNode* node, int& start,
+        int& accept, bool ignoreUnit, int parentUnit)
 {
     int left_child_start, left_child_accept;
     int right_child_start, right_child_accept;
@@ -236,12 +239,16 @@ int RegExpNFA::BuildStateForOrNode(RegExpSynTreeNode* node, int& start, int& acc
     assert(lc);
     assert(rc);
 
-    int left_child_state_num = BuildNFAImp(lc, left_child_start, left_child_accept, ignoreUnit, parentUnit);
-    int right_child_state_num = BuildNFAImp(rc, right_child_start, right_child_accept, ignoreUnit, parentUnit);
+    int left_child_state_num = BuildNFAImp(lc, left_child_start,
+            left_child_accept, ignoreUnit, parentUnit);
+    int right_child_state_num = BuildNFAImp(rc, right_child_start,
+            right_child_accept, ignoreUnit, parentUnit);
 
     states_[right_child_start].SetNormType();
     states_[right_child_accept].SetNormType();
-    NFAStatTran_[left_child_start][REG_EXP_CHAR_EPSILON].push_back(right_child_start); // epsilon transition
+
+    // epsilon transition
+    NFAStatTran_[left_child_start][REG_EXP_CHAR_EPSILON].push_back(right_child_start);
     NFAStatTran_[right_child_accept][REG_EXP_CHAR_EPSILON].push_back(left_child_accept);
 
     start = left_child_start;
@@ -250,7 +257,8 @@ int RegExpNFA::BuildStateForOrNode(RegExpSynTreeNode* node, int& start, int& acc
     return left_child_state_num + right_child_state_num;
 }
 
-int RegExpNFA::BuildStateForCatNode(RegExpSynTreeNode* node, int& start, int& accept, bool ignoreUnit, int parentUnit)
+int RegExpNFA::BuildStateForCatNode(RegExpSynTreeNode* node, int& start,
+        int& accept, bool ignoreUnit, int parentUnit)
 {
     int left_child_start, left_child_accept;
     int right_child_start, right_child_accept;
@@ -261,8 +269,10 @@ int RegExpNFA::BuildStateForCatNode(RegExpSynTreeNode* node, int& start, int& ac
     assert(lc);
     assert(rc);
 
-    int left_child_state_num = BuildNFAImp(lc, left_child_start, left_child_accept, ignoreUnit, parentUnit);
-    int right_child_state_num = BuildNFAImp(rc, right_child_start, right_child_accept, ignoreUnit, parentUnit);
+    int left_child_state_num = BuildNFAImp(lc, left_child_start,
+            left_child_accept, ignoreUnit, parentUnit);
+    int right_child_state_num = BuildNFAImp(rc, right_child_start,
+            right_child_accept, ignoreUnit, parentUnit);
 
     states_[left_child_accept].SetNormType();
     states_[right_child_start].SetNormType();
@@ -278,7 +288,8 @@ int RegExpNFA::BuildStateForCatNode(RegExpSynTreeNode* node, int& start, int& ac
 #define InsertIfNotExist(vec, val) \
     if (std::find((vec).begin(), (vec).end(), (val)) == (vec).end()) (vec).push_back((val));
 
-int RegExpNFA::BuildStateForStarNode(RegExpSynTreeStarNode* sn, int& start, int& accept, bool ignoreUnit, int parentUnit)
+int RegExpNFA::BuildStateForStarNode(RegExpSynTreeStarNode* sn, int& start,
+        int& accept, bool ignoreUnit, int parentUnit)
 {
     int child_start, child_accept;
     RegExpSynTreeNode* child = dynamic_cast<RegExpSynTreeNode*>(sn->GetLeftChild());
@@ -453,7 +464,8 @@ int RegExpNFA::AddStateWithEpsilon(int st, std::vector<char>& isOn, std::vector<
 #ifdef SUPPORT_REG_EXP_BACK_REFERENCE
 // if closure of state st has transition on input ch then return true;
 // otherwise return false
-bool RegExpNFA::IfStateClosureHasTrans(int st, int parentUnit, std::vector<char>& isCheck, char ch) const
+bool RegExpNFA::IfStateClosureHasTrans(int st, int parentUnit,
+        std::vector<char>& isCheck, char ch) const
 {
     const std::vector<int>& vc = NFAStatTran_[st][REG_EXP_CHAR_EPSILON];
     if (!NFAStatTran_[st][ch].empty()) return true;
@@ -640,7 +652,8 @@ void RegExpNFA::GenStatesClosure(short ch, const std::vector<int>& curStat,
         const std::vector<int>* vc = &(NFAStatTran_[st][ch]);
 
 #ifdef SUPPORT_REG_EXP_BACK_REFERENCE
-        if (hasReferNode_ && !ignoreRef && states_[st].IsRefState() && ConstructReferenceState(st))
+        if (hasReferNode_ && !ignoreRef &&
+                states_[st].IsRefState() && ConstructReferenceState(st))
         {
             vc = &(NFAStatTran_[st][ch]);
             refStates.push_back(st);
@@ -772,7 +785,8 @@ bool RegExpNFA::RunNFA(int start, int accept, const char* ps, const char* pe)
 
                     if (i == toStat.size())
                     {
-                        SaveCaptureGroup(curUnitStartStack, curUnitSelectedStack, st, in - 2);
+                        SaveCaptureGroup(curUnitStartStack,
+                                curUnitSelectedStack, st, in - 2);
                     }
                 }
             }
@@ -818,7 +832,8 @@ bool RegExpNFA::RunNFA(int start, int accept, const char* ps, const char* pe)
 
         if (!curStat.empty())
         {
-            GenStatesClosure(REG_EXP_CHAR_EPSILON, curStat, toStat, alreadyOn, refStates, false);
+            GenStatesClosure(REG_EXP_CHAR_EPSILON, curStat,
+                    toStat, alreadyOn, refStates, false);
             curStat.insert(curStat.end(), toStat.begin(), toStat.end());
         }
 
@@ -831,7 +846,8 @@ bool RegExpNFA::RunNFA(int start, int accept, const char* ps, const char* pe)
     }
 #endif
 
-    return !curStat.empty() && std::find(curStat.begin(), curStat.end(), accept) != curStat.end();
+    return !curStat.empty() &&
+        std::find(curStat.begin(), curStat.end(), accept) != curStat.end();
 }
 
 void RegExpNFA::SerializeState() const
