@@ -70,7 +70,9 @@ static std::map<std::string, OpType> gs_op1_map = boost::assign::map_list_of
 
 static std::map<std::string, OpType> gs_op2_map = boost::assign::map_list_of("==", OT_2_Eq)
     ("+", OT_2_Add)("-", OT_2_Sub)("*", OT_2_Mul)("/", OT_2_Div)
-    ("%", OT_2_Mod)("^", OT_2_Xor)("&", OT_2_And)("|", OT_2_Or);
+    ("%", OT_2_Mod)("^", OT_2_Xor)("&", OT_2_And)("|", OT_2_Or)
+    (">", OT_2_GT)(">=", OT_2_GET)("<", OT_2_LT)("<=", OT_2_LET)
+    ("!=", OT_2_Neq);
 
 static std::map<std::string, OpType> gs_op_fun_map = boost::assign::map_list_of("if", OT_3_If)
     ("left", OT_2_Left)("right", OT_2_Right)("concat", OT_2_Concat);
@@ -79,7 +81,9 @@ static std::map<OpType, std::string> gs_op_map_reverse = boost::assign::map_list
     (OT_2_Add, "+")(OT_2_Sub, "-")(OT_2_Mul, "*")(OT_2_Div, "/")
     (OT_2_Mod, "%")(OT_2_Xor, "^")(OT_2_And, "&")(OT_2_Or, "|")
     (OT_2_Left, "left")(OT_2_Right, "right")(OT_2_Concat, "concat")
-    (OT_1_Pos, "+")(OT_1_Neg, "-")(OT_3_If, "if")(OT_NOP, "nop");
+    (OT_1_Pos, "+")(OT_1_Neg, "-")(OT_3_If, "if")(OT_NOP, "nop")
+    (OT_2_GT, ">")(OT_2_GET, ">=")(OT_2_LT, "<")(OT_2_LET, "<=")
+    (OT_2_Neq, "!=");
 
 struct binary_op
 {
@@ -209,13 +213,25 @@ struct CalcGrammar: public grammar<CalcGrammar, ExpClosure::context_t>
                             >> factor[term.val_ -= arg1]) |
                 (str_p("^")[term.val_ += construct_<string>(arg1, arg2)]
                             >> factor[term.val_ -= arg1]) |
+                (str_p(">=")[term.val_ += construct_<string>(arg1, arg2)]
+                            >> factor[term.val_ -= arg1]) |
+                (str_p(">")[term.val_ += construct_<string>(arg1, arg2)]
+                            >> factor[term.val_ -= arg1]) |
+                (str_p("<=")[term.val_ += construct_<string>(arg1, arg2)]
+                            >> factor[term.val_ -= arg1]) |
+                (str_p("<")[term.val_ += construct_<string>(arg1, arg2)]
+                            >> factor[term.val_ -= arg1]) |
                 (str_p("==")[term.val_ += construct_<string>(arg1, arg2)]
+                            >> factor[term.val_ -= arg1]) |
+                (str_p("!=")[term.val_ += construct_<string>(arg1, arg2)]
                             >> factor[term.val_ -= arg1]));
 
             factor =
                 // parse string surrounded by a pair of double quote-mark, eg, "abc"
                 lexeme_d['\"' >> (*(anychar_p - ch_p('\"')))
                 [factor.val_ = construct_<string_op>(arg1, arg2)] >> '\"'] |
+                lexeme_d['\'' >> (*(anychar_p - ch_p('\'')))
+                [factor.val_ = construct_<string_op>(arg1, arg2)] >> '\''] |
                 // parse function call, eg, fun(3, 2, 1)
                 func[factor.val_ = arg1] |
                 // parse decimal digit into a double
@@ -254,6 +270,12 @@ struct AstWalker: public boost::static_visitor<OperandType>
         OperandType Walk(const ExpAst& ast) const
         {
             return boost::apply_visitor(*this, ast.expr_);
+        }
+
+        OperandType operator()(nil) const
+        {
+            assert(0);
+            return 0;
         }
 
         OperandType operator()(const ExpAst& ast) const
@@ -347,64 +369,93 @@ OperandType FuncHandlerBase::Func1(OpType op, OperandType a1) const
     return 0;
 }
 
+static inline OperandType CalcVariantType(OpType op, OperandType a1, OperandType a2)
+{
+    switch (op)
+    {
+        case OT_2_Add:
+            {
+                try {
+                    return boost::get<double>(a1) + boost::get<double>(a2);
+                } catch (...) {
+                    return boost::get<string>(a1) + boost::get<string>(a2);
+                }
+            }
+        case OT_2_GT:
+            {
+                try {
+                    return boost::get<double>(a1) > boost::get<double>(a2);
+                } catch (...) {
+                    return boost::get<string>(a1) > boost::get<string>(a2);
+                }
+            };
+        case OT_2_GET:
+            {
+                try {
+                    return boost::get<double>(a1) >= boost::get<double>(a2);
+                } catch (...) {
+                    return boost::get<string>(a1) >= boost::get<string>(a2);
+                }
+            };
+        case OT_2_LT:
+            {
+                try {
+                    return boost::get<double>(a1) < boost::get<double>(a2);
+                } catch (...) {
+                    return boost::get<string>(a1) < boost::get<string>(a2);
+                }
+            };
+        case OT_2_LET:
+            {
+                try {
+                    return boost::get<double>(a1) <= boost::get<double>(a2);
+                } catch (...) {
+                    return boost::get<string>(a1) <= boost::get<string>(a2);
+                }
+            };
+        default:
+            assert(0);
+            return nil();
+    }
+}
+
 OperandType FuncHandlerBase::Func2(OpType op, OperandType a1, OperandType a2) const
 {
     try {
         switch (op)
         {
             case OT_2_Add:
-                {
-                    try {
-                        return boost::get<double>(a1) + boost::get<double>(a2);
-                    } catch (...) {
-                        return boost::get<string>(a1) + boost::get<string>(a2);
-                    }
-                }
-                break;
+                return CalcVariantType(op, a1, a2);
             case OT_2_Sub:
-                {
-                    return boost::get<double>(a1) - boost::get<double>(a2);
-                }
-                break;
+                return boost::get<double>(a1) - boost::get<double>(a2);
             case OT_2_Mul:
-                {
-                    return boost::get<double>(a1) * boost::get<double>(a2);
-                }
-                break;
+                return boost::get<double>(a1) * boost::get<double>(a2);
             case OT_2_Div:
-                {
-                    return boost::get<double>(a1) / boost::get<double>(a2);
-                }
-                break;
+                return boost::get<double>(a1) / boost::get<double>(a2);
             case OT_2_Mod:
-                {
-                    return static_cast<double>(static_cast<long long>(boost::get<double>(a1)) %
-                            static_cast<long long>(boost::get<double>(a2)));
-                }
-                break;
+                return static_cast<double>(static_cast<long long>(boost::get<double>(a1)) %
+                        static_cast<long long>(boost::get<double>(a2)));
             case OT_2_Xor:
-                {
-                    return static_cast<double>(static_cast<long long>(boost::get<double>(a1)) ^
-                            static_cast<long long>(boost::get<double>(a2)));
-                }
-                break;
+                return static_cast<double>(static_cast<long long>(boost::get<double>(a1)) ^
+                        static_cast<long long>(boost::get<double>(a2)));
             case OT_2_And:
-                {
-                    return static_cast<double>(static_cast<long long>(boost::get<double>(a1)) &
-                            static_cast<long long>(boost::get<double>(a2)));
-                }
-                break;
+                return static_cast<double>(static_cast<long long>(boost::get<double>(a1)) &
+                        static_cast<long long>(boost::get<double>(a2)));
             case OT_2_Or:
-                {
-                    return static_cast<double>(static_cast<long long>(boost::get<double>(a1)) |
-                            static_cast<long long>(boost::get<double>(a2)));
-                }
-                break;
+                return static_cast<double>(static_cast<long long>(boost::get<double>(a1)) |
+                        static_cast<long long>(boost::get<double>(a2)));
+            case OT_2_GT:
+                return CalcVariantType(op, a1, a2);
+            case OT_2_GET:
+                return CalcVariantType(op, a1, a2);
+            case OT_2_LT:
+                return CalcVariantType(op, a1, a2);
+            case OT_2_LET:
+                return CalcVariantType(op, a1, a2);
             case OT_2_Eq:
-                {
-                    return a1 == a2;
-                }
-                break;
+                return a1 == a2;
+            case OT_2_Neq:
+                return !(a1 == a2);
             case OT_2_Left:
                 {
                     string& s = boost::get<string>(a1);
@@ -414,7 +465,6 @@ OperandType FuncHandlerBase::Func2(OpType op, OperandType a1, OperandType a2) co
                     k = k < len? k : len;
                     return s.substr(0, k);
                 }
-                break;
             case OT_2_Right:
                 {
                     string& s = boost::get<string>(a1);
@@ -425,18 +475,14 @@ OperandType FuncHandlerBase::Func2(OpType op, OperandType a1, OperandType a2) co
                     size_t sp = len - k;
                     return s.substr(sp);
                 }
-                break;
             case OT_2_Concat:
                 {
                     string& s1 = boost::get<string>(a1);
                     string& s2 = boost::get<string>(a2);
                     return s1 + s2;
                 }
-                break;
             default:
-                {
-                    assert(0 && "unrecognized binary operator");
-                }
+                assert(0 && "unrecognized binary operator");
         }
     } catch (...) {
         ostringstream oss;

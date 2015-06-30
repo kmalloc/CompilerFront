@@ -5,7 +5,6 @@
 #include <string>
 
 #include <boost/variant.hpp>
-#include <boost/function.hpp>
 #include <boost/noncopyable.hpp>
 
 namespace CalcParser {
@@ -29,12 +28,16 @@ typedef boost::variant<nil, double, std::string> OperandType;
 inline bool IsMetaChar(char c)
 {
     return c == '+' || c == '-' || c == '*' || c == '/' ||
+        c == '%' || c == '^' || c == '&' || c == '|' ||
+        c == '=' || c == '>' || c == '<' || c == '!';
         c == '%' || c == '^' || c == '&' || c == '|' || c == '=';
 }
 
 enum OpType
 {
-    OT_NOP,
+    // OT_NOP must be 0
+    OT_NOP = 0,
+
     OT_1_Pos,
     OT_1_Neg,
 
@@ -47,6 +50,12 @@ enum OpType
     OT_2_And,
     OT_2_Or,
     OT_2_Eq,
+    OT_2_Neq, // non equal
+    OT_2_GT, // greater than
+    OT_2_LT, // less than
+    OT_2_GET, // greater equal than
+    OT_2_LET, // less equal than
+
     OT_2_Left,
     OT_2_Right,
     OT_2_Concat,
@@ -76,6 +85,9 @@ struct FuncHandlerBase
             OperandType a2, OperandType a3, OperandType a4) const;
 };
 
+
+// TODO: turn this calculator into a little language.
+// need an intermediate symbol table.
 class CalcParserImpl;
 class CalculatorParser: boost::noncopyable
 {

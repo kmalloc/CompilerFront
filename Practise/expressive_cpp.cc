@@ -30,11 +30,17 @@ void format(const std::string& s, boost::proto::terminal<map_>::type&)
 {
 }
 
+
+
 int main()
 {
     format("there are ...", map("place", "heaven and earth")("thing", "philosophy"));
     // format("there are ...", map["place"]("heaven and earth")["thing"]("philosophy"));
 
+    boost::proto::_default<> eval;
+    int i = eval(boost::proto::lit(1) + 2);
+
+    std::cout << "result of evaluation:" << i << std::endl;
     return 0;
 }
 
