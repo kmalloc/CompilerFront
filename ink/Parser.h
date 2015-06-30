@@ -12,13 +12,23 @@ class AstIntExp;
 class Parser: public boost::noncopyable
 {
     public:
-
+        AstBase* ParsePrimary();
         AstBase* ParseExpression();
-        AstBase* ParseDispatcher();
 
+        // followings are primary expression.
         AstBase* ParseIntExp();
+        AstBase* ParseFloatExp();
         AstBase* ParseParenExp();
+        AstBase* ParseStringExp();
         AstBase* ParseIdentifierExp();
+
+        AstBase* ParseUaryExp(TokenType op);
+        AstBase* ParseBinaryExp(int prec, TokenType op);
+
+        AstBase* ReportError(const char* msg);
+
+    private:
+        Lexer lex_;
 };
 
 } // end ink
