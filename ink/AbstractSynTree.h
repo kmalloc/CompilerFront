@@ -139,7 +139,7 @@ class AstArrayIndexExp: public AstBase
 {
     public:
         AstArrayIndexExp(const std::string& arr, AstBase* index)
-            :AstBase(AST_ARR_INDEX), arr_(arr), index_(index) {}
+            : AstBase(AST_ARR_INDEX), arr_(arr), index_(index) {}
 
     private:
         std::string arr_;

@@ -1,4 +1,5 @@
 #include "Parser.h"
+#include "AbstractSynTree.h"
 
 namespace ink {
 

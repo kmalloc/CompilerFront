@@ -7,7 +7,6 @@
 namespace ink {
 
 class AstBase;
-class AstIntExp;
 
 class Parser: public boost::noncopyable
 {

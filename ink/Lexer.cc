@@ -144,9 +144,9 @@ int Lexer::ExtractToken()
     }
 }
 
-// this precedence mapping of the operators must
+// this precedence mapping for the operators must
 // follows the exact order defined in the TokenType
-static const int gs_token_prec_map[] =
+static const int gs_op_prec_map[] =
 {
     42, 42, 42, 42, // <, <=, >, >=
     41, 41, // ==, !=
@@ -164,11 +164,11 @@ static const int gs_token_prec_map[] =
 
 int Lexer::GetCurTokenPrec() const
 {
-    BOOST_STATIC_ASSERT(ArrSize(gs_token_prec_map) == TOK_OP_END - TOK_OP_END);
+    BOOST_STATIC_ASSERT(ArrSize(gs_op_prec_map) == TOK_OP_END - TOK_OP_START);
 
-    if (token_ <= TOK_OP_START) return -1;
+    if (token_ <= TOK_OP_START || token_ >= TOK_OP_END) return -1;
 
-    return gs_token_prec_map[token_ - TOK_OP_START];
+    return gs_op_prec_map[token_ - TOK_OP_START];
 }
 
 }  // end namespace
