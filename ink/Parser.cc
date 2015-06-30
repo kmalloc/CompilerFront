@@ -1,5 +1,7 @@
 #include "Parser.h"
 
+namespace ink {
+
 AstBase* Parser::ParseIntExp()
 {
     AstBase* ret = new AstIntExp(lex_.GetIntVal());
@@ -46,16 +48,8 @@ AstBase* Parser::ParseStringExp()
     return ret;
 }
 
-AstBase* Parser::ParseIdentifierExp()
+AstBase* Parser::ParseFuncCallExp(const std::string& name)
 {
-    std::string name = lex_.GetStringVal();
-
-    // consume name
-    lex_.ConsumeCurToken();
-    if (lex_.GetCurToken() != TOK_PAREN_LEFT) return new AstVariableExp(name);
-
-    // consume '('
-    lex_.ConsumeCurToken();
     std::vector<AstBase*> args;
     if (lex_.GetCurToken() != TOK_PAREN_RIGHT)
     {
@@ -80,6 +74,37 @@ AstBase* Parser::ParseIdentifierExp()
     // consume ')'
     lex_.ConsumeCurToken();
     return new AstFuncCallExp(name, args);
+}
+
+AstBase* Parser::ParseArrIndexExp(const std::string& name)
+{
+    AstBase* index = ParseExpression();
+    if (!index) return 0;
+
+    if (lex_.GetCurToken() != TOK_IND_RIGHT)
+    {
+        return ReportError("expected ']' for array indexing expression");
+    }
+
+    lex_.ConsumeCurToken();
+    return new AstArrayIndexExp(name, index);
+}
+
+AstBase* Parser::ParseIdentifierExp()
+{
+    std::string name = lex_.GetStringVal();
+
+    // consume name
+    lex_.ConsumeCurToken();
+    TokenType tok = lex_.GetCurToken();
+    if (tok != TOK_PAREN_LEFT && tok != TOK_IND_LEFT) return new AstVariableExp(name);
+
+    // consume '(' or '['
+    lex_.ConsumeCurToken();
+
+    if (tok == TOK_PAREN_LEFT) return ParseFuncCallExp(name);
+
+    return ParseArrIndexExp(name);
 }
 
 AstBase* Parse::ParseUaryExp(TokenType op)
@@ -146,4 +171,6 @@ AstBase* Parser::ParseExpression()
 
     return ParseBinaryExp(0, ret);
 }
+
+}  // end namespace
 

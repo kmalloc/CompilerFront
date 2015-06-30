@@ -1,5 +1,7 @@
 #include "Lexer.h"
 
+namespace ink {
+
 Lexer::Lexer(const CharType* buf)
     : token_(TOK_UNKNOWN), curChar_(*buf), skipper_(' ')
     , intVal_(0), floatVal_(0), strVal_("")
@@ -168,4 +170,6 @@ int Lexer::GetCurTokenPrec() const
 
     return gs_token_prec_map[token_ - TOK_OP_START];
 }
+
+}  // end namespace
 

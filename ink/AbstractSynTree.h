@@ -17,6 +17,7 @@ enum AstType
     AST_FUNC_PROTO,
     AST_FUNC_DEF,
     AST_FUNC_CALL,
+    AST_ARR_INDEX,
 };
 
 class AstBase
@@ -132,6 +133,17 @@ class AstFuncCallExp: public AstBase
     private:
         std::string func_;
         std::vector<AstBase*> args_;
+};
+
+class AstArrayIndexExp: public AstBase
+{
+    public:
+        AstArrayIndexExp(const std::string& arr, AstBase* index)
+            :AstBase(AST_ARR_INDEX), arr_(arr), index_(index) {}
+
+    private:
+        std::string arr_;
+        AstBase* index_;
 };
 
 } // end ink

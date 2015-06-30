@@ -25,6 +25,11 @@ class Parser: public boost::noncopyable
         AstBase* ParseUaryExp(TokenType op);
         AstBase* ParseBinaryExp(int prec, TokenType op);
 
+        AstBase* ParseFuncProtoExp();
+        AstBase* ParseFuncDefExp();
+        AstBase* ParseFuncCallExp(const std::string& fun);
+        AstBase* ParseArrIndexExp(const std::string& arr);
+
         AstBase* ReportError(const char* msg);
 
     private:
