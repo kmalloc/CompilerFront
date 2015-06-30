@@ -15,6 +15,7 @@ void format(const std::string& fmt, const Exp& exp)
 
     std::cout << "key:" << value(child_c<1>(exp)) << ", value:"
             << value(child_c<2>(exp)) << std::endl;
+
     format(fmt, child_c<0>(exp));
 }
 
