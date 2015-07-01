@@ -3,7 +3,7 @@
 
 #include <cctype>
 #include <boost/variant.hpp>
-#include <boost/noncopyable.h>
+#include <boost/noncopyable.hpp>
 #include <boost/variant/apply_visitor.hpp>
 #include <boost/variant/recursive_variant.hpp>
 
@@ -16,22 +16,27 @@ enum TokenType
     TOK_EOF,
     TOK_UNKNOWN,
 
-    // primary identifier
+    // builtin keyword
     TOK_FUN, // function definition
+    TOK_EXT,  // extern, for function declaration
+    TOK_CLASS, // class
     TOK_ID,  // variable
     TOK_STR, // literal string
     TOK_INT, // literal int
     TOK_FLOAT, // literal floatting point
 
     // control flow
-    TOK_IF,
-    TOK_FOR,
-    TOK_WHILE,
+    TOK_RET, // return
+    TOK_IF, // if statement
+    TOK_FOR, // for loop
+    TOK_WHILE, // while loop
 
     // primary operators
     TOK_COMA, //,
     TOK_PAREN_LEFT, // (
     TOK_PAREN_RIGHT, // )
+    TOK_BRACE_LEFT,
+    TOK_BRACE_RIGHT,
     TOK_QUO, // "
     TOK_AS, // = assign
     TOK_IND_LEFT, // [
@@ -76,23 +81,21 @@ class Lexer: public boost::noncopyable
 {
     public:
         typedef char CharType;
-        typedef boost::variant<nil, int64_t v, double, std::string> TokenType;
 
     public:
         explicit Lexer(const CharType* buf);
 
         TokenType GetCurToken() { return token_; }
-        int ConsumeCurToken() { token_ = ExtractToken(); }
         int GetCurTokenPrec() const; // get precedence of current token
+        void ConsumeCurToken() { token_ = ExtractToken(); }
 
         std::string GetStringVal() const { return strVal_; }
         int64_t GetIntVal() const { return intVal_; }
         double GetFloatVal() const { return floatVal_; }
 
     private:
-        int ExtractToken();
-
-        CharType GetNextChar() { return *curChar_++; }
+        TokenType ExtractToken();
+        CharType GetNextChar() { return *curPos_++; }
         bool IsAlpha(CharType c) const { return std::isalpha(c); }
         bool IsAlNum(CharType c) const { return std::isalnum(c); }
         bool IsDigit(CharType c) const { return std::isdigit(c); }

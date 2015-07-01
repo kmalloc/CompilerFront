@@ -2,22 +2,31 @@
 #define __ABSTRACT_SYN_TREE_H__
 
 #include <string>
+#include <vector>
+#include <boost/shared_ptr.hpp>
 
 namespace ink {
 
 enum AstType
 {
-    AST_NONE,
+    AST_NONE = -1,
     AST_INT,
     AST_FLOAT,
     AST_STRING,
     AST_VAR,
+    AST_IF,
+    AST_WHILE,
+    AST_FOR,
     AST_OP_UNARY,
     AST_OP_BINARY,
+    AST_RET,
+    AST_CLASS,
     AST_FUNC_PROTO,
     AST_FUNC_DEF,
     AST_FUNC_CALL,
     AST_ARR_INDEX,
+
+    AST_BUILTIN_ALL,
 };
 
 class AstBase
@@ -31,6 +40,7 @@ class AstBase
     public:
         int type_;
 };
+typedef boost::shared_ptr<AstBase> AstBasePtr;
 
 class AstIntExp: public AstBase
 {
@@ -41,6 +51,7 @@ class AstIntExp: public AstBase
     private:
         int64_t val_;
 };
+typedef boost::shared_ptr<AstIntExp> AstIntExpPtr;
 
 class AstFloatExp: public AstBase
 {
@@ -51,6 +62,7 @@ class AstFloatExp: public AstBase
     private:
         double val_;
 };
+typedef boost::shared_ptr<AstFloatExp> AstFloatExpPtr;
 
 // literal string
 class AstStringExp: public AstBase
@@ -62,38 +74,42 @@ class AstStringExp: public AstBase
     private:
         std::string val_;
 };
+typedef boost::shared_ptr<AstStringExp> AstStringExpPtr;
 
-class AstVariableExp: public AstBase
+class AstVarExp: public AstBase
 {
     public:
-        explicit AstVariableExp(const std::string& name)
+        explicit AstVarExp(const std::string& name)
             : AstBase(AST_VAR), name_(name) {}
 
     private:
         std::string name_;
 };
+typedef boost::shared_ptr<AstVarExp> AstVarExpPtr;
 
 class AstUnaryExp: public AstBase
 {
     public:
-        AstUnaryExp(TokenType op, AstBase* arg)
+        AstUnaryExp(TokenType op, const AstBasePtr& arg)
             : AstBase(AST_OP_UNARY), op_(op), arg_(arg) {}
     private:
         TokenType op_;
-        AstBase* arg_;
+        AstBasePtr arg_;
 };
+typedef boost::shared_ptr<AstUnaryExp> AstUnaryExpPtr;
 
 class AstBinaryExp: public AstBase
 {
     public:
-        AstBinaryExp(TokenType op, AstBase* lhs, AstBase* rhs)
-            : AstBase(AST_OP_BINARY), lhs_(lhs), rhs_(rhs), op_(op) {}
+        AstBinaryExp(TokenType op, const AstBasePtr& lhs, const AstBasePtr& rhs)
+            : AstBase(AST_OP_BINARY), op_(op), lhs_(lhs), rhs_(rhs) {}
 
     private:
-        AstBase* lhs_;
-        AstBase* rhs_;
         TokenType op_;
+        AstBasePtr lhs_;
+        AstBasePtr rhs_;
 };
+typedef boost::shared_ptr<AstBinaryExp> AstBinaryExpPtr;
 
 class AstFuncProtoExp: public AstBase
 {
@@ -109,42 +125,88 @@ class AstFuncProtoExp: public AstBase
             : AstBase(AST_FUNC_PROTO), func_(fun), args_(args) {}
 
     private:
-        std::string fun_;
+        std::string func_;
         std::vector<ArgType> args_;
 };
+typedef boost::shared_ptr<AstFuncProtoExp> AstFuncProtoExpPtr;
 
 class AstFuncDefExp: public AstBase
 {
     public:
-        AstFuncDefExp(AstFuncProtoExp* proto, AstBase* body)
-            : AstBase(AST_FUNC_DEF), body_(body), proto_(proto) {}
+        AstFuncDefExp(const AstFuncProtoExpPtr& proto, const std::vector<AstBasePtr>& body)
+            : AstBase(AST_FUNC_DEF), proto_(proto), body_(body) {}
 
     private:
-        AstBase* body_;
-        AstFuncProtoExp* proto_;
+        AstFuncProtoExpPtr proto_;
+        std::vector<AstBasePtr> body_;
 };
+typedef boost::shared_ptr<AstFuncDefExp> AstFuncDefExpPtr;
 
 class AstFuncCallExp: public AstBase
 {
     public:
-        AstFuncCallExp(const std::string& fun, std::vector<AstBase*>& args)
+        AstFuncCallExp(const std::string& fun, std::vector<AstBasePtr>& args)
             : AstBase(AST_FUNC_CALL), func_(fun), args_(args) {}
 
     private:
         std::string func_;
-        std::vector<AstBase*> args_;
+        std::vector<AstBasePtr> args_;
 };
+typedef boost::shared_ptr<AstFuncCallExp> AstFuncCallExpPtr;
 
 class AstArrayIndexExp: public AstBase
 {
     public:
-        AstArrayIndexExp(const std::string& arr, AstBase* index)
+        AstArrayIndexExp(const std::string& arr, const AstBasePtr& index)
             : AstBase(AST_ARR_INDEX), arr_(arr), index_(index) {}
 
     private:
         std::string arr_;
-        AstBase* index_;
+        AstBasePtr index_;
 };
+typedef boost::shared_ptr<AstArrayIndexExp> AstArrayIndexExpPtr;
+
+class AstRetExp: public AstBase
+{
+    public:
+        explicit AstRetExp(const AstBasePtr& ret): AstBase(AST_RET), val_(ret) {}
+
+    private:
+        AstBasePtr val_;
+};
+typedef boost::shared_ptr<AstRetExp> AstRetExpPtr;
+
+class AstIfExp: public AstBase
+{
+    public:
+        AstIfExp(const AstBasePtr& test, const std::vector<AstBasePtr>& body)
+            : AstBase(AST_IF), testVar_(test), body_(body) {}
+
+    private:
+        AstBasePtr testVar_;
+        std::vector<AstBasePtr> body_;
+};
+typedef boost::shared_ptr<AstIfExp> AstIfExpPtr;
+
+class AstWhileExp: public AstBase
+{
+    public:
+        AstWhileExp(const AstBasePtr& test, const std::vector<AstBasePtr>& body)
+            : AstBase(AST_WHILE), testVar_(test), body_(body) {}
+
+    private:
+        AstBasePtr testVar_;
+        std::vector<AstBasePtr> body_;
+};
+typedef boost::shared_ptr<AstWhileExp> AstWhileExpPtr;
+
+class AstForExp: public AstBase
+{
+    // TODO, syntax for 'for' is clear yet
+    public:
+        AstForExp();
+};
+typedef boost::shared_ptr<AstForExp> AstForExpPtr;
 
 } // end ink
 

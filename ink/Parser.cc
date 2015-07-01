@@ -1,44 +1,46 @@
 #include "Parser.h"
-#include "AbstractSynTree.h"
 
 namespace ink {
 
-AstBase* Parser::ParseIntExp()
+AstBasePtr Parser::ParseIntExp()
 {
-    AstBase* ret = new AstIntExp(lex_.GetIntVal());
+    AstBasePtr ret(new AstIntExp(lex_.GetIntVal()));
     lex_.ConsumeCurToken();
     return ret;
 }
 
-AstBase* Parser::ParseFloatExp()
+AstBasePtr Parser::ParseFloatExp()
 {
-    AstBase* ret = new AstFloatExp(lex_.GetFloatVal());
+    AstBasePtr ret(new AstFloatExp(lex_.GetFloatVal()));
     lex_.ConsumeCurToken();
     return ret;
 }
 
-AstBase* Parser::ParseParenExp()
+AstBasePtr Parser::ParseParenExp()
 {
     // consume '('
     lex_.ConsumeCurToken();
 
     // parse main expression
-    AstBase* ret = ParseExpression();
-    if (!ret) return NULL;
+    AstBasePtr ret = ParseExpression();
+    if (!ret) return AstBasePtr();
 
-    if (lex_.GetCurToken() != TOK_PAREN_RIGHT) return ReportError("expected ')'");
+    if (lex_.GetCurToken() != TOK_PAREN_RIGHT)
+    {
+        return ReportError("expected ')'");
+    }
 
     // consume ')'
     lex_.ConsumeCurToken();
     return ret;
 }
 
-AstBase* Parser::ParseStringExp()
+AstBasePtr Parser::ParseStringExp()
 {
     // consume left "
     lex_.ConsumeCurToken();
 
-    AstBase* ret = new AstStringExp(lex_.GetCurToken());
+    AstBasePtr ret(new AstStringExp(lex_.GetStringVal()));
     if (!ret) return ReportError("invalid string literal");
 
     lex_.ConsumeCurToken();
@@ -49,20 +51,74 @@ AstBase* Parser::ParseStringExp()
     return ret;
 }
 
-AstBase* Parser::ParseFuncCallExp(const std::string& name)
+AstBasePtr Parser::ParseFuncProtoExp()
 {
-    std::vector<AstBase*> args;
+    if (lex_.GetCurToken() != TOK_ID)
+    {
+        return ReportError("expected identifier after 'func'");
+    }
+
+    std::string name = lex_.GetStringVal();
+    lex_.ConsumeCurToken();
+
+    if (lex_.GetCurToken() != TOK_PAREN_LEFT)
+    {
+        return ReportError("expected '(' in function definition");
+    }
+
+    std::vector<AstFuncProtoExp::ArgType> args;
+    // TODO, support static checking for parameter type
+
+    return AstBasePtr(new AstFuncProtoExp(name, args));
+}
+
+AstBasePtr Parser::ParseFuncDefExp()
+{
+    // consume "func" keyword
+    lex_.ConsumeCurToken();
+    AstFuncProtoExpPtr proto =
+        boost::static_pointer_cast<AstFuncProtoExp>(ParseFuncProtoExp());
+
+    if (!proto) return AstBasePtr();
+
+    if (lex_.GetCurToken() != TOK_BRACE_LEFT)
+    {
+        return ReportError("expected '{' for function definition");
+    }
+
+    lex_.ConsumeCurToken();
+    std::vector<AstBasePtr> body;
+
+    body.reserve(64);
+    while (lex_.GetCurToken() != TOK_BRACE_RIGHT)
+    {
+        AstBasePtr exp = ParseExpression();
+        if (!exp)
+        {
+            return ReportError("expected '}' in function definition");
+        }
+
+        body.push_back(exp);
+    }
+
+    AstBasePtr ret(new AstFuncDefExp(proto, body));
+    return ret;
+}
+
+AstBasePtr Parser::ParseFuncCallExp(const std::string& name)
+{
+    std::vector<AstBasePtr> args;
     if (lex_.GetCurToken() != TOK_PAREN_RIGHT)
     {
         while (true)
         {
-            AstBase* arg = ParseExpression();
-            if (!arg) return 0;
+            AstBasePtr arg = ParseExpression();
+            if (!arg) return AstBasePtr();
 
             args.push_back(arg);
             if (lex_.GetCurToken() == TOK_PAREN_RIGHT) break;
 
-            if (lex.GetCurToken() != TOK_COMA)
+            if (lex_.GetCurToken() != TOK_COMA)
             {
                 return ReportError("expected ')' or ',' in function argument list");
             }
@@ -74,13 +130,13 @@ AstBase* Parser::ParseFuncCallExp(const std::string& name)
 
     // consume ')'
     lex_.ConsumeCurToken();
-    return new AstFuncCallExp(name, args);
+    return AstBasePtr(new AstFuncCallExp(name, args));
 }
 
-AstBase* Parser::ParseArrIndexExp(const std::string& name)
+AstBasePtr Parser::ParseArrIndexExp(const std::string& name)
 {
-    AstBase* index = ParseExpression();
-    if (!index) return 0;
+    AstBasePtr index = ParseExpression();
+    if (!index) return AstBasePtr();
 
     if (lex_.GetCurToken() != TOK_IND_RIGHT)
     {
@@ -88,17 +144,20 @@ AstBase* Parser::ParseArrIndexExp(const std::string& name)
     }
 
     lex_.ConsumeCurToken();
-    return new AstArrayIndexExp(name, index);
+    return AstBasePtr(new AstArrayIndexExp(name, index));
 }
 
-AstBase* Parser::ParseIdentifierExp()
+AstBasePtr Parser::ParseIdentifierExp()
 {
     std::string name = lex_.GetStringVal();
 
     // consume name
     lex_.ConsumeCurToken();
     TokenType tok = lex_.GetCurToken();
-    if (tok != TOK_PAREN_LEFT && tok != TOK_IND_LEFT) return new AstVariableExp(name);
+    if (tok != TOK_PAREN_LEFT && tok != TOK_IND_LEFT)
+    {
+        return AstBasePtr(new AstVarExp(name));
+    }
 
     // consume '(' or '['
     lex_.ConsumeCurToken();
@@ -108,19 +167,20 @@ AstBase* Parser::ParseIdentifierExp()
     return ParseArrIndexExp(name);
 }
 
-AstBase* Parse::ParseUaryExp(TokenType op)
+AstBasePtr Parser::ParseUaryExp(TokenType op)
 {
     // consume unary operator('!' or '~')
     lex_.ConsumeCurToken();
-    AstBase* arg = ParseExpression();
-    if (!arg) return NULL;
+    AstBasePtr arg = ParseExpression();
+    if (!arg) return AstBasePtr();
 
-    return new AstUnaryExp(op, arg);
+    return AstBasePtr(new AstUnaryExp(op, arg));
 }
 
-AstBase* Parser::ParseBinaryExp(int prev_prec, AstBase* lhs)
+AstBasePtr Parser::ParseBinaryExp(int prev_prec, const AstBasePtr& arg)
 {
     // precedence climbing algo
+    AstBasePtr lhs = arg;
     while (true)
     {
         int cur_prec = lex_.GetCurTokenPrec();
@@ -128,38 +188,45 @@ AstBase* Parser::ParseBinaryExp(int prev_prec, AstBase* lhs)
 
         TokenType bin_op = lex_.GetCurToken();
         lex_.ConsumeCurToken();
-        AstBase* rhs = ParsePrimary();
+        AstBasePtr rhs = ParsePrimary();
 
-        if (!rhs) return 0;
+        if (!rhs) return AstBasePtr();
 
         int next_prec = lex_.GetCurTokenPrec();
         if (cur_prec < next_prec)
         {
             rhs = ParseBinaryExp(cur_prec + 1, rhs);
-            if (!rhs) return 0;
+            if (!rhs) return AstBasePtr();
         }
 
-        lhs = new AstBinaryExp(bin_op, lhs, rhs);
+        lhs = AstBasePtr(new AstBinaryExp(bin_op, lhs, rhs));
     }
 
-    return 0;
+    return AstBasePtr();
 }
 
-AstBase* Parser::ParsePrimary()
+AstBasePtr Parser::ParsePrimary()
 {
     switch (lex_.GetCurToken())
     {
         case TOK_ID: return ParseIdentifierExp();
         case TOK_INT: return ParseIntExp();
-        case TOK_DOUBLE: return ParseFloatExp();
+        case TOK_FLOAT: return ParseFloatExp();
         case TOK_QUO: return ParseStringExp();
         case TOK_PAREN_LEFT: return ParseParenExp();
+        case TOK_FUN: return ParseFuncDefExp();
+        case TOK_EXT: return ParseExternExp();
+        case TOK_RET: return ParseFuncRetExp();
+        case TOK_CLASS: return ParseClassDefExp();
+        case TOK_IF: return ParseIfExp();
+        case TOK_WHILE: return ParseWhileExp();
+        case TOK_FOR: return ParseForExp();
 
         default: return ReportError("unknown token when expecting an expression");
     }
 }
 
-AstBase* Parser::ParseExpression()
+AstBasePtr Parser::ParseExpression()
 {
     TokenType type = lex_.GetCurToken();
     if (type == TOK_NEG || type == TOK_INV)
@@ -167,8 +234,8 @@ AstBase* Parser::ParseExpression()
         return ParseUaryExp(type);
     }
 
-    AstBase* ret = ParsePrimary();
-    if (!ret) return NULL;
+    AstBasePtr ret = ParsePrimary();
+    if (!ret) return AstBasePtr();
 
     return ParseBinaryExp(0, ret);
 }

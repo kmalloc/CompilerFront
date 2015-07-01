@@ -3,14 +3,14 @@
 namespace ink {
 
 Lexer::Lexer(const CharType* buf)
-    : token_(TOK_UNKNOWN), curChar_(*buf), skipper_(' ')
+    : token_(TOK_UNKNOWN), curChar_(' '), skipper_(' ')
     , intVal_(0), floatVal_(0), strVal_("")
-    , text_(buf), curPos_(buf),
+    , text_(buf), curPos_(buf)
 {
     strVal_.reserve(64);
 }
 
-int Lexer::ExtractToken()
+TokenType Lexer::ExtractToken()
 {
     if (token_ == TOK_QUO)
     {
@@ -29,6 +29,9 @@ int Lexer::ExtractToken()
         while (IsAlNum(curChar_ = GetNextChar())) strVal_ += curChar_;
 
         if (strVal_ == "func") return TOK_FUN;
+        if (strVal_ == "return") return TOK_RET;
+        if (strVal_ == "class") return TOK_CLASS;
+        if (strVal_ == "extern") return TOK_EXT;
 
         return TOK_ID;
     }
@@ -42,8 +45,9 @@ int Lexer::ExtractToken()
 
     if (IsDigit(curChar_) || curChar_ == '.')
     {
+        std::string num;
         bool is_float = false;
-        string num;
+
         do {
             num += curChar_;
             is_float = (is_float || curChar_ == '.');
@@ -79,6 +83,13 @@ int Lexer::ExtractToken()
 
     switch (cur)
     {
+        case ',': return TOK_COMA;
+        case '"': return TOK_QUO;
+        case '[': return TOK_IND_LEFT;
+        case ']': return TOK_IND_RIGHT;
+        case '{': return TOK_BRACE_LEFT;
+        case '}': return TOK_BRACE_RIGHT;
+
         case '+': return TOK_ADD;
         case '-': return TOK_SUB;
         case '*': return TOK_MUL;
@@ -123,7 +134,7 @@ int Lexer::ExtractToken()
                       curChar_ = GetNextChar();
                       return TOK_NE;
                   }
-                  // negate oerator
+                  // negate operator
                   return TOK_NEG;
         case '&':
                   if (curChar_ == '&')
@@ -139,14 +150,13 @@ int Lexer::ExtractToken()
                       return TOK_LOR;
                   }
                   return TOK_OR;
-
         default:  return TOK_UNKNOWN;
     }
 }
 
 // this precedence mapping for the operators must
 // follows the exact order defined in the TokenType
-static const int gs_op_prec_map[] =
+static const int g_op_prec_map[] =
 {
     42, 42, 42, 42, // <, <=, >, >=
     41, 41, // ==, !=
@@ -160,15 +170,15 @@ static const int gs_op_prec_map[] =
     43, 43, // >>, <<
 };
 
-#define ArrSize(arr) (sizeof(arr)/sizeof(arr[0]))
+#define ArrSz(arr) (sizeof(arr)/sizeof(arr[0]))
 
 int Lexer::GetCurTokenPrec() const
 {
-    BOOST_STATIC_ASSERT(ArrSize(gs_op_prec_map) == TOK_OP_END - TOK_OP_START);
+    BOOST_STATIC_ASSERT(ArrSz(g_op_prec_map) == TOK_OP_END - TOK_OP_START - 1);
 
     if (token_ <= TOK_OP_START || token_ >= TOK_OP_END) return -1;
 
-    return gs_op_prec_map[token_ - TOK_OP_START];
+    return g_op_prec_map[token_ - TOK_OP_START];
 }
 
 }  // end namespace

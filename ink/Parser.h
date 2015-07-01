@@ -2,7 +2,9 @@
 #define __PARSER_H__
 
 #include "Lexer.h"
-#include <boost/noncopyable.h>
+#include "AbstractSynTree.h"
+
+#include <boost/noncopyable.hpp>
 
 namespace ink {
 
@@ -11,25 +13,32 @@ class AstBase;
 class Parser: public boost::noncopyable
 {
     public:
-        AstBase* ParsePrimary();
-        AstBase* ParseExpression();
+        AstBasePtr ParsePrimary();
+        AstBasePtr ParseExpression();
 
         // followings are primary expression.
-        AstBase* ParseIntExp();
-        AstBase* ParseFloatExp();
-        AstBase* ParseParenExp();
-        AstBase* ParseStringExp();
-        AstBase* ParseIdentifierExp();
+        AstBasePtr ParseIntExp();
+        AstBasePtr ParseFloatExp();
+        AstBasePtr ParseParenExp();
+        AstBasePtr ParseStringExp();
+        AstBasePtr ParseIdentifierExp();
 
-        AstBase* ParseUaryExp(TokenType op);
-        AstBase* ParseBinaryExp(int prec, TokenType op);
+        AstBasePtr ParseUaryExp(TokenType op);
+        AstBasePtr ParseBinaryExp(int prec, const AstBasePtr& lhs);
 
-        AstBase* ParseFuncProtoExp();
-        AstBase* ParseFuncDefExp();
-        AstBase* ParseFuncCallExp(const std::string& fun);
-        AstBase* ParseArrIndexExp(const std::string& arr);
+        AstBasePtr ParseFuncProtoExp();
+        AstBasePtr ParseFuncDefExp();
+        AstBasePtr ParseFuncCallExp(const std::string& fun);
+        AstBasePtr ParseArrIndexExp(const std::string& arr);
 
-        AstBase* ReportError(const char* msg);
+        AstBasePtr ParseExternExp();
+        AstBasePtr ParseFuncRetExp();
+        AstBasePtr ParseClassDefExp();
+        AstBasePtr ParseIfExp();
+        AstBasePtr ParseWhileExp();
+        AstBasePtr ParseForExp();
+
+        AstBasePtr ReportError(const char* msg);
 
     private:
         Lexer lex_;
