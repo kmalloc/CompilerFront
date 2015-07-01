@@ -34,7 +34,7 @@ class AstBase
     public:
         AstBase(AstType t): type_(t) {}
 
-        virtual ~AstBase() = 0;
+        virtual ~AstBase() {}
         int GetType() const { return type_; }
 
     public:
@@ -46,7 +46,7 @@ class AstIntExp: public AstBase
 {
     public:
         explicit AstIntExp(int64_t val): AstBase(AST_INT), val_(val) {}
-        ~AstIntExp();
+        ~AstIntExp() {}
 
     private:
         int64_t val_;
@@ -57,7 +57,7 @@ class AstFloatExp: public AstBase
 {
     public:
         explicit AstFloatExp(double v): AstBase(AST_FLOAT), val_(v) {}
-        ~AstFloatExp();
+        ~AstFloatExp() {}
 
     private:
         double val_;
@@ -71,6 +71,8 @@ class AstStringExp: public AstBase
         explicit AstStringExp(const std::string& val)
             : AstBase(AST_STRING), val_(val) {}
 
+        ~AstStringExp() {}
+
     private:
         std::string val_;
 };
@@ -82,6 +84,8 @@ class AstVarExp: public AstBase
         explicit AstVarExp(const std::string& name)
             : AstBase(AST_VAR), name_(name) {}
 
+        ~AstVarExp() {}
+
     private:
         std::string name_;
 };
@@ -92,6 +96,9 @@ class AstUnaryExp: public AstBase
     public:
         AstUnaryExp(TokenType op, const AstBasePtr& arg)
             : AstBase(AST_OP_UNARY), op_(op), arg_(arg) {}
+
+        ~AstUnaryExp() {}
+
     private:
         TokenType op_;
         AstBasePtr arg_;
@@ -103,6 +110,8 @@ class AstBinaryExp: public AstBase
     public:
         AstBinaryExp(TokenType op, const AstBasePtr& lhs, const AstBasePtr& rhs)
             : AstBase(AST_OP_BINARY), op_(op), lhs_(lhs), rhs_(rhs) {}
+
+        ~AstBinaryExp() {}
 
     private:
         TokenType op_;
@@ -117,6 +126,8 @@ class AstFuncProtoExp: public AstBase
         AstFuncProtoExp(const std::string& fun, const std::vector<std::string>& args)
             : AstBase(AST_FUNC_PROTO), func_(fun), args_(args) {}
 
+        ~AstFuncProtoExp() {}
+
     private:
         std::string func_;
         std::vector<std::string> args_;
@@ -128,6 +139,8 @@ class AstFuncDefExp: public AstBase
     public:
         AstFuncDefExp(const AstFuncProtoExpPtr& proto, const std::vector<AstBasePtr>& body)
             : AstBase(AST_FUNC_DEF), proto_(proto), body_(body) {}
+
+        ~AstFuncDefExp() {}
 
     private:
         AstFuncProtoExpPtr proto_;
@@ -141,6 +154,8 @@ class AstFuncCallExp: public AstBase
         AstFuncCallExp(const std::string& fun, std::vector<AstBasePtr>& args)
             : AstBase(AST_FUNC_CALL), func_(fun), args_(args) {}
 
+        ~AstFuncCallExp() {}
+
     private:
         std::string func_;
         std::vector<AstBasePtr> args_;
@@ -153,6 +168,8 @@ class AstArrayIndexExp: public AstBase
         AstArrayIndexExp(const std::string& arr, const AstBasePtr& index)
             : AstBase(AST_ARR_INDEX), arr_(arr), index_(index) {}
 
+        ~AstArrayIndexExp() {}
+
     private:
         std::string arr_;
         AstBasePtr index_;
@@ -164,6 +181,8 @@ class AstRetExp: public AstBase
     public:
         explicit AstRetExp(const AstBasePtr& ret): AstBase(AST_RET), val_(ret) {}
 
+        ~AstRetExp() {}
+
     private:
         AstBasePtr val_;
 };
@@ -174,6 +193,8 @@ class AstIfExp: public AstBase
     public:
         AstIfExp(const AstBasePtr& test, const std::vector<AstBasePtr>& body)
             : AstBase(AST_IF), testVar_(test), body_(body) {}
+
+        ~AstIfExp() {}
 
     private:
         AstBasePtr testVar_;
@@ -187,6 +208,8 @@ class AstWhileExp: public AstBase
         AstWhileExp(const AstBasePtr& test, const std::vector<AstBasePtr>& body)
             : AstBase(AST_WHILE), testVar_(test), body_(body) {}
 
+        ~AstWhileExp() {}
+
     private:
         AstBasePtr testVar_;
         std::vector<AstBasePtr> body_;
@@ -197,7 +220,9 @@ class AstForExp: public AstBase
 {
     // TODO, syntax for 'for' is clear yet
     public:
-        AstForExp();
+        AstForExp(): AstBase(AST_FOR) {}
+
+        ~AstForExp() {}
 };
 typedef boost::shared_ptr<AstForExp> AstForExpPtr;
 

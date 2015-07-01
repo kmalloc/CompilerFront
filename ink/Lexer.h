@@ -83,7 +83,10 @@ class Lexer: public boost::noncopyable
         typedef char CharType;
 
     public:
-        explicit Lexer(const CharType* buf);
+        explicit Lexer(const CharType* buf = "");
+
+        void Reset(const CharType* buf);
+        void Start() { if (GetCurToken() == TOK_UNKNOWN) ConsumeCurToken(); }
 
         TokenType GetCurToken() { return token_; }
         int GetCurTokenPrec() const; // get precedence of current token
@@ -99,7 +102,7 @@ class Lexer: public boost::noncopyable
         bool IsAlpha(CharType c) const { return std::isalpha(c); }
         bool IsAlNum(CharType c) const { return std::isalnum(c); }
         bool IsDigit(CharType c) const { return std::isdigit(c); }
-        bool IsSkipChar(CharType c) const { return  c== ' '; }
+        bool IsSkipChar(CharType c) const { return std::isspace(c); }
 
     private:
         TokenType token_;

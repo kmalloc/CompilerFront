@@ -13,6 +13,9 @@ class AstBase;
 class Parser: public boost::noncopyable
 {
     public:
+        Parser(const std::string& file, const std::string& buff);
+        explicit Parser(const std::string& file);
+
         AstBasePtr ParsePrimary();
         AstBasePtr ParseExpression();
 
@@ -42,6 +45,8 @@ class Parser: public boost::noncopyable
 
     private:
         Lexer lex_;
+        std::string file_;
+        std::string buff_;
 };
 
 } // end ink

@@ -10,13 +10,27 @@ Lexer::Lexer(const CharType* buf)
     strVal_.reserve(64);
 }
 
+void Lexer::Reset(const CharType* buf)
+{
+    token_ = TOK_UNKNOWN;
+    curChar_ = skipper_;
+    intVal_ = 0;
+    floatVal_ = 0;
+    strVal_ = "";
+    text_ = buf;
+    curPos_ = buf;
+}
+
 TokenType Lexer::ExtractToken()
 {
     if (token_ == TOK_QUO)
     {
         strVal_ = curChar_;
-        while ((curChar_ = GetNextChar()) != '"') strVal_ += curChar_;
+        while ((curChar_ = GetNextChar()) != '"' && curChar_) strVal_ += curChar_;
 
+        if (!curChar_) return TOK_EOF;
+
+        curChar_ = GetNextChar();
         return TOK_STR;
     }
 
@@ -87,6 +101,8 @@ TokenType Lexer::ExtractToken()
         case '"': return TOK_QUO;
         case '[': return TOK_IND_LEFT;
         case ']': return TOK_IND_RIGHT;
+        case '(': return TOK_PAREN_LEFT;
+        case ')': return TOK_PAREN_RIGHT;
         case '{': return TOK_BRACE_LEFT;
         case '}': return TOK_BRACE_RIGHT;
 

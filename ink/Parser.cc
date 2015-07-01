@@ -1,6 +1,33 @@
 #include "Parser.h"
 
+#include <fstream>
+
 namespace ink {
+
+Parser::Parser(const std::string& file)
+    : file_(file)
+{
+    std::ifstream fin(file.c_str(), std::fstream::in);
+    assert(fin);
+
+    buff_ = std::string((std::istreambuf_iterator<Lexer::CharType>(fin)),
+            std::istreambuf_iterator<Lexer::CharType>());
+
+    lex_.Reset(buff_.c_str());
+}
+
+Parser::Parser(const std::string& file, const std::string& buff)
+    : file_(file), buff_(buff)
+{
+    lex_.Reset(buff_.c_str());
+}
+
+AstBasePtr Parser::ReportError(const char* msg)
+{
+    // should provide more information about location.
+    std::cerr << msg << ", from " << file_ << std::endl;
+    return AstBasePtr();
+}
 
 AstBasePtr Parser::ParseIntExp()
 {
@@ -43,10 +70,6 @@ AstBasePtr Parser::ParseStringExp()
     AstBasePtr ret(new AstStringExp(lex_.GetStringVal()));
     if (!ret) return ReportError("invalid string literal");
 
-    lex_.ConsumeCurToken();
-    if (lex_.GetCurToken() != TOK_QUO) return ReportError("expected '\"'");
-
-    // consume '"'
     lex_.ConsumeCurToken();
     return ret;
 }
@@ -233,6 +256,42 @@ AstBasePtr Parser::ParseBinaryExp(int prev_prec, const AstBasePtr& arg)
         lhs = AstBasePtr(new AstBinaryExp(bin_op, lhs, rhs));
     }
 
+    return AstBasePtr();
+}
+
+AstBasePtr Parser::ParseExternExp()
+{
+    // TODO
+    return AstBasePtr();
+}
+
+AstBasePtr Parser::ParseFuncRetExp()
+{
+    // TODO
+    return AstBasePtr();
+}
+
+AstBasePtr Parser::ParseClassDefExp()
+{
+    // TODO
+    return AstBasePtr();
+}
+
+AstBasePtr Parser::ParseIfExp()
+{
+    // TODO
+    return AstBasePtr();
+}
+
+AstBasePtr Parser::ParseWhileExp()
+{
+    // TODO
+    return AstBasePtr();
+}
+
+AstBasePtr Parser::ParseForExp()
+{
+    // TODO
     return AstBasePtr();
 }
 
