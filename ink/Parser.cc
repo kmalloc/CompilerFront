@@ -66,9 +66,40 @@ AstBasePtr Parser::ParseFuncProtoExp()
         return ReportError("expected '(' in function definition");
     }
 
-    std::vector<AstFuncProtoExp::ArgType> args;
-    // TODO, support static checking for parameter type
+    // consume '('
+    lex_.ConsumeCurToken();
+    std::vector<std::string> args;
 
+    std::string arg;
+    if (lex_.GetCurToken() != TOK_PAREN_RIGHT)
+    {
+        while (true)
+        {
+            if (lex_.GetCurToken() != TOK_ID)
+            {
+                return ReportError("expected parameter name");
+            }
+
+            arg = lex_.GetStringVal();
+            if (arg.empty()) return ReportError("expected non-empty parameter name");
+
+            args.push_back(arg);
+            lex_.ConsumeCurToken();
+
+            if (lex_.GetCurToken() == TOK_BRACE_RIGHT) break;
+
+            if (lex_.GetCurToken() != TOK_COMA)
+            {
+                return ReportError("expected ',' between parameters");
+            }
+
+            // consume ','
+            lex_.ConsumeCurToken();
+        }
+    }
+
+    // consume ')'
+    lex_.ConsumeCurToken();
     return AstBasePtr(new AstFuncProtoExp(name, args));
 }
 

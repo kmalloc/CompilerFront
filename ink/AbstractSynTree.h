@@ -114,19 +114,12 @@ typedef boost::shared_ptr<AstBinaryExp> AstBinaryExpPtr;
 class AstFuncProtoExp: public AstBase
 {
     public:
-        struct ArgType
-        {
-            int type;
-            std::string name;
-        };
-
-    public:
-        AstFuncProtoExp(const std::string& fun, const std::vector<ArgType>& args)
+        AstFuncProtoExp(const std::string& fun, const std::vector<std::string>& args)
             : AstBase(AST_FUNC_PROTO), func_(fun), args_(args) {}
 
     private:
         std::string func_;
-        std::vector<ArgType> args_;
+        std::vector<std::string> args_;
 };
 typedef boost::shared_ptr<AstFuncProtoExp> AstFuncProtoExpPtr;
 
