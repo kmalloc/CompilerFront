@@ -2,10 +2,9 @@
 #define __INK_LEXER_H__
 
 #include <cctype>
-#include <boost/variant.hpp>
+#include <string>
 #include <boost/noncopyable.hpp>
-#include <boost/variant/apply_visitor.hpp>
-#include <boost/variant/recursive_variant.hpp>
+#include <boost/static_assert.hpp>
 
 namespace ink {
 
