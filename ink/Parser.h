@@ -16,8 +16,11 @@ class Parser: public boost::noncopyable
         Parser(const std::string& file, const std::string& buff);
         explicit Parser(const std::string& file);
 
-        AstBasePtr ParsePrimary();
+        AstBasePtr StartParsing();
         AstBasePtr ParseExpression();
+
+    private:
+        AstBasePtr ParsePrimary();
 
         // followings are primary expression.
         AstBasePtr ParseIntExp();
