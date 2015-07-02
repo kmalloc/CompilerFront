@@ -1,11 +1,12 @@
-#ifndef __ABSTRACT_SYN_TREE_H__
-#define __ABSTRACT_SYN_TREE_H__
+#ifndef __INK_AST_H__
+#define __INK_AST_H__
 
 #include <string>
 #include <vector>
 #include <boost/shared_ptr.hpp>
 
 #include "Lexer.h"
+#include "AstVisitor.h"
 
 namespace ink {
 
@@ -33,12 +34,22 @@ enum AstType
     AST_BUILTIN_ALL,
 };
 
+class ValueNode
+{
+    public:
+        virtual int GetValue() = 0;
+};
+typedef boost::shared_ptr<ValueNode> ValueNodePtr;
+
 class AstBase
 {
     public:
         AstBase(AstType t): type_(t) {}
 
         virtual ~AstBase() {}
+        virtual ValueNodePtr Evaluate() = 0;
+        virtual void Accept(VisitorBase& v) = 0;
+
         int GetType() const { return type_; }
 
     public:
@@ -52,6 +63,17 @@ class AstIntExp: public AstBase
         explicit AstIntExp(int64_t val): AstBase(AST_INT), val_(val) {}
         ~AstIntExp() {}
 
+        virtual void Accept(VisitorBase& v)
+        {
+            v.Visit(this);
+        }
+
+        virtual ValueNodePtr Evaluate()
+        {
+            // TODO
+            return ValueNodePtr();
+        }
+
     private:
         int64_t val_;
 };
@@ -62,6 +84,17 @@ class AstFloatExp: public AstBase
     public:
         explicit AstFloatExp(double v): AstBase(AST_FLOAT), val_(v) {}
         ~AstFloatExp() {}
+
+        virtual void Accept(VisitorBase& v)
+        {
+            v.Visit(this);
+        }
+
+        virtual ValueNodePtr Evaluate()
+        {
+            // TODO
+            return ValueNodePtr();
+        }
 
     private:
         double val_;
@@ -77,6 +110,17 @@ class AstStringExp: public AstBase
 
         ~AstStringExp() {}
 
+        virtual void Accept(VisitorBase& v)
+        {
+            v.Visit(this);
+        }
+
+        virtual ValueNodePtr Evaluate()
+        {
+            // TODO
+            return ValueNodePtr();
+        }
+
     private:
         std::string val_;
 };
@@ -90,6 +134,17 @@ class AstVarExp: public AstBase
 
         ~AstVarExp() {}
 
+        virtual void Accept(VisitorBase& v)
+        {
+            v.Visit(this);
+        }
+
+        virtual ValueNodePtr Evaluate()
+        {
+            // TODO
+            return ValueNodePtr();
+        }
+
     private:
         std::string name_;
 };
@@ -102,6 +157,17 @@ class AstUnaryExp: public AstBase
             : AstBase(AST_OP_UNARY), op_(op), arg_(arg) {}
 
         ~AstUnaryExp() {}
+
+        virtual void Accept(VisitorBase& v)
+        {
+            v.Visit(this);
+        }
+
+        virtual ValueNodePtr Evaluate()
+        {
+            // TODO
+            return ValueNodePtr();
+        }
 
     private:
         TokenType op_;
@@ -117,6 +183,17 @@ class AstBinaryExp: public AstBase
 
         ~AstBinaryExp() {}
 
+        virtual void Accept(VisitorBase& v)
+        {
+            v.Visit(this);
+        }
+
+        virtual ValueNodePtr Evaluate()
+        {
+            // TODO
+            return ValueNodePtr();
+        }
+
     private:
         TokenType op_;
         AstBasePtr lhs_;
@@ -131,6 +208,17 @@ class AstFuncProtoExp: public AstBase
             : AstBase(AST_FUNC_PROTO), func_(fun), args_(args) {}
 
         ~AstFuncProtoExp() {}
+
+        virtual void Accept(VisitorBase& v)
+        {
+            v.Visit(this);
+        }
+
+        virtual ValueNodePtr Evaluate()
+        {
+            // TODO
+            return ValueNodePtr();
+        }
 
     private:
         std::string func_;
@@ -152,6 +240,17 @@ class AstScopeStatementExp: public AstBase
 
         ~AstScopeStatementExp() {}
 
+        virtual void Accept(VisitorBase& v)
+        {
+            v.Visit(this);
+        }
+
+        virtual ValueNodePtr Evaluate()
+        {
+            // TODO
+            return ValueNodePtr();
+        }
+
     private:
         std::vector<AstBasePtr> exp_;
 };
@@ -165,6 +264,17 @@ class AstFuncDefExp: public AstBase
             : AstBase(AST_FUNC_DEF), proto_(proto), body_(body) {}
 
         ~AstFuncDefExp() {}
+
+        virtual void Accept(VisitorBase& v)
+        {
+            v.Visit(this);
+        }
+
+        virtual ValueNodePtr Evaluate()
+        {
+            // TODO
+            return ValueNodePtr();
+        }
 
     private:
         AstFuncProtoExpPtr proto_;
@@ -180,6 +290,17 @@ class AstFuncCallExp: public AstBase
 
         ~AstFuncCallExp() {}
 
+        virtual void Accept(VisitorBase& v)
+        {
+            v.Visit(this);
+        }
+
+        virtual ValueNodePtr Evaluate()
+        {
+            // TODO
+            return ValueNodePtr();
+        }
+
     private:
         std::string func_;
         std::vector<AstBasePtr> args_;
@@ -191,6 +312,17 @@ class AstArrayExp: public AstBase
     public:
         explicit AstArrayExp(const std::vector<AstBasePtr>& arr)
             : AstBase(AST_ARR), arr_(arr) {}
+
+        virtual void Accept(VisitorBase& v)
+        {
+            v.Visit(this);
+        }
+
+        virtual ValueNodePtr Evaluate()
+        {
+            // TODO
+            return ValueNodePtr();
+        }
 
     private:
         std::vector<AstBasePtr> arr_;
@@ -205,6 +337,17 @@ class AstArrayIndexExp: public AstBase
 
         ~AstArrayIndexExp() {}
 
+        virtual void Accept(VisitorBase& v)
+        {
+            v.Visit(this);
+        }
+
+        virtual ValueNodePtr Evaluate()
+        {
+            // TODO
+            return ValueNodePtr();
+        }
+
     private:
         std::string arr_;
         AstBasePtr index_;
@@ -217,6 +360,17 @@ class AstRetExp: public AstBase
         explicit AstRetExp(const AstBasePtr& ret): AstBase(AST_RET), val_(ret) {}
 
         ~AstRetExp() {}
+
+        virtual void Accept(VisitorBase& v)
+        {
+            v.Visit(this);
+        }
+
+        virtual ValueNodePtr Evaluate()
+        {
+            // TODO
+            return ValueNodePtr();
+        }
 
     private:
         AstBasePtr val_;
@@ -239,6 +393,17 @@ class AstIfExp: public AstBase
 
         ~AstIfExp() {}
 
+        virtual void Accept(VisitorBase& v)
+        {
+            v.Visit(this);
+        }
+
+        virtual ValueNodePtr Evaluate()
+        {
+            // TODO
+            return ValueNodePtr();
+        }
+
     private:
         std::vector<IfEntity> exe_;
 };
@@ -251,6 +416,17 @@ class AstWhileExp: public AstBase
             : AstBase(AST_WHILE), cond_(cond), body_(body) {}
 
         ~AstWhileExp() {}
+
+        virtual void Accept(VisitorBase& v)
+        {
+            v.Visit(this);
+        }
+
+        virtual ValueNodePtr Evaluate()
+        {
+            // TODO
+            return ValueNodePtr();
+        }
 
     private:
         AstBasePtr cond_;
@@ -266,6 +442,17 @@ class AstForExp: public AstBase
             : AstBase(AST_FOR), var_(var), range_(arr), body_(body) {}
 
         ~AstForExp() {}
+
+        virtual void Accept(VisitorBase& v)
+        {
+            v.Visit(this);
+        }
+
+        virtual ValueNodePtr Evaluate()
+        {
+            // TODO
+            return ValueNodePtr();
+        }
 
     private:
         AstBasePtr var_;

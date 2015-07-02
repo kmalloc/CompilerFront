@@ -1,5 +1,5 @@
-#ifndef __LEXER_H__
-#define __LEXER_H__
+#ifndef __INK_LEXER_H__
+#define __INK_LEXER_H__
 
 #include <cctype>
 #include <boost/variant.hpp>

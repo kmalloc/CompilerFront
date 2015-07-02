@@ -1,5 +1,5 @@
 CC=g++
-CFLAGS=-c -Wall -Wextra -g
+CFLAGS=-c -Wall -Wextra -g -Werror
 SOURCES=$(wildcard *.cc)
 
 REG_DEFINE=

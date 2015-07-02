@@ -1,5 +1,5 @@
-#ifndef __PARSER_H__
-#define __PARSER_H__
+#ifndef __INK_PARSER_H__
+#define __INK_PARSER_H__
 
 #include "Ast.h"
 #include "Lexer.h"
