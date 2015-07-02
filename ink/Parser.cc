@@ -109,7 +109,7 @@ AstBasePtr Parser::ParseFuncProtoExp()
             args.push_back(arg);
             lex_.ConsumeCurToken();
 
-            if (lex_.GetCurToken() == TOK_BRACE_RIGHT) break;
+            if (lex_.GetCurToken() == TOK_PAREN_RIGHT) break;
 
             if (lex_.GetCurToken() != TOK_COMA)
             {
