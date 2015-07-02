@@ -24,11 +24,15 @@ enum TokenType
     TOK_STR, // literal string
     TOK_INT, // literal int
     TOK_FLOAT, // literal floatting point
+    TOK_COMMENT,
 
     // control flow
     TOK_RET, // return
     TOK_IF, // if statement
+    TOK_ELSE, // else
+    TOK_ELIF, // else if
     TOK_FOR, // for loop
+    TOK_IN, // for a in [a,b,c]
     TOK_WHILE, // while loop
 
     // primary operators
@@ -39,8 +43,8 @@ enum TokenType
     TOK_BRACE_RIGHT,
     TOK_QUO, // "
     TOK_AS, // = assign
-    TOK_IND_LEFT, // [
-    TOK_IND_RIGHT, // ]
+    TOK_BRACKET_LEFT, // [
+    TOK_BRACKET_RIGHT, // ]
 
     // operators, the order matter
     // precedences from lower to higher
@@ -88,8 +92,11 @@ class Lexer: public boost::noncopyable
         void Reset(const CharType* buf);
         void Start() { if (GetCurToken() == TOK_UNKNOWN) ConsumeCurToken(); }
 
-        TokenType GetCurToken() { return token_; }
-        int GetCurTokenPrec() const; // get precedence of current token
+        TokenType GetCurToken() const { return token_; }
+
+        // get precedence of token
+        int GetTokenPrec(TokenType tok) const;
+        int GetCurTokenPrec() const { return GetTokenPrec(GetCurToken()); }
         void ConsumeCurToken() { token_ = ExtractToken(); }
 
         std::string GetStringVal() const { return strVal_; }
@@ -102,7 +109,7 @@ class Lexer: public boost::noncopyable
         bool IsAlpha(CharType c) const { return std::isalpha(c); }
         bool IsAlNum(CharType c) const { return std::isalnum(c); }
         bool IsDigit(CharType c) const { return std::isdigit(c); }
-        bool IsSkipChar(CharType c) const { return std::isspace(c); }
+        bool IsSkipChar(CharType c) const { return c == ';' || std::isspace(c); }
 
     private:
         TokenType token_;

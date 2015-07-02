@@ -187,12 +187,40 @@ AstBasePtr Parser::ParseFuncCallExp(const std::string& name)
     return AstBasePtr(new AstFuncCallExp(name, args));
 }
 
+AstBasePtr Parser::ParseArrayExp()
+{
+    lex_.ConsumeCurToken(); // '['
+
+    std::vector<AstBasePtr> elem;
+    if (lex_.GetCurToken() != TOK_BRACKET_RIGHT)
+    {
+        while (true)
+        {
+            AstBasePtr v = ParseExpression();
+            if (!v) return ReportError("expected array element");
+
+            elem.push_back(v);
+            if (lex_.GetCurToken() == TOK_BRACKET_RIGHT) break;
+
+            if (lex_.GetCurToken() != TOK_COMA)
+            {
+                return ReportError("expected ',' between array element");
+            }
+
+            // consume ','
+            lex_.ConsumeCurToken();
+        }
+    }
+
+    return AstBasePtr(new AstArrayExp(elem));
+}
+
 AstBasePtr Parser::ParseArrIndexExp(const std::string& name)
 {
     AstBasePtr index = ParseExpression();
     if (!index) return AstBasePtr();
 
-    if (lex_.GetCurToken() != TOK_IND_RIGHT)
+    if (lex_.GetCurToken() != TOK_BRACKET_RIGHT)
     {
         return ReportError("expected ']' for array indexing expression");
     }
@@ -208,7 +236,7 @@ AstBasePtr Parser::ParseIdentifierExp()
     // consume name
     lex_.ConsumeCurToken();
     TokenType tok = lex_.GetCurToken();
-    if (tok != TOK_PAREN_LEFT && tok != TOK_IND_LEFT)
+    if (tok != TOK_PAREN_LEFT && tok != TOK_BRACKET_LEFT)
     {
         return AstBasePtr(new AstVarExp(name));
     }
@@ -304,6 +332,7 @@ AstBasePtr Parser::ParsePrimary()
         case TOK_FLOAT: return ParseFloatExp();
         case TOK_QUO: return ParseStringExp();
         case TOK_PAREN_LEFT: return ParseParenExp();
+        case TOK_BRACKET_LEFT: return ParseArrayExp();
         case TOK_FUN: return ParseFuncDefExp();
         case TOK_EXT: return ParseExternExp();
         case TOK_RET: return ParseFuncRetExp();

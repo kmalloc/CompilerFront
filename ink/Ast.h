@@ -5,6 +5,8 @@
 #include <vector>
 #include <boost/shared_ptr.hpp>
 
+#include "Lexer.h"
+
 namespace ink {
 
 enum AstType
@@ -24,6 +26,7 @@ enum AstType
     AST_FUNC_PROTO,
     AST_FUNC_DEF,
     AST_FUNC_CALL,
+    AST_ARR,
     AST_ARR_INDEX,
 
     AST_BUILTIN_ALL,
@@ -161,6 +164,17 @@ class AstFuncCallExp: public AstBase
         std::vector<AstBasePtr> args_;
 };
 typedef boost::shared_ptr<AstFuncCallExp> AstFuncCallExpPtr;
+
+class AstArrayExp: public AstBase
+{
+    public:
+        explicit AstArrayExp(const std::vector<AstBasePtr>& arr)
+            : AstBase(AST_ARR), arr_(arr) {}
+
+    private:
+        std::vector<AstBasePtr> arr_;
+};
+typedef boost::shared_ptr<AstArrayExp> AstArrayExpPtr;
 
 class AstArrayIndexExp: public AstBase
 {

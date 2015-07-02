@@ -46,6 +46,12 @@ TokenType Lexer::ExtractToken()
         if (strVal_ == "return") return TOK_RET;
         if (strVal_ == "class") return TOK_CLASS;
         if (strVal_ == "extern") return TOK_EXT;
+        if (strVal_ == "if") return TOK_IF;
+        if (strVal_ == "while") return TOK_WHILE;
+        if (strVal_ == "for") return TOK_FOR;
+        if (strVal_ == "in") return TOK_IN;
+        if (strVal_ == "else") return TOK_ELSE;
+        if (strVal_ == "elif") return TOK_ELIF;
 
         return TOK_ID;
     }
@@ -82,11 +88,16 @@ TokenType Lexer::ExtractToken()
     if (curChar_ == '#')
     {
         // comment line
-        do {
-            curChar_ = GetNextChar();
-        } while (curChar_ != 0 && curChar_ != '\n' && curChar_ != '\r');
+        strVal_ = "";
+        curChar_ = GetNextChar();
 
-        if (curChar_) return ExtractToken();
+        while (curChar_ != 0 && curChar_ != '\n' && curChar_ != '\r')
+        {
+            strVal_ += curChar_;
+            curChar_ = GetNextChar();
+        }
+
+        return TOK_COMMENT;
     }
 
     if (!curChar_) return TOK_EOF;
@@ -99,8 +110,8 @@ TokenType Lexer::ExtractToken()
     {
         case ',': return TOK_COMA;
         case '"': return TOK_QUO;
-        case '[': return TOK_IND_LEFT;
-        case ']': return TOK_IND_RIGHT;
+        case '[': return TOK_BRACKET_LEFT;
+        case ']': return TOK_BRACKET_RIGHT;
         case '(': return TOK_PAREN_LEFT;
         case ')': return TOK_PAREN_RIGHT;
         case '{': return TOK_BRACE_LEFT;
@@ -172,6 +183,11 @@ TokenType Lexer::ExtractToken()
 
 // this precedence mapping for the operators must
 // follows the exact order defined in the TokenType
+
+// 36 -> 37 -> 38 -> 39 -> 40 -> 41 41 -> 42 42 42 42
+// || -> && -> |  -> ^  -> &  -> == != -> < <= > >=
+// 43 43 -> 44 44 -> 45 45 -> 46 -> 47 -> 48 48
+// >> << -> + -   -> * / -> % -> power -> ~ !
 static const int g_op_prec_map[] =
 {
     42, 42, 42, 42, // <, <=, >, >=
@@ -188,13 +204,13 @@ static const int g_op_prec_map[] =
 
 #define ArrSz(arr) (sizeof(arr)/sizeof(arr[0]))
 
-int Lexer::GetCurTokenPrec() const
+int Lexer::GetTokenPrec(TokenType tok) const
 {
     BOOST_STATIC_ASSERT(ArrSz(g_op_prec_map) == TOK_OP_END - TOK_OP_START - 1);
 
-    if (token_ <= TOK_OP_START || token_ >= TOK_OP_END) return -1;
+    if (tok <= TOK_OP_START || tok >= TOK_OP_END) return -1;
 
-    return g_op_prec_map[token_ - TOK_OP_START];
+    return g_op_prec_map[tok - TOK_OP_START - 1];
 }
 
 }  // end namespace

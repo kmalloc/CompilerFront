@@ -1,8 +1,8 @@
 #ifndef __PARSER_H__
 #define __PARSER_H__
 
+#include "Ast.h"
 #include "Lexer.h"
-#include "AbstractSynTree.h"
 
 #include <boost/noncopyable.hpp>
 
@@ -32,6 +32,7 @@ class Parser: public boost::noncopyable
         AstBasePtr ParseFuncProtoExp();
         AstBasePtr ParseFuncDefExp();
         AstBasePtr ParseFuncCallExp(const std::string& fun);
+        AstBasePtr ParseArrayExp();
         AstBasePtr ParseArrIndexExp(const std::string& arr);
 
         AstBasePtr ParseExternExp();
