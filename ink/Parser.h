@@ -43,6 +43,7 @@ class Parser: public boost::noncopyable
         AstBasePtr ParseForExp();
 
         AstBasePtr ReportError(const char* msg);
+        AstScopeStatementExpPtr ParseScopeStatement();
 
     private:
         Lexer lex_;

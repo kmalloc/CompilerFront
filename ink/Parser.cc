@@ -50,7 +50,7 @@ AstBasePtr Parser::ParseParenExp()
 
     // parse main expression
     AstBasePtr ret = ParseExpression();
-    if (!ret) return AstBasePtr();
+    if (!ret) return ret;
 
     if (lex_.GetCurToken() != TOK_PAREN_RIGHT)
     {
@@ -133,27 +133,10 @@ AstBasePtr Parser::ParseFuncDefExp()
     AstFuncProtoExpPtr proto =
         boost::static_pointer_cast<AstFuncProtoExp>(ParseFuncProtoExp());
 
-    if (!proto) return AstBasePtr();
+    if (!proto) return proto;
 
-    if (lex_.GetCurToken() != TOK_BRACE_LEFT)
-    {
-        return ReportError("expected '{' for function definition");
-    }
-
-    lex_.ConsumeCurToken();
-    std::vector<AstBasePtr> body;
-
-    body.reserve(64);
-    while (lex_.GetCurToken() != TOK_BRACE_RIGHT)
-    {
-        AstBasePtr exp = ParseExpression();
-        if (!exp)
-        {
-            return ReportError("expected '}' in function definition");
-        }
-
-        body.push_back(exp);
-    }
+    AstScopeStatementExpPtr body = ParseScopeStatement();
+    if (!body) return body;
 
     AstBasePtr ret(new AstFuncDefExp(proto, body));
     return ret;
@@ -167,7 +150,7 @@ AstBasePtr Parser::ParseFuncCallExp(const std::string& name)
         while (true)
         {
             AstBasePtr arg = ParseExpression();
-            if (!arg) return AstBasePtr();
+            if (!arg) return arg;
 
             args.push_back(arg);
             if (lex_.GetCurToken() == TOK_PAREN_RIGHT) break;
@@ -218,7 +201,7 @@ AstBasePtr Parser::ParseArrayExp()
 AstBasePtr Parser::ParseArrIndexExp(const std::string& name)
 {
     AstBasePtr index = ParseExpression();
-    if (!index) return AstBasePtr();
+    if (!index) return index;
 
     if (lex_.GetCurToken() != TOK_BRACKET_RIGHT)
     {
@@ -254,7 +237,7 @@ AstBasePtr Parser::ParseUaryExp(TokenType op)
     // consume unary operator('!' or '~')
     lex_.ConsumeCurToken();
     AstBasePtr arg = ParseExpression();
-    if (!arg) return AstBasePtr();
+    if (!arg) return arg;
 
     return AstBasePtr(new AstUnaryExp(op, arg));
 }
@@ -272,13 +255,13 @@ AstBasePtr Parser::ParseBinaryExp(int prev_prec, const AstBasePtr& arg)
         lex_.ConsumeCurToken();
         AstBasePtr rhs = ParsePrimary();
 
-        if (!rhs) return AstBasePtr();
+        if (!rhs) return rhs;
 
         int next_prec = lex_.GetCurTokenPrec();
         if (cur_prec < next_prec)
         {
             rhs = ParseBinaryExp(cur_prec + 1, rhs);
-            if (!rhs) return AstBasePtr();
+            if (!rhs) return rhs;
         }
 
         lhs = AstBasePtr(new AstBinaryExp(bin_op, lhs, rhs));
@@ -289,14 +272,15 @@ AstBasePtr Parser::ParseBinaryExp(int prev_prec, const AstBasePtr& arg)
 
 AstBasePtr Parser::ParseExternExp()
 {
-    // TODO
-    return AstBasePtr();
+    lex_.ConsumeCurToken();
+    return ParseFuncProtoExp();
 }
 
 AstBasePtr Parser::ParseFuncRetExp()
 {
-    // TODO
-    return AstBasePtr();
+    lex_.ConsumeCurToken();
+    AstBasePtr val = ParseExpression();
+    return AstBasePtr(new AstRetExp(val));
 }
 
 AstBasePtr Parser::ParseClassDefExp()
@@ -307,20 +291,128 @@ AstBasePtr Parser::ParseClassDefExp()
 
 AstBasePtr Parser::ParseIfExp()
 {
-    // TODO
-    return AstBasePtr();
+    std::vector<AstIfExp::IfEntity> exe;
+    exe.reserve(16);
+
+    do {
+        // consume if elif else
+        AstIfExp::IfEntity entity;
+        bool is_if = lex_.GetCurToken() == TOK_IF || lex_.GetCurToken() == TOK_ELIF;
+
+        lex_.ConsumeCurToken();
+
+        if (is_if)
+        {
+            if (lex_.GetCurToken() != TOK_PAREN_LEFT)
+            {
+                return ReportError("expected '(' in if statement");
+            }
+
+            lex_.ConsumeCurToken();
+
+            AstBasePtr cond = ParseExpression();
+            if (!cond) return cond;
+
+            entity.cond = cond;
+            if (lex_.GetCurToken() != TOK_PAREN_RIGHT)
+            {
+                return ReportError("expected ')' in if statement");
+            }
+
+            lex_.ConsumeCurToken();
+        }
+        else
+        {
+            entity.cond = AstBasePtr();
+        }
+
+        AstScopeStatementExpPtr body = ParseScopeStatement();
+        if (!body) return body;
+
+        entity.exp = body;
+        exe.push_back(entity);
+        lex_.ConsumeCurToken();
+
+    } while (lex_.GetCurToken() == TOK_ELIF && lex_.GetCurToken() == TOK_ELSE);
+
+    return AstBasePtr(new AstIfExp(exe));
+}
+
+AstScopeStatementExpPtr Parser::ParseScopeStatement()
+{
+    if (lex_.GetCurToken() != TOK_BRACE_LEFT)
+    {
+        return boost::static_pointer_cast<AstScopeStatementExp>(
+                ReportError("expected '{' in scope statement"));
+    }
+
+    lex_.ConsumeCurToken();
+
+    std::vector<AstBasePtr> exps;
+    exps.reserve(64);
+
+    while (lex_.GetCurToken() != TOK_EOF && lex_.GetCurToken() != TOK_BRACE_RIGHT)
+    {
+        AstBasePtr exp = ParseExpression();
+        if (!exp) return AstScopeStatementExpPtr();
+
+        exps.push_back(exp);
+    }
+
+    if (lex_.GetCurToken() != TOK_BRACE_RIGHT)
+    {
+        return boost::static_pointer_cast<AstScopeStatementExp>(
+                ReportError("expected '}' for scope statement"));
+    }
+
+    lex_.ConsumeCurToken();
+    return AstScopeStatementExpPtr(new AstScopeStatementExp(exps));
 }
 
 AstBasePtr Parser::ParseWhileExp()
 {
-    // TODO
-    return AstBasePtr();
+    lex_.ConsumeCurToken();
+    if (lex_.GetCurToken() != TOK_PAREN_LEFT)
+    {
+        return ReportError("expected '(' in while statement");
+    }
+
+    lex_.ConsumeCurToken();
+    AstBasePtr cond = ParseExpression();
+    if (!cond) return cond;
+
+    if (lex_.GetCurToken() != TOK_PAREN_RIGHT)
+    {
+        return ReportError("expected ')' in while statement");
+    }
+
+    lex_.ConsumeCurToken();
+    AstScopeStatementExpPtr body = ParseScopeStatement();
+    if (!body) return body;
+
+    return AstBasePtr(new AstWhileExp(cond, body));
 }
 
 AstBasePtr Parser::ParseForExp()
 {
-    // TODO
-    return AstBasePtr();
+    lex_.ConsumeCurToken();
+    AstBasePtr var = ParseExpression();
+    if (!var) return var;
+
+    if (lex_.GetCurToken() != TOK_IN)
+    {
+        return ReportError("expected 'in' in a for loop");
+    }
+
+    lex_.ConsumeCurToken();
+
+    AstBasePtr arr = ParseExpression();
+    if (!arr) return arr;
+
+    AstScopeStatementExpPtr body = ParseScopeStatement();
+    if (!body) return body;
+
+    return AstForExpPtr(new AstForExp(var, arr, body));
 }
 
 AstBasePtr Parser::ParsePrimary()
@@ -354,7 +446,7 @@ AstBasePtr Parser::ParseExpression()
     }
 
     AstBasePtr ret = ParsePrimary();
-    if (!ret) return AstBasePtr();
+    if (!ret) return ret;
 
     return ParseBinaryExp(0, ret);
 }

@@ -28,6 +28,7 @@ enum AstType
     AST_FUNC_CALL,
     AST_ARR,
     AST_ARR_INDEX,
+    AST_SCOPE,
 
     AST_BUILTIN_ALL,
 };
@@ -137,17 +138,37 @@ class AstFuncProtoExp: public AstBase
 };
 typedef boost::shared_ptr<AstFuncProtoExp> AstFuncProtoExpPtr;
 
+// represents a collections of expression in a pair of brace
+class AstScopeStatementExp: public AstBase
+{
+    public:
+        // attention: parameter will be cleared, this is to improve efficiency
+        // should use rvalue reference if not need to support old compiler
+        explicit AstScopeStatementExp(std::vector<AstBasePtr>& exp)
+            : AstBase(AST_SCOPE)
+        {
+            exp_.swap(exp);
+        }
+
+        ~AstScopeStatementExp() {}
+
+    private:
+        std::vector<AstBasePtr> exp_;
+};
+
+typedef boost::shared_ptr<AstScopeStatementExp> AstScopeStatementExpPtr;
+
 class AstFuncDefExp: public AstBase
 {
     public:
-        AstFuncDefExp(const AstFuncProtoExpPtr& proto, const std::vector<AstBasePtr>& body)
+        AstFuncDefExp(const AstFuncProtoExpPtr& proto, const AstScopeStatementExpPtr& body)
             : AstBase(AST_FUNC_DEF), proto_(proto), body_(body) {}
 
         ~AstFuncDefExp() {}
 
     private:
         AstFuncProtoExpPtr proto_;
-        std::vector<AstBasePtr> body_;
+        AstScopeStatementExpPtr body_;
 };
 typedef boost::shared_ptr<AstFuncDefExp> AstFuncDefExpPtr;
 
@@ -205,38 +226,51 @@ typedef boost::shared_ptr<AstRetExp> AstRetExpPtr;
 class AstIfExp: public AstBase
 {
     public:
-        AstIfExp(const AstBasePtr& test, const std::vector<AstBasePtr>& body)
-            : AstBase(AST_IF), testVar_(test), body_(body) {}
+        struct IfEntity
+        {
+            // in case of an else construct, cond always == null
+            AstBasePtr cond;
+            AstScopeStatementExpPtr exp;
+        };
+
+    public:
+        explicit AstIfExp(const std::vector<IfEntity>& exe)
+            : AstBase(AST_IF), exe_(exe) {}
 
         ~AstIfExp() {}
 
     private:
-        AstBasePtr testVar_;
-        std::vector<AstBasePtr> body_;
+        std::vector<IfEntity> exe_;
 };
 typedef boost::shared_ptr<AstIfExp> AstIfExpPtr;
 
 class AstWhileExp: public AstBase
 {
     public:
-        AstWhileExp(const AstBasePtr& test, const std::vector<AstBasePtr>& body)
-            : AstBase(AST_WHILE), testVar_(test), body_(body) {}
+        AstWhileExp(const AstBasePtr& cond, const AstScopeStatementExpPtr& body)
+            : AstBase(AST_WHILE), cond_(cond), body_(body) {}
 
         ~AstWhileExp() {}
 
     private:
-        AstBasePtr testVar_;
-        std::vector<AstBasePtr> body_;
+        AstBasePtr cond_;
+        AstScopeStatementExpPtr body_;
 };
 typedef boost::shared_ptr<AstWhileExp> AstWhileExpPtr;
 
 class AstForExp: public AstBase
 {
-    // TODO, syntax for 'for' is clear yet
+    // python style for
     public:
-        AstForExp(): AstBase(AST_FOR) {}
+        AstForExp(AstBasePtr var, AstBasePtr arr, const AstScopeStatementExpPtr& body)
+            : AstBase(AST_FOR), var_(var), range_(arr), body_(body) {}
 
         ~AstForExp() {}
+
+    private:
+        AstBasePtr var_;
+        AstBasePtr range_; // an array actually
+        AstScopeStatementExpPtr body_;
 };
 typedef boost::shared_ptr<AstForExp> AstForExpPtr;
 
