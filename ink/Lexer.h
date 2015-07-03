@@ -41,7 +41,6 @@ enum TokenType
     TOK_BRACE_LEFT,
     TOK_BRACE_RIGHT,
     TOK_QUO, // "
-    TOK_AS, // = assign
     TOK_BRACKET_LEFT, // [
     TOK_BRACKET_RIGHT, // ]
 
@@ -49,6 +48,8 @@ enum TokenType
     // precedences from lower to higher
 
     TOK_OP_START,
+
+    TOK_AS, // = assign
 
     // logical operator
     TOK_LT, // <
@@ -101,6 +102,7 @@ class Lexer: public boost::noncopyable
         std::string GetStringVal() const { return strVal_; }
         int64_t GetIntVal() const { return intVal_; }
         double GetFloatVal() const { return floatVal_; }
+        const CharType* GetCurCharPos() const { return curPos_; }
 
     private:
         TokenType ExtractToken();

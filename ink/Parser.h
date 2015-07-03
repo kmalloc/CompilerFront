@@ -13,14 +13,15 @@ class AstBase;
 class Parser: public boost::noncopyable
 {
     public:
-        Parser(const std::string& file, const std::string& buff);
+        Parser(const std::string& buff, const std::string& file);
         explicit Parser(const std::string& file);
 
-        AstBasePtr StartParsing();
-        AstBasePtr ParseExpression();
+        void StartParsing();
+        std::vector<AstBasePtr>& GetResult() { return res_; }
 
     private:
         AstBasePtr ParsePrimary();
+        AstBasePtr ParseExpression();
 
         // followings are primary expression.
         AstBasePtr ParseIntExp();
@@ -52,6 +53,8 @@ class Parser: public boost::noncopyable
         Lexer lex_;
         std::string file_;
         std::string buff_;
+
+        std::vector<AstBasePtr> res_;
 };
 
 } // end ink

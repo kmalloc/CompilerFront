@@ -184,12 +184,13 @@ TokenType Lexer::ExtractToken()
 // this precedence mapping for the operators must
 // follows the exact order defined in the TokenType
 
-// 36 -> 37 -> 38 -> 39 -> 40 -> 41 41 -> 42 42 42 42
-// || -> && -> |  -> ^  -> &  -> == != -> < <= > >=
+// 35 -> 36 -> 37 -> 38 -> 39 -> 40 -> 41 41 -> 42 42 42 42
+// =  -> || -> && -> |  -> ^  -> &  -> == != -> < <= > >=
 // 43 43 -> 44 44 -> 45 45 -> 46 -> 47 -> 48 48
 // >> << -> + -   -> * / -> % -> power -> ~ !
 static const int g_op_prec_map[] =
 {
+    35, // 35
     42, 42, 42, 42, // <, <=, >, >=
     41, 41, // ==, !=
     36, 37, // ||, &&

@@ -16,7 +16,7 @@ Parser::Parser(const std::string& file)
     lex_.Reset(buff_.c_str());
 }
 
-Parser::Parser(const std::string& file, const std::string& buff)
+Parser::Parser(const std::string& buff, const std::string& file)
     : file_(file), buff_(buff)
 {
     lex_.Reset(buff_.c_str());
@@ -26,6 +26,11 @@ AstBasePtr Parser::ReportError(const char* msg)
 {
     // should provide more information about location.
     std::cerr << msg << ", from " << file_ << std::endl;
+    std::cerr << "current token:" << lex_.GetCurToken() << " ";
+    std::cerr << "val(int):" << lex_.GetIntVal()
+        << ", val(float):" << lex_.GetFloatVal()
+        << ", val(string):" << lex_.GetStringVal() << std::endl;
+    std::cerr << "parsing stop at:" << lex_.GetCurCharPos() << std::endl;
     return AstBasePtr();
 }
 
@@ -131,7 +136,7 @@ AstBasePtr Parser::ParseFuncDefExp()
     // consume "func" keyword
     lex_.ConsumeCurToken();
     AstFuncProtoExpPtr proto =
-        boost::static_pointer_cast<AstFuncProtoExp>(ParseFuncProtoExp());
+        boost::dynamic_pointer_cast<AstFuncProtoExp>(ParseFuncProtoExp());
 
     if (!proto) return proto;
 
@@ -183,7 +188,9 @@ AstBasePtr Parser::ParseArrayExp()
             if (!v) return ReportError("expected array element");
 
             elem.push_back(v);
-            if (lex_.GetCurToken() == TOK_BRACKET_RIGHT) break;
+
+            TokenType tok = lex_.GetCurToken();
+            if (tok == TOK_EOF || tok == TOK_BRACKET_RIGHT) break;
 
             if (lex_.GetCurToken() != TOK_COMA)
             {
@@ -195,6 +202,12 @@ AstBasePtr Parser::ParseArrayExp()
         }
     }
 
+    if (lex_.GetCurToken() != TOK_BRACKET_RIGHT)
+    {
+        return ReportError("expected ']' for array expression");
+    }
+
+    lex_.ConsumeCurToken();
     return AstBasePtr(new AstArrayExp(elem));
 }
 
@@ -432,6 +445,7 @@ AstBasePtr Parser::ParsePrimary()
         case TOK_IF: return ParseIfExp();
         case TOK_WHILE: return ParseWhileExp();
         case TOK_FOR: return ParseForExp();
+        case TOK_EOF: return AstBasePtr();
 
         default: return ReportError("unknown token when expecting an expression");
     }
@@ -449,6 +463,20 @@ AstBasePtr Parser::ParseExpression()
     if (!ret) return ret;
 
     return ParseBinaryExp(0, ret);
+}
+
+void Parser::StartParsing()
+{
+    lex_.Reset(buff_.c_str());
+    res_.clear();
+    lex_.Start();
+
+    AstBasePtr v = ParseExpression();
+    while (v)
+    {
+        res_.push_back(v);
+        v = ParseExpression();
+    }
 }
 
 }  // end namespace

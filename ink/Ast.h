@@ -74,6 +74,8 @@ class AstIntExp: public AstBase
             return ValueNodePtr();
         }
 
+        int64_t GetValue() const { return val_; }
+
     private:
         int64_t val_;
 };
@@ -95,6 +97,8 @@ class AstFloatExp: public AstBase
             // TODO
             return ValueNodePtr();
         }
+
+        double GetValue() const { return val_; }
 
     private:
         double val_;
@@ -121,6 +125,8 @@ class AstStringExp: public AstBase
             return ValueNodePtr();
         }
 
+        const std::string& GetValue() const { return val_; }
+
     private:
         std::string val_;
 };
@@ -144,6 +150,8 @@ class AstVarExp: public AstBase
             // TODO
             return ValueNodePtr();
         }
+
+        const std::string& GetName() const { return name_; }
 
     private:
         std::string name_;
@@ -193,6 +201,10 @@ class AstBinaryExp: public AstBase
             // TODO
             return ValueNodePtr();
         }
+
+        TokenType GetOpType() const { return op_; }
+        const AstBasePtr& GetLeftOperand() const { return lhs_; }
+        const AstBasePtr& GetRightOperand() const { return rhs_; }
 
     private:
         TokenType op_;
@@ -323,6 +335,8 @@ class AstArrayExp: public AstBase
             // TODO
             return ValueNodePtr();
         }
+
+        const std::vector<AstBasePtr>& GetArray() const { return arr_; }
 
     private:
         std::vector<AstBasePtr> arr_;

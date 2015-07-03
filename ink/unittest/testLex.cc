@@ -424,11 +424,12 @@ TEST(ink_test_suit, test_lexer)
     ASSERT_TRUE(lex.GetCurToken() == TOK_BRACE_RIGHT);
 
     // ascending order for operator precedences
-    // 36 -> 37 -> 38 -> 39 -> 40 -> 41 41 -> 42 42 42 42
-    // || -> && -> |  -> ^  -> &  -> == != -> < <= > >=
+    // 35 -> 36 -> 37 -> 38 -> 39 -> 40 -> 41 41 -> 42 42 42 42
+    // =  -> || -> && -> |  -> ^  -> &  -> == != -> < <= > >=
     // 43 43 -> 44 44 -> 45 45 -> 46 -> 47 -> 48 48
     // >> << -> + - -> * / -> % -> power -> ~ !
 
+    ASSERT_TRUE(lex.GetTokenPrec(TOK_AS) < lex.GetTokenPrec(TOK_LOR));
     ASSERT_TRUE(lex.GetTokenPrec(TOK_LOR) < lex.GetTokenPrec(TOK_LAND));
     ASSERT_TRUE(lex.GetTokenPrec(TOK_LAND) < lex.GetTokenPrec(TOK_OR));
     ASSERT_TRUE(lex.GetTokenPrec(TOK_OR) < lex.GetTokenPrec(TOK_XOR));

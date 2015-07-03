@@ -24,25 +24,24 @@ class AstForExp;
 class VisitorBase
 {
     public:
-        virtual void Visit(AstIntExp* t) = 0;
-        virtual void Visit(AstFloatExp* t) = 0;
-        virtual void Visit(AstStringExp* t) = 0;
-        virtual void Visit(AstFuncProtoExp* t) = 0;
-        virtual void Visit(AstScopeStatementExp* t) = 0;
-        virtual void Visit(AstFuncDefExp* t) = 0;
-        virtual void Visit(AstFuncCallExp* t) = 0;
-        virtual void Visit(AstArrayExp* t) = 0;
-        virtual void Visit(AstArrayIndexExp* t) = 0;
-        virtual void Visit(AstVarExp* t) = 0;
-        virtual void Visit(AstUnaryExp* t) = 0;
-        virtual void Visit(AstBinaryExp* t) = 0;
-        virtual void Visit(AstRetExp* t) = 0;
-        virtual void Visit(AstIfExp* t) = 0;
-        virtual void Visit(AstTrueExp* t) = 0;
-        virtual void Visit(AstWhileExp* t) = 0;
-        virtual void Visit(AstForExp* t) = 0;
+        virtual void Visit(AstIntExp*) {}
+        virtual void Visit(AstFloatExp*) {}
+        virtual void Visit(AstStringExp*) {}
+        virtual void Visit(AstFuncProtoExp*) {}
+        virtual void Visit(AstScopeStatementExp*) {}
+        virtual void Visit(AstFuncDefExp*) {}
+        virtual void Visit(AstFuncCallExp*) {}
+        virtual void Visit(AstArrayExp*) {}
+        virtual void Visit(AstArrayIndexExp*) {}
+        virtual void Visit(AstVarExp*) {}
+        virtual void Visit(AstUnaryExp*) {}
+        virtual void Visit(AstBinaryExp*) {}
+        virtual void Visit(AstRetExp*) {}
+        virtual void Visit(AstIfExp*) {}
+        virtual void Visit(AstTrueExp*) {}
+        virtual void Visit(AstWhileExp*) {}
+        virtual void Visit(AstForExp*) {}
 };
-
 
 } // end namespace
 
