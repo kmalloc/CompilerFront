@@ -1,10 +1,11 @@
 CC=g++
 CFLAGS=-c -Wall -Wextra -g
-SOURCES=$(wildcard *.cc) $(wildcard ../*.cc)
+SOURCES=$(wildcard *.cc)
 
 REG_DEFINE =
 
 LIBS=
+DEPS=ink
 DEPS_PATH=../
 INCLUDE=-I./ -I../
 LINKPATH=-L../

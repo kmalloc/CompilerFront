@@ -2,8 +2,6 @@ CC=g++
 CFLAGS=-c -Wall -Wextra -g -Werror
 SOURCES=$(wildcard *.cc)
 
-REG_DEFINE=
-
 LIBS=
 INCLUDE=-I./
 INCLUDE+=-I/usr/local/include/boost/
@@ -17,9 +15,17 @@ all: $(SOURCES) $(OUTPUT)
 %.o:%.cc
 	$(CC) $(CFLAGS) $(INCLUDE) $< -o $@ ${REG_DEFINE}
 
+depend:.depend
+
+.depend:$(SOURCES)
+	rm -f ./.depend
+	$(CC) $(CFLAGS) -MM $^>>./.depend;
+
+include .depend
+
 $(OUTPUT) : $(OBJECTS)
 	ar rcs $@ $^
 
 clean:
-	-rm *.o $(OUTPUT)
+	-rm *.o $(OUTPUT) .depend
 

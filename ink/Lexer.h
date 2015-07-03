@@ -4,7 +4,6 @@
 #include <cctype>
 #include <string>
 #include <boost/noncopyable.hpp>
-#include <boost/static_assert.hpp>
 
 namespace ink {
 
@@ -15,7 +14,7 @@ enum TokenType
     TOK_EOF,
     TOK_UNKNOWN,
 
-    // builtin keyword
+    // builtin keyword, 2 ~ 9
     TOK_FUN, // function definition
     TOK_EXT,  // extern, for function declaration
     TOK_CLASS, // class

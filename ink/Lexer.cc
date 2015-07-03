@@ -1,4 +1,5 @@
 #include "Lexer.h"
+#include <boost/static_assert.hpp>
 
 namespace ink {
 
@@ -190,7 +191,7 @@ TokenType Lexer::ExtractToken()
 // >> << -> + -   -> * / -> % -> power -> ~ !
 static const int g_op_prec_map[] =
 {
-    35, // 35
+    35, // =
     42, 42, 42, 42, // <, <=, >, >=
     41, 41, // ==, !=
     36, 37, // ||, &&

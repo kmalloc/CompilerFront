@@ -4,6 +4,7 @@
 #include <string>
 #include <vector>
 #include <boost/shared_ptr.hpp>
+#include <boost/noncopyable.hpp>
 
 #include "Lexer.h"
 #include "AstVisitor.h"
@@ -41,7 +42,7 @@ class ValueNode
 };
 typedef boost::shared_ptr<ValueNode> ValueNodePtr;
 
-class AstBase
+class AstBase: boost::noncopyable
 {
     public:
         AstBase(AstType t): type_(t) {}
@@ -176,6 +177,9 @@ class AstUnaryExp: public AstBase
             // TODO
             return ValueNodePtr();
         }
+
+        TokenType GetOpType() const { return op_; }
+        AstBasePtr GetOperand() const { return arg_; }
 
     private:
         TokenType op_;
@@ -361,6 +365,9 @@ class AstArrayIndexExp: public AstBase
             // TODO
             return ValueNodePtr();
         }
+
+        AstBasePtr GetIndexAst() const { return index_; }
+        const std::string& GetArrayName() const { return arr_; }
 
     private:
         std::string arr_;

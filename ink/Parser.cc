@@ -247,9 +247,11 @@ AstBasePtr Parser::ParseIdentifierExp()
 
 AstBasePtr Parser::ParseUaryExp(TokenType op)
 {
+    // unary operator has the highest priority.
+
     // consume unary operator('!' or '~')
     lex_.ConsumeCurToken();
-    AstBasePtr arg = ParseExpression();
+    AstBasePtr arg = ParsePrimary();
     if (!arg) return arg;
 
     return AstBasePtr(new AstUnaryExp(op, arg));
@@ -446,6 +448,8 @@ AstBasePtr Parser::ParsePrimary()
         case TOK_WHILE: return ParseWhileExp();
         case TOK_FOR: return ParseForExp();
         case TOK_EOF: return AstBasePtr();
+        case TOK_NEG:
+        case TOK_INV: return ParseUaryExp(lex_.GetCurToken());
 
         default: return ReportError("unknown token when expecting an expression");
     }
@@ -453,12 +457,6 @@ AstBasePtr Parser::ParsePrimary()
 
 AstBasePtr Parser::ParseExpression()
 {
-    TokenType type = lex_.GetCurToken();
-    if (type == TOK_NEG || type == TOK_INV)
-    {
-        return ParseUaryExp(type);
-    }
-
     AstBasePtr ret = ParsePrimary();
     if (!ret) return ret;
 
