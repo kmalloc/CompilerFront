@@ -98,7 +98,7 @@ class Lexer: public boost::noncopyable
         int GetCurTokenPrec() const { return GetTokenPrec(GetCurToken()); }
         void ConsumeCurToken() { token_ = ExtractToken(); }
 
-        std::string GetStringVal() const { return strVal_; }
+        const std::string& GetStringVal() const { return strVal_; }
         int64_t GetIntVal() const { return intVal_; }
         double GetFloatVal() const { return floatVal_; }
         const CharType* GetCurCharPos() const { return curPos_; }

@@ -17,6 +17,7 @@ class Parser: public boost::noncopyable
         explicit Parser(const std::string& file);
 
         void StartParsing();
+        void SetBuffer(const std::string& buff) { buff_ = buff; }
         std::vector<AstBasePtr>& GetResult() { return res_; }
 
     private:

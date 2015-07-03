@@ -13,13 +13,11 @@ Parser::Parser(const std::string& file)
     buff_ = std::string((std::istreambuf_iterator<Lexer::CharType>(fin)),
             std::istreambuf_iterator<Lexer::CharType>());
 
-    lex_.Reset(buff_.c_str());
 }
 
 Parser::Parser(const std::string& buff, const std::string& file)
     : file_(file), buff_(buff)
 {
-    lex_.Reset(buff_.c_str());
 }
 
 AstBasePtr Parser::ReportError(const char* msg)
@@ -72,9 +70,12 @@ AstBasePtr Parser::ParseStringExp()
     // consume left "
     lex_.ConsumeCurToken();
 
-    AstBasePtr ret(new AstStringExp(lex_.GetStringVal()));
-    if (!ret) return ReportError("invalid string literal");
+    if (lex_.GetCurToken() != TOK_STR)
+    {
+        return ReportError("invalid string literal");
+    }
 
+    AstBasePtr ret(new AstStringExp(lex_.GetStringVal()));
     lex_.ConsumeCurToken();
     return ret;
 }
@@ -467,6 +468,7 @@ void Parser::StartParsing()
 {
     lex_.Reset(buff_.c_str());
     res_.clear();
+    lex_.Reset(buff_.c_str());
     lex_.Start();
 
     AstBasePtr v = ParseExpression();

@@ -208,6 +208,114 @@ TEST(ink_test_suit, test_var_calc)
 
     int_sp = boost::dynamic_pointer_cast<AstIntExp>(sp);
     ASSERT_EQ(2, int_sp->GetValue());
+
+    // 35 -> 36 -> 37 -> 38 -> 39 -> 40 -> 41 41 -> 42 42 42 42
+    // =  -> || -> && -> |  -> ^  -> &  -> == != -> < <= > >=
+    // 43 43 -> 44 44 -> 45 45 -> 46 -> 47 -> 48 48
+    // >> << -> + - -> * / -> % -> power -> ~ !
+    txt = "a = (b || c && !d | e) + (f | g ^ h & i + k == j)";
+    p.SetBuffer(txt);
+    p.StartParsing();
+
+    std::vector<AstBasePtr>& ret = p.GetResult();
+    ASSERT_EQ(1, ret.size());
+
+    sp = ret[0];
+    ASSERT_EQ(AST_OP_BINARY, sp->GetType());
+
+    AstBinaryExpPtr bsp = boost::dynamic_pointer_cast<AstBinaryExp>(sp);
+    ASSERT_EQ(TOK_AS, bsp->GetOpType());
+
+    sp1 = bsp->GetLeftOperand();
+    sp2 = bsp->GetRightOperand();
+
+    ASSERT_EQ(AST_VAR, sp1->GetType());
+    ASSERT_EQ(AST_OP_BINARY, sp2->GetType());
+
+    bsp = boost::dynamic_pointer_cast<AstBinaryExp>(sp2);
+    ASSERT_EQ(TOK_ADD, bsp->GetOpType());
+
+    AstBasePtr fsp1 = bsp->GetLeftOperand();
+    AstBasePtr fsp2 = bsp->GetRightOperand();
+
+    ASSERT_EQ(AST_OP_BINARY, fsp1->GetType());
+    ASSERT_EQ(AST_OP_BINARY, fsp2->GetType());
+
+    bsp = boost::dynamic_pointer_cast<AstBinaryExp>(fsp1);
+    ASSERT_EQ(TOK_LOR, bsp->GetOpType());
+
+    sp1 = bsp->GetLeftOperand();
+    sp2 = bsp->GetRightOperand();
+
+    ASSERT_EQ(AST_VAR, sp1->GetType());
+    ASSERT_EQ(AST_OP_BINARY, sp2->GetType());
+
+    bsp = boost::dynamic_pointer_cast<AstBinaryExp>(sp2);
+    ASSERT_EQ(TOK_LAND, bsp->GetOpType());
+
+    sp1 = bsp->GetLeftOperand();
+    sp2 = bsp->GetRightOperand();
+
+    ASSERT_EQ(AST_VAR, sp1->GetType());
+    ASSERT_EQ(AST_OP_BINARY, sp2->GetType());
+
+    bsp = boost::dynamic_pointer_cast<AstBinaryExp>(sp2);
+    ASSERT_EQ(TOK_OR, bsp->GetOpType());
+
+    sp1 = bsp->GetLeftOperand();
+    sp2 = bsp->GetRightOperand();
+
+    ASSERT_EQ(AST_VAR, sp2->GetType());
+    ASSERT_EQ(AST_OP_UNARY, sp1->GetType());
+
+    usp = boost::dynamic_pointer_cast<AstUnaryExp>(sp1);
+    ASSERT_EQ(TOK_NEG, usp->GetOpType());
+
+    /// (f | g ^ h & i + k == j)
+    bsp = boost::dynamic_pointer_cast<AstBinaryExp>(fsp2);
+    ASSERT_EQ(TOK_OR, bsp->GetOpType());
+
+    sp1 = bsp->GetLeftOperand();
+    sp2 = bsp->GetRightOperand();
+
+    ASSERT_EQ(AST_VAR, sp1->GetType());
+    ASSERT_EQ(AST_OP_BINARY, sp2->GetType());
+
+    bsp = boost::dynamic_pointer_cast<AstBinaryExp>(sp2);
+    ASSERT_EQ(TOK_XOR, bsp->GetOpType());
+
+    sp1 = bsp->GetLeftOperand();
+    sp2 = bsp->GetRightOperand();
+
+    ASSERT_EQ(AST_VAR, sp1->GetType());
+    ASSERT_EQ(AST_OP_BINARY, sp2->GetType());
+
+    bsp = boost::dynamic_pointer_cast<AstBinaryExp>(sp2);
+    ASSERT_EQ(TOK_AND, bsp->GetOpType());
+
+    sp1 = bsp->GetLeftOperand();
+    sp2 = bsp->GetRightOperand();
+
+    ASSERT_EQ(AST_VAR, sp1->GetType());
+    ASSERT_EQ(AST_OP_BINARY, sp2->GetType());
+
+    bsp = boost::dynamic_pointer_cast<AstBinaryExp>(sp2);
+    ASSERT_EQ(TOK_EQ, bsp->GetOpType());
+
+    sp1 = bsp->GetLeftOperand();
+    sp2 = bsp->GetRightOperand();
+
+    ASSERT_EQ(AST_OP_BINARY, sp1->GetType());
+    ASSERT_EQ(AST_VAR, sp2->GetType());
+
+    bsp = boost::dynamic_pointer_cast<AstBinaryExp>(sp1);
+    ASSERT_EQ(TOK_ADD, bsp->GetOpType());
+
+    sp1 = bsp->GetLeftOperand();
+    sp2 = bsp->GetRightOperand();
+
+    ASSERT_EQ(AST_VAR, sp1->GetType());
+    ASSERT_EQ(AST_VAR, sp2->GetType());
 }
 
 TEST(ink_test_suit, test_array_definition)
@@ -312,6 +420,84 @@ TEST(ink_test_suit, test_array_definition)
 
 TEST(ink_test_suit, test_array_indexing)
 {
+    const char* txt = "a = b[2] \n c = d[ a * 2 + 1]";
+    Parser p(txt, "dummy.cc");
+
+    p.StartParsing();
+    std::vector<AstBasePtr> res = p.GetResult();
+
+    ASSERT_EQ(2, res.size());
+    AstBasePtr asp1 = res[0];
+
+    ASSERT_EQ(AST_OP_BINARY, asp1->GetType());
+
+    AstBinaryExpPtr bsp = boost::dynamic_pointer_cast<AstBinaryExp>(asp1);
+    ASSERT_EQ(TOK_AS, bsp->GetOpType());
+
+    AstBasePtr sp1 = bsp->GetLeftOperand();
+    AstBasePtr sp2 = bsp->GetRightOperand();
+
+    ASSERT_EQ(AST_VAR, sp1->GetType());
+    ASSERT_EQ(AST_ARR_INDEX, sp2->GetType());
+
+    AstArrayIndexExpPtr aip =
+        boost::dynamic_pointer_cast<AstArrayIndexExp>(sp2);
+
+    ASSERT_STREQ("b", aip->GetArrayName().c_str());
+    AstBasePtr bp = aip->GetIndexAst();
+    ASSERT_EQ(AST_INT, bp->GetType());
+
+    AstIntExpPtr isp = boost::dynamic_pointer_cast<AstIntExp>(bp);
+    ASSERT_EQ(2, isp->GetValue());
+
+    // 2th expression
+
+    AstBasePtr asp2 = res[1];
+
+    ASSERT_EQ(AST_OP_BINARY, asp2->GetType());
+
+    bsp = boost::dynamic_pointer_cast<AstBinaryExp>(asp2);
+    ASSERT_EQ(TOK_AS, bsp->GetOpType());
+
+    sp1 = bsp->GetLeftOperand();
+    sp2 = bsp->GetRightOperand();
+
+    ASSERT_EQ(AST_VAR, sp1->GetType());
+    ASSERT_EQ(AST_ARR_INDEX, sp2->GetType());
+
+    aip = boost::dynamic_pointer_cast<AstArrayIndexExp>(sp2);
+
+    ASSERT_STREQ("d", aip->GetArrayName().c_str());
+
+    bp = aip->GetIndexAst();
+    ASSERT_EQ(AST_OP_BINARY, bp->GetType());
+
+    bsp = boost::dynamic_pointer_cast<AstBinaryExp>(bp);
+    ASSERT_EQ(TOK_ADD, bsp->GetOpType());
+
+    sp1 = bsp->GetLeftOperand();
+    sp2 = bsp->GetRightOperand();
+
+    ASSERT_EQ(AST_OP_BINARY, sp1->GetType());
+    ASSERT_EQ(AST_INT, sp2->GetType());
+
+    isp = boost::dynamic_pointer_cast<AstIntExp>(sp2);
+    ASSERT_EQ(1, isp->GetValue());
+
+    bsp = boost::dynamic_pointer_cast<AstBinaryExp>(sp1);
+    ASSERT_EQ(TOK_MUL, bsp->GetOpType());
+
+    sp1 = bsp->GetLeftOperand();
+    sp2 = bsp->GetRightOperand();
+
+    ASSERT_EQ(AST_VAR, sp1->GetType());
+    ASSERT_EQ(AST_INT, sp2->GetType());
+
+    isp = boost::dynamic_pointer_cast<AstIntExp>(sp2);
+    ASSERT_EQ(2, isp->GetValue());
+
+    AstVarExpPtr vsp = boost::dynamic_pointer_cast<AstVarExp>(sp1);
+    ASSERT_STREQ("a", vsp->GetName().c_str());
 }
 
 TEST(ink_test_suit, test_if_statement)
