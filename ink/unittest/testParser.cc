@@ -502,7 +502,9 @@ TEST(ink_test_suit, test_array_indexing)
 
 TEST(ink_test_suit, test_if_statement)
 {
-    const char* txt = "if (23) { a = 2 } elif (a) { a = a + 1 } else {}";
+    const char* txt = "if (23) { a = 2 } elif (a) { a = a + 1 }\n"
+        "elif (!s) { if (a && b) {} } else {}";
+
     Parser p(txt, "dummy.cc");
 
     p.StartParsing();
@@ -516,7 +518,7 @@ TEST(ink_test_suit, test_if_statement)
     AstIfExpPtr ifp = boost::dynamic_pointer_cast<AstIfExp>(asp);
 
     std::vector<AstIfExp::IfEntity> exe = ifp->GetBody();
-    ASSERT_EQ(3, exe.size());
+    ASSERT_EQ(4, exe.size());
 
     AstBasePtr cp = exe[0].cond;
     AstScopeStatementExpPtr scp = exe[0].exp;
@@ -530,6 +532,75 @@ TEST(ink_test_suit, test_if_statement)
 
     asp = exp[0];
     ASSERT_EQ(AST_OP_BINARY, asp->GetType());
+
+    AstBinaryExpPtr bsp = boost::dynamic_pointer_cast<AstBinaryExp>(asp);
+
+    AstBasePtr sp1 = bsp->GetLeftOperand();
+    AstBasePtr sp2 = bsp->GetRightOperand();
+
+    ASSERT_EQ(AST_VAR, sp1->GetType());
+    ASSERT_EQ(AST_INT, sp2->GetType());
+
+    // elif
+    cp = exe[1].cond;
+    scp = exe[1].exp;
+
+    ASSERT_EQ(AST_VAR, cp->GetType());
+    AstVarExpPtr vsp = boost::dynamic_pointer_cast<AstVarExp>(cp);
+    ASSERT_STREQ("a", vsp->GetName().c_str());
+
+    exp = scp->GetBody();
+    ASSERT_EQ(1, exp.size());
+
+    asp = exp[0];
+    ASSERT_EQ(AST_OP_BINARY, asp->GetType());
+
+    bsp = boost::dynamic_pointer_cast<AstBinaryExp>(asp);
+
+    sp1 = bsp->GetLeftOperand();
+    sp2 = bsp->GetRightOperand();
+
+    ASSERT_EQ(AST_VAR, sp1->GetType());
+    ASSERT_EQ(AST_OP_BINARY, sp2->GetType());
+
+    // elif (!s) { if (a && b) {} }
+    cp = exe[2].cond;
+    scp = exe[2].exp;
+
+    ASSERT_EQ(AST_OP_UNARY, cp->GetType());
+    AstUnaryExpPtr usp = boost::dynamic_pointer_cast<AstUnaryExp>(cp);
+    ASSERT_EQ(TOK_NEG, usp->GetOpType());
+
+    exp = scp->GetBody();
+    ASSERT_EQ(1, exp.size());
+
+    asp = exp[0];
+    ASSERT_EQ(AST_IF, asp->GetType());
+    AstIfExpPtr ifsp = boost::dynamic_pointer_cast<AstIfExp>(asp);
+
+    std::vector<AstIfExp::IfEntity> vi2 = ifsp->GetBody();
+    ASSERT_EQ(1, vi2.size());
+
+    asp = vi2[0].cond;
+    ASSERT_EQ(0, vi2[0].exp->GetBody().size());
+
+    ASSERT_EQ(AST_OP_BINARY, asp->GetType());
+    bsp = boost::dynamic_pointer_cast<AstBinaryExp>(asp);
+    ASSERT_EQ(TOK_LAND, bsp->GetOpType());
+
+    sp1 = bsp->GetLeftOperand();
+    sp2 = bsp->GetRightOperand();
+
+    ASSERT_EQ(AST_VAR, sp1->GetType());
+    ASSERT_EQ(AST_VAR, sp2->GetType());
+
+    cp = exe[3].cond;
+    scp = exe[3].exp;
+
+    ASSERT_TRUE(!cp);
+
+    exp = scp->GetBody();
+    ASSERT_EQ(0, exp.size());
 }
 
 TEST(ink_test_suit, test_while_statement)
