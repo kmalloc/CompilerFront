@@ -605,6 +605,56 @@ TEST(ink_test_suit, test_if_statement)
 
 TEST(ink_test_suit, test_while_statement)
 {
+    const char* txt = "while (a || c) { a + 2; if (1) { a = 2} }";
+    Parser p(txt, "dummy.cc");
+
+    p.StartParsing();
+    std::vector<AstBasePtr>& res = p.GetResult();
+
+    ASSERT_EQ(1, res.size());
+
+    AstBasePtr asp = res[0];
+    ASSERT_EQ(AST_WHILE, asp->GetType());
+
+    AstWhileExpPtr wsp = boost::dynamic_pointer_cast<AstWhileExp>(asp);
+
+    asp = wsp->GetCondition();
+    AstScopeStatementExpPtr body = wsp->GetBody();
+
+    ASSERT_EQ(AST_OP_BINARY, asp->GetType());
+
+    AstBinaryExpPtr bsp = boost::dynamic_pointer_cast<AstBinaryExp>(asp);
+    ASSERT_EQ(TOK_LOR, bsp->GetOpType());
+    AstBasePtr sp1 = bsp->GetLeftOperand();
+    AstBasePtr sp2 = bsp->GetRightOperand();
+
+    ASSERT_EQ(AST_VAR, sp1->GetType());
+    ASSERT_EQ(AST_VAR, sp2->GetType());
+
+    std::vector<AstBasePtr> exp = body->GetBody();
+    ASSERT_EQ(2, exp.size());
+
+    asp = exp[0];
+    ASSERT_EQ(AST_OP_BINARY, asp->GetType());
+    bsp = boost::dynamic_pointer_cast<AstBinaryExp>(asp);
+    ASSERT_EQ(TOK_ADD, bsp->GetOpType());
+
+    asp = exp[1];
+    ASSERT_EQ(AST_IF, asp->GetType());
+
+    AstIfExpPtr ifsp = boost::dynamic_pointer_cast<AstIfExp>(asp);
+    std::vector<AstIfExp::IfEntity> en = ifsp->GetBody();
+
+    ASSERT_EQ(1, en.size());
+    asp = en[0].cond;
+    ASSERT_EQ(AST_INT, asp->GetType());
+
+    AstScopeStatementExpPtr scp = en[0].exp;
+    exp = scp->GetBody();
+    ASSERT_EQ(1, exp.size());
+
+    asp = exp[0];
+    ASSERT_EQ(AST_OP_BINARY, asp->GetType());
 }
 
 TEST(ink_test_suit, test_func_declaration)

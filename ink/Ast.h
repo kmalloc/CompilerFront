@@ -456,6 +456,9 @@ class AstWhileExp: public AstBase
             return ValueNodePtr();
         }
 
+        AstBasePtr GetCondition() const { return cond_; }
+        AstScopeStatementExpPtr GetBody() const { return body_; }
+
     private:
         AstBasePtr cond_;
         AstScopeStatementExpPtr body_;
