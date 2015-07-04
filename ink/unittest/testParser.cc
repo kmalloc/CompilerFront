@@ -655,6 +655,9 @@ TEST(ink_test_suit, test_while_statement)
 
     asp = exp[0];
     ASSERT_EQ(AST_OP_BINARY, asp->GetType());
+
+    bsp = boost::dynamic_pointer_cast<AstBinaryExp>(asp);
+    ASSERT_EQ(TOK_AS, bsp->GetOpType());
 }
 
 TEST(ink_test_suit, test_func_declaration)
@@ -666,6 +669,10 @@ TEST(ink_test_suit, test_func_definition)
 }
 
 TEST(ink_test_suit, test_func_call)
+{
+}
+
+TEST(ink_test_suit, test_class_def)
 {
 }
 
