@@ -502,6 +502,34 @@ TEST(ink_test_suit, test_array_indexing)
 
 TEST(ink_test_suit, test_if_statement)
 {
+    const char* txt = "if (23) { a = 2 } elif (a) { a = a + 1 } else {}";
+    Parser p(txt, "dummy.cc");
+
+    p.StartParsing();
+    std::vector<AstBasePtr> res = p.GetResult();
+
+    ASSERT_EQ(1, res.size());
+    AstBasePtr asp = res[0];
+
+    ASSERT_EQ(AST_IF, asp->GetType());
+
+    AstIfExpPtr ifp = boost::dynamic_pointer_cast<AstIfExp>(asp);
+
+    std::vector<AstIfExp::IfEntity> exe = ifp->GetBody();
+    ASSERT_EQ(3, exe.size());
+
+    AstBasePtr cp = exe[0].cond;
+    AstScopeStatementExpPtr scp = exe[0].exp;
+
+    ASSERT_EQ(AST_INT, cp->GetType());
+    AstIntExpPtr isp = boost::dynamic_pointer_cast<AstIntExp>(cp);
+    ASSERT_EQ(23, isp->GetValue());
+
+    std::vector<AstBasePtr> exp = scp->GetBody();
+    ASSERT_EQ(1, exp.size());
+
+    asp = exp[0];
+    ASSERT_EQ(AST_OP_BINARY, asp->GetType());
 }
 
 TEST(ink_test_suit, test_while_statement)

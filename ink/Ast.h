@@ -267,6 +267,8 @@ class AstScopeStatementExp: public AstBase
             return ValueNodePtr();
         }
 
+        const std::vector<AstBasePtr>& GetBody() const { return exp_; }
+
     private:
         std::vector<AstBasePtr> exp_;
 };
@@ -291,6 +293,9 @@ class AstFuncDefExp: public AstBase
             // TODO
             return ValueNodePtr();
         }
+
+        AstScopeStatementExpPtr GetBody() const { return body_; }
+        AstFuncProtoExpPtr GetFuncProto() const { return proto_; }
 
     private:
         AstFuncProtoExpPtr proto_;
@@ -424,6 +429,8 @@ class AstIfExp: public AstBase
             // TODO
             return ValueNodePtr();
         }
+
+        std::vector<IfEntity>& GetBody() { return exe_; }
 
     private:
         std::vector<IfEntity> exe_;

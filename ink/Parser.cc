@@ -347,9 +347,8 @@ AstBasePtr Parser::ParseIfExp()
 
         entity.exp = body;
         exe.push_back(entity);
-        lex_.ConsumeCurToken();
 
-    } while (lex_.GetCurToken() == TOK_ELIF && lex_.GetCurToken() == TOK_ELSE);
+    } while (lex_.GetCurToken() == TOK_ELIF || lex_.GetCurToken() == TOK_ELSE);
 
     return AstBasePtr(new AstIfExp(exe));
 }
