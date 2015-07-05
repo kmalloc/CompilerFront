@@ -6,6 +6,8 @@
 
 #include "Noncopyable.h"
 
+#include <string>
+
 namespace ink {
 
 class AstBase;
@@ -16,9 +18,9 @@ class Parser: public noncopyable
         Parser(const std::string& buff, const std::string& file);
         explicit Parser(const std::string& file);
 
-        void StartParsing();
-        void SetBuffer(const std::string& buff) { buff_ = buff; }
+        std::string StartParsing();
         std::vector<AstBasePtr>& GetResult() { return res_; }
+        void SetBuffer(const std::string& buff) { buff_ = buff; }
 
     private:
         AstBasePtr ParsePrimary();

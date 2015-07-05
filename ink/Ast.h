@@ -52,12 +52,39 @@ class AstBase: noncopyable
         virtual ValueNodePtr Evaluate() = 0;
         virtual void Accept(VisitorBase& v) = 0;
 
+        inline bool IsError() const;
         int GetType() const { return type_; }
 
     public:
         int type_;
 };
 typedef std::shared_ptr<AstBase> AstBasePtr;
+
+class AstErrInfo: public AstBase
+{
+    public:
+        explicit AstErrInfo(const std::string& info)
+            : AstBase(AST_ERR_INFO), err_(info) {}
+
+        virtual void Accept(VisitorBase& v)
+        {
+            v.Visit(this);
+        }
+
+        virtual ValueNodePtr Evaluate()
+        {
+            // TODO
+            return ValueNodePtr();
+        }
+
+        const std::string& GetErrorInfo() const { return err_; }
+
+    private:
+        std::string err_;
+};
+typedef std::shared_ptr<AstErrInfo> AstErrInfoPtr;
+
+bool AstBase::IsError() const { return dynamic_cast<const AstErrInfo*>(this); }
 
 class AstIntExp: public AstBase
 {
@@ -490,38 +517,7 @@ class AstForExp: public AstBase
 };
 typedef std::shared_ptr<AstForExp> AstForExpPtr;
 
-class AstErrInfo: public AstBase
-{
-    public:
-        explicit AstErrInfo(const std::string& info)
-            : AstBase(AST_ERR_INFO), err_(info) {}
-
-        virtual void Accept(VisitorBase& v)
-        {
-            v.Visit(this);
-        }
-
-        virtual ValueNodePtr Evaluate()
-        {
-            // TODO
-            return ValueNodePtr();
-        }
-
-        const std::string& GetErrorInfo() const { return err_; }
-
-    private:
-        std::string err_;
-};
-
-class AstErrInfoPtr: public std::shared_ptr<AstErrInfo>
-{
-    public:
-        // support implicit conversion
-        AstErrInfoPtr(AstErrInfo* ptr)
-            : std::shared_ptr<AstErrInfo>(ptr) {}
-
-        explicit operator bool() const { return false; }
-};
+inline bool IsError(AstBasePtr p) { return !p || p->IsError(); }
 
 } // end ink
 

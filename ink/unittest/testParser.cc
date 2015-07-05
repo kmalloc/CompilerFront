@@ -31,52 +31,52 @@ TEST(ink_test_suit, test_var_definition)
 
     ASSERT_EQ(2, res.size());
 
-    AstBasePtr pt = res[0];
+    auto pt = res[0];
     ASSERT_EQ(AST_OP_BINARY, pt->GetType());
 
-    AstBinaryExpPtr bpt = std::dynamic_pointer_cast<AstBinaryExp>(pt);
+    auto bpt = std::dynamic_pointer_cast<AstBinaryExp>(pt);
 
     ASSERT_EQ(TOK_AS, bpt->GetOpType());
 
-    AstBasePtr lhs = bpt->GetLeftOperand();
+    auto lhs = bpt->GetLeftOperand();
     ASSERT_EQ(AST_VAR, lhs->GetType());
-    AstVarExpPtr spl = std::dynamic_pointer_cast<AstVarExp>(lhs);
+    auto spl = std::dynamic_pointer_cast<AstVarExp>(lhs);
     ASSERT_STREQ("a", spl->GetName().c_str());
 
-    AstBasePtr rhs = bpt->GetRightOperand();
+    auto rhs = bpt->GetRightOperand();
     ASSERT_EQ(AST_INT, rhs->GetType());
-    AstIntExpPtr spr = std::dynamic_pointer_cast<AstIntExp>(rhs);
+    auto spr = std::dynamic_pointer_cast<AstIntExp>(rhs);
     ASSERT_EQ(23, spr->GetValue());
 
     // 2th expression
-    AstBasePtr pt2 = res[1];
+    auto pt2 = res[1];
     ASSERT_EQ(AST_OP_BINARY, pt2->GetType());
 
-    AstBinaryExpPtr bpt2 = std::dynamic_pointer_cast<AstBinaryExp>(pt2);
+    auto bpt2 = std::dynamic_pointer_cast<AstBinaryExp>(pt2);
 
     ASSERT_EQ(TOK_AS, bpt2->GetOpType());
 
-    AstBasePtr lhs2 = bpt2->GetLeftOperand();
+    auto lhs2 = bpt2->GetLeftOperand();
     ASSERT_EQ(AST_VAR, lhs2->GetType());
-    AstVarExpPtr spl2 = std::dynamic_pointer_cast<AstVarExp>(lhs2);
+    auto spl2 = std::dynamic_pointer_cast<AstVarExp>(lhs2);
     ASSERT_STREQ("b", spl2->GetName().c_str());
 
-    AstBasePtr rhs2 = bpt2->GetRightOperand();
+    auto rhs2 = bpt2->GetRightOperand();
     ASSERT_EQ(AST_OP_BINARY, rhs2->GetType());
-    AstBinaryExpPtr spr2 = std::dynamic_pointer_cast<AstBinaryExp>(rhs2);
+    auto spr2 = std::dynamic_pointer_cast<AstBinaryExp>(rhs2);
 
     ASSERT_EQ(AST_OP_BINARY, spr2->GetType());
     ASSERT_EQ(TOK_ADD, spr2->GetOpType());
 
-    AstBasePtr op1 = spr2->GetLeftOperand();
-    AstBasePtr op2 = spr2->GetRightOperand();
+    auto op1 = spr2->GetLeftOperand();
+    auto op2 = spr2->GetRightOperand();
 
     ASSERT_EQ(AST_VAR, op1->GetType());
-    AstVarExpPtr var_op1 = std::dynamic_pointer_cast<AstVarExp>(op1);
+    auto var_op1 = std::dynamic_pointer_cast<AstVarExp>(op1);
     ASSERT_STREQ("a", var_op1->GetName().c_str());
 
     ASSERT_EQ(AST_FLOAT, op2->GetType());
-    AstFloatExpPtr float_op2 = std::dynamic_pointer_cast<AstFloatExp>(op2);
+    auto float_op2 = std::dynamic_pointer_cast<AstFloatExp>(op2);
     ASSERT_DOUBLE_EQ(2.2, float_op2->GetValue());
 }
 
@@ -109,25 +109,25 @@ TEST(ink_test_suit, test_var_calc)
 
     ASSERT_EQ(2, res.size());
 
-    AstBasePtr ep1 = res[0];
-    AstBasePtr ep2 = res[1];
+    auto ep1 = res[0];
+    auto ep2 = res[1];
 
     ASSERT_EQ(AST_OP_BINARY, ep1->GetType());
     ASSERT_EQ(AST_OP_BINARY, ep2->GetType());
 
-    AstBinaryExpPtr bsp1 = std::dynamic_pointer_cast<AstBinaryExp>(ep1);
-    AstBinaryExpPtr bsp2 = std::dynamic_pointer_cast<AstBinaryExp>(ep2);
+    auto bsp1 = std::dynamic_pointer_cast<AstBinaryExp>(ep1);
+    auto bsp2 = std::dynamic_pointer_cast<AstBinaryExp>(ep2);
 
     ASSERT_EQ(TOK_AS, bsp1->GetOpType());
     ASSERT_EQ(TOK_ADD, bsp2->GetOpType());
 
-    AstBasePtr sp1 = bsp1->GetLeftOperand();
-    AstBasePtr sp2 = bsp1->GetRightOperand();
+    auto sp1 = bsp1->GetLeftOperand();
+    auto sp2 = bsp1->GetRightOperand();
 
     ASSERT_EQ(AST_VAR, sp1->GetType());
     ASSERT_EQ(AST_OP_BINARY, sp2->GetType());
 
-    AstBinaryExpPtr bin_sp = std::dynamic_pointer_cast<AstBinaryExp>(sp2);
+    auto bin_sp = std::dynamic_pointer_cast<AstBinaryExp>(sp2);
     ASSERT_EQ(TOK_ADD, bin_sp->GetOpType());
 
     sp1 = bin_sp->GetLeftOperand();
@@ -136,7 +136,7 @@ TEST(ink_test_suit, test_var_calc)
     ASSERT_EQ(AST_OP_BINARY, sp1->GetType());
     ASSERT_EQ(AST_FLOAT, sp2->GetType());
 
-    AstFloatExpPtr flt_sp = std::dynamic_pointer_cast<AstFloatExp>(sp2);
+    auto flt_sp = std::dynamic_pointer_cast<AstFloatExp>(sp2);
     ASSERT_DOUBLE_EQ(2.2, flt_sp->GetValue());
 
     bin_sp = std::dynamic_pointer_cast<AstBinaryExp>(sp1);
@@ -148,7 +148,7 @@ TEST(ink_test_suit, test_var_calc)
     ASSERT_EQ(AST_INT, sp1->GetType());
     ASSERT_EQ(AST_OP_BINARY, sp2->GetType());
 
-    AstIntExpPtr int_sp = std::dynamic_pointer_cast<AstIntExp>(sp1);
+    auto int_sp = std::dynamic_pointer_cast<AstIntExp>(sp1);
     ASSERT_EQ(23, int_sp->GetValue());
 
     bin_sp = std::dynamic_pointer_cast<AstBinaryExp>(sp2);
@@ -182,7 +182,7 @@ TEST(ink_test_suit, test_var_calc)
     bin_sp = std::dynamic_pointer_cast<AstBinaryExp>(sp1);
     ASSERT_EQ(TOK_ADD, bin_sp->GetOpType());
 
-    AstBasePtr sp = bin_sp->GetLeftOperand();
+    auto sp = bin_sp->GetLeftOperand();
     ASSERT_EQ(AST_VAR, sp->GetType());
 
     sp = bin_sp->GetRightOperand();
@@ -200,7 +200,7 @@ TEST(ink_test_suit, test_var_calc)
     int_sp = std::dynamic_pointer_cast<AstIntExp>(sp2);
     ASSERT_EQ(3, int_sp->GetValue());
 
-    AstUnaryExpPtr usp = std::dynamic_pointer_cast<AstUnaryExp>(sp1);
+    auto usp = std::dynamic_pointer_cast<AstUnaryExp>(sp1);
     ASSERT_EQ(TOK_INV, usp->GetOpType());
 
     sp = usp->GetOperand();
@@ -223,7 +223,7 @@ TEST(ink_test_suit, test_var_calc)
     sp = ret[0];
     ASSERT_EQ(AST_OP_BINARY, sp->GetType());
 
-    AstBinaryExpPtr bsp = std::dynamic_pointer_cast<AstBinaryExp>(sp);
+    auto bsp = std::dynamic_pointer_cast<AstBinaryExp>(sp);
     ASSERT_EQ(TOK_AS, bsp->GetOpType());
 
     sp1 = bsp->GetLeftOperand();
@@ -235,8 +235,8 @@ TEST(ink_test_suit, test_var_calc)
     bsp = std::dynamic_pointer_cast<AstBinaryExp>(sp2);
     ASSERT_EQ(TOK_ADD, bsp->GetOpType());
 
-    AstBasePtr fsp1 = bsp->GetLeftOperand();
-    AstBasePtr fsp2 = bsp->GetRightOperand();
+    auto fsp1 = bsp->GetLeftOperand();
+    auto fsp2 = bsp->GetRightOperand();
 
     ASSERT_EQ(AST_OP_BINARY, fsp1->GetType());
     ASSERT_EQ(AST_OP_BINARY, fsp2->GetType());
@@ -332,24 +332,24 @@ TEST(ink_test_suit, test_array_definition)
     ASSERT_EQ(AST_OP_BINARY, res[1]->GetType());
     ASSERT_EQ(AST_OP_BINARY, res[2]->GetType());
 
-    AstBinaryExpPtr bp1 = std::dynamic_pointer_cast<AstBinaryExp>(res[0]);
-    AstBinaryExpPtr bp2 = std::dynamic_pointer_cast<AstBinaryExp>(res[1]);
-    AstBinaryExpPtr bp3 = std::dynamic_pointer_cast<AstBinaryExp>(res[2]);
+    auto bp1 = std::dynamic_pointer_cast<AstBinaryExp>(res[0]);
+    auto bp2 = std::dynamic_pointer_cast<AstBinaryExp>(res[1]);
+    auto bp3 = std::dynamic_pointer_cast<AstBinaryExp>(res[2]);
 
     ASSERT_EQ(TOK_AS, bp1->GetOpType());
     ASSERT_EQ(TOK_AS, bp2->GetOpType());
     ASSERT_EQ(TOK_AS, bp3->GetOpType());
 
-    AstBasePtr vpl = bp1->GetLeftOperand();
-    AstBasePtr vpr = bp1->GetRightOperand();
+    auto vpl = bp1->GetLeftOperand();
+    auto vpr = bp1->GetRightOperand();
 
     ASSERT_EQ(AST_VAR, vpl->GetType());
     ASSERT_EQ(AST_ARR, vpr->GetType());
 
-    AstVarExpPtr var_sp = std::dynamic_pointer_cast<AstVarExp>(vpl);
+    auto var_sp = std::dynamic_pointer_cast<AstVarExp>(vpl);
     ASSERT_STREQ("a", var_sp->GetName().c_str());
 
-    AstArrayExpPtr arr_sp = std::dynamic_pointer_cast<AstArrayExp>(vpr);
+    auto arr_sp = std::dynamic_pointer_cast<AstArrayExp>(vpr);
     std::vector<AstBasePtr> arr = arr_sp->GetArray();
 
     ASSERT_EQ(3, arr.size());
@@ -357,13 +357,13 @@ TEST(ink_test_suit, test_array_definition)
     ASSERT_EQ(AST_INT, arr[1]->GetType());
     ASSERT_EQ(AST_STRING, arr[2]->GetType());
 
-    AstIntExpPtr int_sp = std::dynamic_pointer_cast<AstIntExp>(arr[0]);
+    auto int_sp = std::dynamic_pointer_cast<AstIntExp>(arr[0]);
     ASSERT_EQ(2, int_sp->GetValue());
 
     int_sp = std::dynamic_pointer_cast<AstIntExp>(arr[1]);
     ASSERT_EQ(3, int_sp->GetValue());
 
-    AstStringExpPtr str_sp = std::dynamic_pointer_cast<AstStringExp>(arr[2]);
+    auto str_sp = std::dynamic_pointer_cast<AstStringExp>(arr[2]);
     ASSERT_STREQ("abc", str_sp->GetValue().c_str());
 
     // 2th arr definition
@@ -391,28 +391,28 @@ TEST(ink_test_suit, test_array_definition)
     var_sp = std::dynamic_pointer_cast<AstVarExp>(vpl);
     ASSERT_STREQ("c", var_sp->GetName().c_str());
 
-    AstBinaryExpPtr bin_sp = std::dynamic_pointer_cast<AstBinaryExp>(vpr);
+    auto bin_sp = std::dynamic_pointer_cast<AstBinaryExp>(vpr);
     ASSERT_EQ(TOK_ADD, bin_sp->GetOpType());
 
-    AstBasePtr spl = bin_sp->GetLeftOperand();
-    AstBasePtr spr = bin_sp->GetRightOperand();
+    auto spl = bin_sp->GetLeftOperand();
+    auto spr = bin_sp->GetRightOperand();
 
     ASSERT_EQ(AST_ARR_INDEX, spl->GetType());
     ASSERT_EQ(AST_ARR_INDEX, spr->GetType());
 
-    AstArrayIndexExpPtr ispl = std::dynamic_pointer_cast<AstArrayIndexExp>(spl);
-    AstArrayIndexExpPtr ispr = std::dynamic_pointer_cast<AstArrayIndexExp>(spr);
+    auto ispl = std::dynamic_pointer_cast<AstArrayIndexExp>(spl);
+    auto ispr = std::dynamic_pointer_cast<AstArrayIndexExp>(spr);
 
     ASSERT_STREQ("a", ispl->GetArrayName().c_str());
     ASSERT_STREQ("b", ispr->GetArrayName().c_str());
 
-    AstBasePtr inp1 = ispl->GetIndexAst();
-    AstBasePtr inp2 = ispr->GetIndexAst();
+    auto inp1 = ispl->GetIndexAst();
+    auto inp2 = ispr->GetIndexAst();
     ASSERT_EQ(AST_INT, inp1->GetType());
     ASSERT_EQ(AST_INT, inp2->GetType());
 
-    AstIntExpPtr int_sp1 = std::dynamic_pointer_cast<AstIntExp>(inp1);
-    AstIntExpPtr int_sp2 = std::dynamic_pointer_cast<AstIntExp>(inp2);
+    auto int_sp1 = std::dynamic_pointer_cast<AstIntExp>(inp1);
+    auto int_sp2 = std::dynamic_pointer_cast<AstIntExp>(inp2);
 
     ASSERT_EQ(0, int_sp1->GetValue());
     ASSERT_EQ(1, int_sp2->GetValue());
@@ -427,32 +427,31 @@ TEST(ink_test_suit, test_array_indexing)
     std::vector<AstBasePtr> res = p.GetResult();
 
     ASSERT_EQ(2, res.size());
-    AstBasePtr asp1 = res[0];
+    auto asp1 = res[0];
 
     ASSERT_EQ(AST_OP_BINARY, asp1->GetType());
 
-    AstBinaryExpPtr bsp = std::dynamic_pointer_cast<AstBinaryExp>(asp1);
+    auto bsp = std::dynamic_pointer_cast<AstBinaryExp>(asp1);
     ASSERT_EQ(TOK_AS, bsp->GetOpType());
 
-    AstBasePtr sp1 = bsp->GetLeftOperand();
-    AstBasePtr sp2 = bsp->GetRightOperand();
+    auto sp1 = bsp->GetLeftOperand();
+    auto sp2 = bsp->GetRightOperand();
 
     ASSERT_EQ(AST_VAR, sp1->GetType());
     ASSERT_EQ(AST_ARR_INDEX, sp2->GetType());
 
-    AstArrayIndexExpPtr aip =
-        std::dynamic_pointer_cast<AstArrayIndexExp>(sp2);
+    auto aip = std::dynamic_pointer_cast<AstArrayIndexExp>(sp2);
 
     ASSERT_STREQ("b", aip->GetArrayName().c_str());
-    AstBasePtr bp = aip->GetIndexAst();
+    auto bp = aip->GetIndexAst();
     ASSERT_EQ(AST_INT, bp->GetType());
 
-    AstIntExpPtr isp = std::dynamic_pointer_cast<AstIntExp>(bp);
+    auto isp = std::dynamic_pointer_cast<AstIntExp>(bp);
     ASSERT_EQ(2, isp->GetValue());
 
     // 2th expression
 
-    AstBasePtr asp2 = res[1];
+    auto asp2 = res[1];
 
     ASSERT_EQ(AST_OP_BINARY, asp2->GetType());
 
@@ -496,7 +495,7 @@ TEST(ink_test_suit, test_array_indexing)
     isp = std::dynamic_pointer_cast<AstIntExp>(sp2);
     ASSERT_EQ(2, isp->GetValue());
 
-    AstVarExpPtr vsp = std::dynamic_pointer_cast<AstVarExp>(sp1);
+    auto vsp = std::dynamic_pointer_cast<AstVarExp>(sp1);
     ASSERT_STREQ("a", vsp->GetName().c_str());
 }
 
@@ -515,16 +514,16 @@ TEST(ink_test_suit, test_if_statement)
 
     ASSERT_EQ(AST_IF, asp->GetType());
 
-    AstIfExpPtr ifp = std::dynamic_pointer_cast<AstIfExp>(asp);
+    auto ifp = std::dynamic_pointer_cast<AstIfExp>(asp);
 
     std::vector<AstIfExp::IfEntity> exe = ifp->GetBody();
     ASSERT_EQ(4, exe.size());
 
-    AstBasePtr cp = exe[0].cond;
+    auto cp = exe[0].cond;
     AstScopeStatementExpPtr scp = exe[0].exp;
 
     ASSERT_EQ(AST_INT, cp->GetType());
-    AstIntExpPtr isp = std::dynamic_pointer_cast<AstIntExp>(cp);
+    auto isp = std::dynamic_pointer_cast<AstIntExp>(cp);
     ASSERT_EQ(23, isp->GetValue());
 
     std::vector<AstBasePtr> exp = scp->GetBody();
@@ -533,10 +532,10 @@ TEST(ink_test_suit, test_if_statement)
     asp = exp[0];
     ASSERT_EQ(AST_OP_BINARY, asp->GetType());
 
-    AstBinaryExpPtr bsp = std::dynamic_pointer_cast<AstBinaryExp>(asp);
+    auto bsp = std::dynamic_pointer_cast<AstBinaryExp>(asp);
 
-    AstBasePtr sp1 = bsp->GetLeftOperand();
-    AstBasePtr sp2 = bsp->GetRightOperand();
+    auto sp1 = bsp->GetLeftOperand();
+    auto sp2 = bsp->GetRightOperand();
 
     ASSERT_EQ(AST_VAR, sp1->GetType());
     ASSERT_EQ(AST_INT, sp2->GetType());
@@ -546,7 +545,7 @@ TEST(ink_test_suit, test_if_statement)
     scp = exe[1].exp;
 
     ASSERT_EQ(AST_VAR, cp->GetType());
-    AstVarExpPtr vsp = std::dynamic_pointer_cast<AstVarExp>(cp);
+    auto vsp = std::dynamic_pointer_cast<AstVarExp>(cp);
     ASSERT_STREQ("a", vsp->GetName().c_str());
 
     exp = scp->GetBody();
@@ -568,7 +567,7 @@ TEST(ink_test_suit, test_if_statement)
     scp = exe[2].exp;
 
     ASSERT_EQ(AST_OP_UNARY, cp->GetType());
-    AstUnaryExpPtr usp = std::dynamic_pointer_cast<AstUnaryExp>(cp);
+    auto usp = std::dynamic_pointer_cast<AstUnaryExp>(cp);
     ASSERT_EQ(TOK_NEG, usp->GetOpType());
 
     exp = scp->GetBody();
@@ -576,7 +575,7 @@ TEST(ink_test_suit, test_if_statement)
 
     asp = exp[0];
     ASSERT_EQ(AST_IF, asp->GetType());
-    AstIfExpPtr ifsp = std::dynamic_pointer_cast<AstIfExp>(asp);
+    auto ifsp = std::dynamic_pointer_cast<AstIfExp>(asp);
 
     std::vector<AstIfExp::IfEntity> vi2 = ifsp->GetBody();
     ASSERT_EQ(1, vi2.size());
@@ -613,20 +612,20 @@ TEST(ink_test_suit, test_while_statement)
 
     ASSERT_EQ(1, res.size());
 
-    AstBasePtr asp = res[0];
+    auto asp = res[0];
     ASSERT_EQ(AST_WHILE, asp->GetType());
 
-    AstWhileExpPtr wsp = std::dynamic_pointer_cast<AstWhileExp>(asp);
+    auto wsp = std::dynamic_pointer_cast<AstWhileExp>(asp);
 
     asp = wsp->GetCondition();
     AstScopeStatementExpPtr body = wsp->GetBody();
 
     ASSERT_EQ(AST_OP_BINARY, asp->GetType());
 
-    AstBinaryExpPtr bsp = std::dynamic_pointer_cast<AstBinaryExp>(asp);
+    auto bsp = std::dynamic_pointer_cast<AstBinaryExp>(asp);
     ASSERT_EQ(TOK_LOR, bsp->GetOpType());
-    AstBasePtr sp1 = bsp->GetLeftOperand();
-    AstBasePtr sp2 = bsp->GetRightOperand();
+    auto sp1 = bsp->GetLeftOperand();
+    auto sp2 = bsp->GetRightOperand();
 
     ASSERT_EQ(AST_VAR, sp1->GetType());
     ASSERT_EQ(AST_VAR, sp2->GetType());
@@ -642,14 +641,14 @@ TEST(ink_test_suit, test_while_statement)
     asp = exp[1];
     ASSERT_EQ(AST_IF, asp->GetType());
 
-    AstIfExpPtr ifsp = std::dynamic_pointer_cast<AstIfExp>(asp);
+    auto ifsp = std::dynamic_pointer_cast<AstIfExp>(asp);
     std::vector<AstIfExp::IfEntity> en = ifsp->GetBody();
 
     ASSERT_EQ(1, en.size());
     asp = en[0].cond;
     ASSERT_EQ(AST_INT, asp->GetType());
 
-    AstScopeStatementExpPtr scp = en[0].exp;
+    auto scp = en[0].exp;
     exp = scp->GetBody();
     ASSERT_EQ(1, exp.size());
 
@@ -662,6 +661,16 @@ TEST(ink_test_suit, test_while_statement)
 
 TEST(ink_test_suit, test_func_declaration)
 {
+    auto txt = "extern func foo(a, b)";
+    Parser p(txt, "dummy.cc");
+
+    auto err = p.StartParsing();
+    ASSERT_STREQ("", err.c_str()) << err;
+
+    auto res = p.GetResult();
+
+    ASSERT_EQ(1, res.size());
+    ASSERT_EQ(AST_FUNC_PROTO, res[0]->GetType());
 }
 
 TEST(ink_test_suit, test_func_definition)
