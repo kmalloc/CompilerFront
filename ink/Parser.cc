@@ -1,6 +1,8 @@
 #include "Parser.h"
 
 #include <fstream>
+#include <sstream>
+#include <assert.h>
 
 namespace ink {
 
@@ -23,13 +25,17 @@ Parser::Parser(const std::string& buff, const std::string& file)
 AstBasePtr Parser::ReportError(const char* msg)
 {
     // should provide more information about location.
-    std::cerr << msg << ", from " << file_ << std::endl;
-    std::cerr << "current token:" << lex_.GetCurToken() << " ";
-    std::cerr << "val(int):" << lex_.GetIntVal()
+
+    std::ostringstream oss;
+
+    oss << msg << ", from " << file_ << std::endl;
+    oss << "current token:" << lex_.GetCurToken() << " ";
+    oss << "val(int):" << lex_.GetIntVal()
         << ", val(float):" << lex_.GetFloatVal()
         << ", val(string):" << lex_.GetStringVal() << std::endl;
-    std::cerr << "parsing stop at:" << lex_.GetCurCharPos() << std::endl;
-    return AstBasePtr();
+    oss << "parsing stop at:" << lex_.GetCurCharPos() << std::endl;
+
+    return AstErrInfoPtr(new AstErrInfo(oss.str()));
 }
 
 AstBasePtr Parser::ParseIntExp()
@@ -137,7 +143,7 @@ AstBasePtr Parser::ParseFuncDefExp()
     // consume "func" keyword
     lex_.ConsumeCurToken();
     AstFuncProtoExpPtr proto =
-        boost::dynamic_pointer_cast<AstFuncProtoExp>(ParseFuncProtoExp());
+        std::dynamic_pointer_cast<AstFuncProtoExp>(ParseFuncProtoExp());
 
     if (!proto) return proto;
 
@@ -357,7 +363,7 @@ AstScopeStatementExpPtr Parser::ParseScopeStatement()
 {
     if (lex_.GetCurToken() != TOK_BRACE_LEFT)
     {
-        return boost::static_pointer_cast<AstScopeStatementExp>(
+        return std::static_pointer_cast<AstScopeStatementExp>(
                 ReportError("expected '{' in scope statement"));
     }
 
@@ -376,12 +382,12 @@ AstScopeStatementExpPtr Parser::ParseScopeStatement()
 
     if (lex_.GetCurToken() != TOK_BRACE_RIGHT)
     {
-        return boost::static_pointer_cast<AstScopeStatementExp>(
+        return std::static_pointer_cast<AstScopeStatementExp>(
                 ReportError("expected '}' for scope statement"));
     }
 
     lex_.ConsumeCurToken();
-    return AstScopeStatementExpPtr(new AstScopeStatementExp(exps));
+    return AstScopeStatementExpPtr(new AstScopeStatementExp(std::move(exps)));
 }
 
 AstBasePtr Parser::ParseWhileExp()

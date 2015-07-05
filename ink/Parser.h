@@ -4,13 +4,13 @@
 #include "Ast.h"
 #include "Lexer.h"
 
-#include <boost/noncopyable.hpp>
+#include "Noncopyable.h"
 
 namespace ink {
 
 class AstBase;
 
-class Parser: public boost::noncopyable
+class Parser: public noncopyable
 {
     public:
         Parser(const std::string& buff, const std::string& file);

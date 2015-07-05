@@ -1,13 +1,13 @@
 #ifndef __INK_AST_H__
 #define __INK_AST_H__
 
-#include <string>
-#include <vector>
-#include <boost/shared_ptr.hpp>
-#include <boost/noncopyable.hpp>
-
 #include "Lexer.h"
 #include "AstVisitor.h"
+#include "Noncopyable.h"
+
+#include <string>
+#include <vector>
+#include <memory>
 
 namespace ink {
 
@@ -31,6 +31,7 @@ enum AstType
     AST_ARR,
     AST_ARR_INDEX,
     AST_SCOPE,
+    AST_ERR_INFO,
 
     AST_BUILTIN_ALL,
 };
@@ -40,9 +41,9 @@ class ValueNode
     public:
         virtual int GetValue() = 0;
 };
-typedef boost::shared_ptr<ValueNode> ValueNodePtr;
+typedef std::shared_ptr<ValueNode> ValueNodePtr;
 
-class AstBase: boost::noncopyable
+class AstBase: noncopyable
 {
     public:
         AstBase(AstType t): type_(t) {}
@@ -56,7 +57,7 @@ class AstBase: boost::noncopyable
     public:
         int type_;
 };
-typedef boost::shared_ptr<AstBase> AstBasePtr;
+typedef std::shared_ptr<AstBase> AstBasePtr;
 
 class AstIntExp: public AstBase
 {
@@ -80,7 +81,7 @@ class AstIntExp: public AstBase
     private:
         int64_t val_;
 };
-typedef boost::shared_ptr<AstIntExp> AstIntExpPtr;
+typedef std::shared_ptr<AstIntExp> AstIntExpPtr;
 
 class AstFloatExp: public AstBase
 {
@@ -104,7 +105,7 @@ class AstFloatExp: public AstBase
     private:
         double val_;
 };
-typedef boost::shared_ptr<AstFloatExp> AstFloatExpPtr;
+typedef std::shared_ptr<AstFloatExp> AstFloatExpPtr;
 
 // literal string
 class AstStringExp: public AstBase
@@ -131,7 +132,7 @@ class AstStringExp: public AstBase
     private:
         std::string val_;
 };
-typedef boost::shared_ptr<AstStringExp> AstStringExpPtr;
+typedef std::shared_ptr<AstStringExp> AstStringExpPtr;
 
 class AstVarExp: public AstBase
 {
@@ -157,7 +158,7 @@ class AstVarExp: public AstBase
     private:
         std::string name_;
 };
-typedef boost::shared_ptr<AstVarExp> AstVarExpPtr;
+typedef std::shared_ptr<AstVarExp> AstVarExpPtr;
 
 class AstUnaryExp: public AstBase
 {
@@ -185,7 +186,7 @@ class AstUnaryExp: public AstBase
         TokenType op_;
         AstBasePtr arg_;
 };
-typedef boost::shared_ptr<AstUnaryExp> AstUnaryExpPtr;
+typedef std::shared_ptr<AstUnaryExp> AstUnaryExpPtr;
 
 class AstBinaryExp: public AstBase
 {
@@ -215,7 +216,7 @@ class AstBinaryExp: public AstBase
         AstBasePtr lhs_;
         AstBasePtr rhs_;
 };
-typedef boost::shared_ptr<AstBinaryExp> AstBinaryExpPtr;
+typedef std::shared_ptr<AstBinaryExp> AstBinaryExpPtr;
 
 class AstFuncProtoExp: public AstBase
 {
@@ -240,18 +241,15 @@ class AstFuncProtoExp: public AstBase
         std::string func_;
         std::vector<std::string> args_;
 };
-typedef boost::shared_ptr<AstFuncProtoExp> AstFuncProtoExpPtr;
+typedef std::shared_ptr<AstFuncProtoExp> AstFuncProtoExpPtr;
 
 // represents a collections of expression in a pair of brace
 class AstScopeStatementExp: public AstBase
 {
     public:
-        // attention: parameter will be cleared, this is to improve efficiency
-        // should use rvalue reference if not need to support old compiler
-        explicit AstScopeStatementExp(std::vector<AstBasePtr>& exp)
-            : AstBase(AST_SCOPE)
+        explicit AstScopeStatementExp(std::vector<AstBasePtr>&& exp)
+            : AstBase(AST_SCOPE), exp_(std::move(exp))
         {
-            exp_.swap(exp);
         }
 
         ~AstScopeStatementExp() {}
@@ -273,7 +271,7 @@ class AstScopeStatementExp: public AstBase
         std::vector<AstBasePtr> exp_;
 };
 
-typedef boost::shared_ptr<AstScopeStatementExp> AstScopeStatementExpPtr;
+typedef std::shared_ptr<AstScopeStatementExp> AstScopeStatementExpPtr;
 
 class AstFuncDefExp: public AstBase
 {
@@ -301,7 +299,7 @@ class AstFuncDefExp: public AstBase
         AstFuncProtoExpPtr proto_;
         AstScopeStatementExpPtr body_;
 };
-typedef boost::shared_ptr<AstFuncDefExp> AstFuncDefExpPtr;
+typedef std::shared_ptr<AstFuncDefExp> AstFuncDefExpPtr;
 
 class AstFuncCallExp: public AstBase
 {
@@ -326,7 +324,7 @@ class AstFuncCallExp: public AstBase
         std::string func_;
         std::vector<AstBasePtr> args_;
 };
-typedef boost::shared_ptr<AstFuncCallExp> AstFuncCallExpPtr;
+typedef std::shared_ptr<AstFuncCallExp> AstFuncCallExpPtr;
 
 class AstArrayExp: public AstBase
 {
@@ -350,7 +348,7 @@ class AstArrayExp: public AstBase
     private:
         std::vector<AstBasePtr> arr_;
 };
-typedef boost::shared_ptr<AstArrayExp> AstArrayExpPtr;
+typedef std::shared_ptr<AstArrayExp> AstArrayExpPtr;
 
 class AstArrayIndexExp: public AstBase
 {
@@ -378,7 +376,7 @@ class AstArrayIndexExp: public AstBase
         std::string arr_;
         AstBasePtr index_;
 };
-typedef boost::shared_ptr<AstArrayIndexExp> AstArrayIndexExpPtr;
+typedef std::shared_ptr<AstArrayIndexExp> AstArrayIndexExpPtr;
 
 class AstRetExp: public AstBase
 {
@@ -401,7 +399,7 @@ class AstRetExp: public AstBase
     private:
         AstBasePtr val_;
 };
-typedef boost::shared_ptr<AstRetExp> AstRetExpPtr;
+typedef std::shared_ptr<AstRetExp> AstRetExpPtr;
 
 class AstIfExp: public AstBase
 {
@@ -435,7 +433,7 @@ class AstIfExp: public AstBase
     private:
         std::vector<IfEntity> exe_;
 };
-typedef boost::shared_ptr<AstIfExp> AstIfExpPtr;
+typedef std::shared_ptr<AstIfExp> AstIfExpPtr;
 
 class AstWhileExp: public AstBase
 {
@@ -463,7 +461,7 @@ class AstWhileExp: public AstBase
         AstBasePtr cond_;
         AstScopeStatementExpPtr body_;
 };
-typedef boost::shared_ptr<AstWhileExp> AstWhileExpPtr;
+typedef std::shared_ptr<AstWhileExp> AstWhileExpPtr;
 
 class AstForExp: public AstBase
 {
@@ -490,7 +488,40 @@ class AstForExp: public AstBase
         AstBasePtr range_; // an array actually
         AstScopeStatementExpPtr body_;
 };
-typedef boost::shared_ptr<AstForExp> AstForExpPtr;
+typedef std::shared_ptr<AstForExp> AstForExpPtr;
+
+class AstErrInfo: public AstBase
+{
+    public:
+        explicit AstErrInfo(const std::string& info)
+            : AstBase(AST_ERR_INFO), err_(info) {}
+
+        virtual void Accept(VisitorBase& v)
+        {
+            v.Visit(this);
+        }
+
+        virtual ValueNodePtr Evaluate()
+        {
+            // TODO
+            return ValueNodePtr();
+        }
+
+        const std::string& GetErrorInfo() const { return err_; }
+
+    private:
+        std::string err_;
+};
+
+class AstErrInfoPtr: public std::shared_ptr<AstErrInfo>
+{
+    public:
+        // support implicit conversion
+        AstErrInfoPtr(AstErrInfo* ptr)
+            : std::shared_ptr<AstErrInfo>(ptr) {}
+
+        explicit operator bool() const { return false; }
+};
 
 } // end ink
 

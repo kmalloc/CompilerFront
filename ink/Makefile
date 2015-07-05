@@ -1,10 +1,9 @@
-CC=g++
-CFLAGS=-c -Wall -Wextra -g -Werror
+CC=clang++
+CFLAGS=-c -Wall -Wextra -g -Werror -std=c++11
 SOURCES=$(wildcard *.cc)
 
 LIBS=
 INCLUDE=-I./
-INCLUDE+=-I/usr/local/include/boost/
 
 OBJECTS=$(SOURCES:.cc=.o)
 

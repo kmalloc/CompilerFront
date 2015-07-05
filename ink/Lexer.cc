@@ -1,5 +1,6 @@
 #include "Lexer.h"
-#include <boost/static_assert.hpp>
+
+#include "type_traits"
 
 namespace ink {
 
@@ -208,7 +209,8 @@ static const int g_op_prec_map[] =
 
 int Lexer::GetTokenPrec(TokenType tok) const
 {
-    BOOST_STATIC_ASSERT(ArrSz(g_op_prec_map) == TOK_OP_END - TOK_OP_START - 1);
+    static_assert(ArrSz(g_op_prec_map) == TOK_OP_END - TOK_OP_START - 1,
+            "precedence settings for operators do not match the defined order.");
 
     if (tok <= TOK_OP_START || tok >= TOK_OP_END) return -1;
 

@@ -1,5 +1,5 @@
-CC=g++
-CFLAGS=-c -Wall -Wextra -g
+CC=clang++
+CFLAGS=-c -Wall -Wextra -g -std=c++11
 SOURCES=$(wildcard *.cc)
 
 REG_DEFINE =

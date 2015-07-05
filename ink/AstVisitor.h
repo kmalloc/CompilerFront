@@ -20,6 +20,7 @@ class AstIfExp;
 class AstTrueExp;
 class AstWhileExp;
 class AstForExp;
+class AstErrInfo;
 
 class VisitorBase
 {
@@ -41,6 +42,7 @@ class VisitorBase
         virtual void Visit(AstTrueExp*) {}
         virtual void Visit(AstWhileExp*) {}
         virtual void Visit(AstForExp*) {}
+        virtual void Visit(AstErrInfo*) {}
 };
 
 } // end namespace

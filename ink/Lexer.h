@@ -1,9 +1,10 @@
 #ifndef __INK_LEXER_H__
 #define __INK_LEXER_H__
 
+#include "Noncopyable.h"
+
 #include <cctype>
 #include <string>
-#include <boost/noncopyable.hpp>
 
 namespace ink {
 
@@ -80,7 +81,7 @@ enum TokenType
     TOK_OP_END,
 };
 
-class Lexer: public boost::noncopyable
+class Lexer: public noncopyable
 {
     public:
         typedef char CharType;
