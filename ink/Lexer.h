@@ -19,6 +19,7 @@ enum TokenType
     TOK_FUN, // function definition
     TOK_EXT,  // extern, for function declaration
     TOK_CLASS, // class
+    TOK_SELF, // "this" of class
     TOK_ID,  // variable
     TOK_STR, // literal string
     TOK_INT, // literal int

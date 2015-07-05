@@ -1,6 +1,7 @@
 #include "Lexer.h"
 
-#include "type_traits"
+#include <unordered_map>
+#include <type_traits>
 
 namespace ink {
 
@@ -23,6 +24,14 @@ void Lexer::Reset(const CharType* buf)
     curPos_ = buf;
 }
 
+static const std::unordered_map<std::string, TokenType> g_keyword_m =
+{
+    {"func", TOK_FUN}, {"return", TOK_RET}, {"class", TOK_CLASS},
+    {"self", TOK_SELF}, {"extern", TOK_EXT}, {"if", TOK_IF},
+    {"while", TOK_WHILE}, {"for", TOK_FOR}, {"in", TOK_IN},
+    {"else", TOK_ELSE}, {"elif", TOK_ELIF}
+};
+
 TokenType Lexer::ExtractToken()
 {
     if (token_ == TOK_QUO)
@@ -44,16 +53,8 @@ TokenType Lexer::ExtractToken()
         strVal_ = curChar_;
         while (IsAlNum(curChar_ = GetNextChar())) strVal_ += curChar_;
 
-        if (strVal_ == "func") return TOK_FUN;
-        if (strVal_ == "return") return TOK_RET;
-        if (strVal_ == "class") return TOK_CLASS;
-        if (strVal_ == "extern") return TOK_EXT;
-        if (strVal_ == "if") return TOK_IF;
-        if (strVal_ == "while") return TOK_WHILE;
-        if (strVal_ == "for") return TOK_FOR;
-        if (strVal_ == "in") return TOK_IN;
-        if (strVal_ == "else") return TOK_ELSE;
-        if (strVal_ == "elif") return TOK_ELIF;
+        auto it = g_keyword_m.find(strVal_);
+        if (it != g_keyword_m.end()) return it->second;
 
         return TOK_ID;
     }

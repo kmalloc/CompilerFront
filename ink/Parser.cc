@@ -142,16 +142,14 @@ AstBasePtr Parser::ParseFuncDefExp()
 {
     // consume "func" keyword
     lex_.ConsumeCurToken();
-    AstFuncProtoExpPtr proto =
-        std::dynamic_pointer_cast<AstFuncProtoExp>(ParseFuncProtoExp());
+    auto proto = std::dynamic_pointer_cast<AstFuncProtoExp>(ParseFuncProtoExp());
 
     if (IsError(proto)) return proto;
 
-    AstScopeStatementExpPtr body = ParseScopeStatement();
+    auto body = ParseScopeStatement();
     if (IsError(body)) return body;
 
-    AstBasePtr ret(new AstFuncDefExp(proto, body));
-    return ret;
+    return AstBasePtr(new AstFuncDefExp(proto, body));
 }
 
 AstBasePtr Parser::ParseFuncCallExp(const std::string& name)
@@ -357,7 +355,7 @@ AstBasePtr Parser::ParseIfExp()
             entity.cond = AstBasePtr();
         }
 
-        AstScopeStatementExpPtr body = ParseScopeStatement();
+        auto body = ParseScopeStatement();
         if (IsError(body)) return body;
 
         entity.exp = body;
@@ -417,7 +415,7 @@ AstBasePtr Parser::ParseWhileExp()
     }
 
     lex_.ConsumeCurToken();
-    AstScopeStatementExpPtr body = ParseScopeStatement();
+    auto body = ParseScopeStatement();
     if (IsError(body)) return body;
 
     return AstBasePtr(new AstWhileExp(cond, body));
@@ -439,7 +437,7 @@ AstBasePtr Parser::ParseForExp()
     AstBasePtr arr = ParseExpression();
     if (IsError(arr)) return arr;
 
-    AstScopeStatementExpPtr body = ParseScopeStatement();
+    auto body = ParseScopeStatement();
     if (IsError(body)) return body;
 
     return AstForExpPtr(new AstForExp(var, arr, body));

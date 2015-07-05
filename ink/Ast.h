@@ -249,7 +249,7 @@ class AstFuncProtoExp: public AstBase
 {
     public:
         AstFuncProtoExp(const std::string& fun, const std::vector<std::string>& args)
-            : AstBase(AST_FUNC_PROTO), func_(fun), args_(args) {}
+            : AstBase(AST_FUNC_PROTO), func_(fun), params_(args) {}
 
         ~AstFuncProtoExp() {}
 
@@ -264,9 +264,12 @@ class AstFuncProtoExp: public AstBase
             return ValueNodePtr();
         }
 
+        const std::string& GetName() const { return func_; }
+        const std::vector<std::string>& GetParams() const { return params_; }
+
     private:
         std::string func_;
-        std::vector<std::string> args_;
+        std::vector<std::string> params_;
 };
 typedef std::shared_ptr<AstFuncProtoExp> AstFuncProtoExpPtr;
 
@@ -320,7 +323,7 @@ class AstFuncDefExp: public AstBase
         }
 
         AstScopeStatementExpPtr GetBody() const { return body_; }
-        AstFuncProtoExpPtr GetFuncProto() const { return proto_; }
+        AstFuncProtoExpPtr GetProto() const { return proto_; }
 
     private:
         AstFuncProtoExpPtr proto_;
@@ -422,6 +425,8 @@ class AstRetExp: public AstBase
             // TODO
             return ValueNodePtr();
         }
+
+        AstBasePtr GetValue() const { return val_; }
 
     private:
         AstBasePtr val_;

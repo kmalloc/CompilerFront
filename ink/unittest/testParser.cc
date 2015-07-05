@@ -671,10 +671,102 @@ TEST(ink_test_suit, test_func_declaration)
 
     ASSERT_EQ(1, res.size());
     ASSERT_EQ(AST_FUNC_PROTO, res[0]->GetType());
+
+    auto fsp = std::dynamic_pointer_cast<AstFuncProtoExp>(res[0]);
+    ASSERT_STREQ("foo", fsp->GetName().c_str());
+
+    auto params = fsp->GetParams();
+    ASSERT_EQ(2, params.size());
+    ASSERT_STREQ("a", params[0].c_str());
+    ASSERT_STREQ("b", params[1].c_str());
+
+    auto txt2 = "extern func(s, c)";
+    p.SetBuffer(txt2);
+
+    err = p.StartParsing();
+    ASSERT_TRUE(!err.empty());
 }
 
 TEST(ink_test_suit, test_func_definition)
 {
+    auto txt = "func foo(a, b, c) { if (a) { b = a + 1 return b + 1 }"
+        " else { a = 42 } return a * b }\n a = a + 1";
+
+    Parser p (txt, "dummy.cc");
+    auto err = p.StartParsing();
+
+    ASSERT_TRUE(err.empty());
+    auto res = p.GetResult();
+
+    ASSERT_EQ(2, res.size());
+
+    auto asp = res[0];
+    ASSERT_EQ(AST_FUNC_DEF, asp->GetType());
+
+    auto fsp = std::dynamic_pointer_cast<AstFuncDefExp>(asp);
+    auto fpsp = fsp->GetProto();
+    auto body = fsp->GetBody();
+
+    ASSERT_STREQ("foo", fpsp->GetName().c_str());
+    auto params = fpsp->GetParams();
+    ASSERT_EQ(3, params.size());
+    ASSERT_STREQ("a", params[0].c_str());
+    ASSERT_STREQ("b", params[1].c_str());
+    ASSERT_STREQ("c", params[2].c_str());
+
+    ASSERT_EQ(AST_SCOPE, body->GetType());
+
+    auto exp = body->GetBody();
+    ASSERT_EQ(2, exp.size());
+    ASSERT_EQ(AST_IF, exp[0]->GetType());
+    ASSERT_EQ(AST_RET, exp[1]->GetType());
+
+    auto ret = std::dynamic_pointer_cast<AstRetExp>(exp[1]);
+    auto ret_val = ret->GetValue();
+    ASSERT_EQ(AST_OP_BINARY, ret_val->GetType());
+
+    auto ifsp = std::dynamic_pointer_cast<AstIfExp>(exp[0]);
+    auto if_stat = ifsp->GetBody();
+
+    ASSERT_EQ(2, if_stat.size());
+    auto if_exp = if_stat[0];
+    auto if_cond = if_exp.cond;
+    auto if_body = if_exp.exp->GetBody();
+    ASSERT_EQ(AST_VAR, if_cond->GetType());
+
+    auto if_var = std::dynamic_pointer_cast<AstVarExp>(if_cond);
+    ASSERT_STREQ("a", if_var->GetName().c_str());
+    ASSERT_EQ(2, if_body.size());
+
+    ASSERT_EQ(AST_OP_BINARY, if_body[0]->GetType());
+    auto bsp = std::dynamic_pointer_cast<AstBinaryExp>(if_body[0]);
+    ASSERT_EQ(TOK_AS, bsp->GetOpType());
+
+    ASSERT_EQ(AST_RET, if_body[1]->GetType());
+    ret = std::dynamic_pointer_cast<AstRetExp>(if_body[1]);
+    ASSERT_EQ(AST_OP_BINARY, ret->GetValue()->GetType());
+
+    // else
+    if_exp = if_stat[1];
+    if_cond = if_exp.cond;
+    if_body = if_exp.exp->GetBody();
+
+    ASSERT_TRUE(!if_cond);
+
+    ASSERT_EQ(1, if_body.size());
+    ASSERT_EQ(AST_OP_BINARY, if_body[0]->GetType());
+    bsp = std::dynamic_pointer_cast<AstBinaryExp>(if_body[0]);
+    ASSERT_EQ(TOK_AS, bsp->GetOpType());
+
+    ASSERT_EQ(AST_RET, exp[1]->GetType());
+    ret = std::dynamic_pointer_cast<AstRetExp>(exp[1]);
+    ASSERT_EQ(AST_OP_BINARY, ret->GetValue()->GetType());
+
+    bsp = std::dynamic_pointer_cast<AstBinaryExp>(ret->GetValue());
+    ASSERT_EQ(AST_OP_BINARY, bsp->GetType());
+
+    asp = res[1];
+    ASSERT_EQ(AST_OP_BINARY, asp->GetType());
 }
 
 TEST(ink_test_suit, test_func_call)
