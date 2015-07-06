@@ -767,10 +767,54 @@ TEST(ink_test_suit, test_func_definition)
 
     asp = res[1];
     ASSERT_EQ(AST_OP_BINARY, asp->GetType());
+
+    bsp = std::dynamic_pointer_cast<AstBinaryExp>(asp);
+    ASSERT_EQ(TOK_AS, bsp->GetOpType());
 }
 
 TEST(ink_test_suit, test_func_call)
 {
+    auto txt = "a=1 foo(a, a + 2) b = bar()";
+    Parser p(txt, "dummy.cc");
+
+    p.StartParsing();
+    auto res = p.GetResult();
+    ASSERT_EQ(3, res.size());
+
+    ASSERT_EQ(AST_OP_BINARY, res[0]->GetType());
+    ASSERT_EQ(AST_FUNC_CALL, res[1]->GetType());
+    ASSERT_EQ(AST_OP_BINARY, res[2]->GetType());
+
+    auto fsp = std::dynamic_pointer_cast<AstFuncCallExp>(res[1]);
+    ASSERT_STREQ("foo", fsp->GetName().c_str());
+
+    auto args = fsp->GetArgument();
+    ASSERT_EQ(2, args.size());
+    ASSERT_EQ(AST_VAR, args[0]->GetType());
+    ASSERT_EQ(AST_OP_BINARY, args[1]->GetType());
+
+    auto bsp = std::dynamic_pointer_cast<AstBinaryExp>(args[1]);
+    ASSERT_EQ(TOK_ADD, bsp->GetOpType());
+
+    auto p1 = bsp->GetLeftOperand();
+    auto p2 = bsp->GetRightOperand();
+
+    ASSERT_EQ(AST_VAR, p1->GetType());
+    ASSERT_EQ(AST_INT, p2->GetType());
+
+    bsp = std::dynamic_pointer_cast<AstBinaryExp>(res[2]);
+    ASSERT_EQ(TOK_AS, bsp->GetOpType());
+
+    p1 = bsp->GetLeftOperand();
+    p2 = bsp->GetRightOperand();
+
+    ASSERT_EQ(AST_VAR, p1->GetType());
+
+    fsp = std::dynamic_pointer_cast<AstFuncCallExp>(p2);
+    ASSERT_STREQ("bar", fsp->GetName().c_str());
+
+    args = fsp->GetArgument();
+    ASSERT_EQ(0, args.size());
 }
 
 TEST(ink_test_suit, test_class_def)

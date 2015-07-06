@@ -350,6 +350,9 @@ class AstFuncCallExp: public AstBase
             return ValueNodePtr();
         }
 
+        const std::string& GetName() const { return func_; }
+        const std::vector<AstBasePtr>& GetArgument() const { return args_; }
+
     private:
         std::string func_;
         std::vector<AstBasePtr> args_;
