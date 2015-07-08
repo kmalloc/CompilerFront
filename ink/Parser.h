@@ -6,6 +6,7 @@
 
 #include "Noncopyable.h"
 
+#include <memory>
 #include <string>
 
 namespace ink {
@@ -28,6 +29,7 @@ class Parser: public noncopyable
 
         // followings are primary expression.
         AstBasePtr ParseIntExp();
+        AstBasePtr ParseBoolExp();
         AstBasePtr ParseFloatExp();
         AstBasePtr ParseParenExp();
         AstBasePtr ParseStringExp();
@@ -59,6 +61,8 @@ class Parser: public noncopyable
 
         std::vector<AstBasePtr> res_;
 };
+
+typedef std::shared_ptr<Parser> ParserPtr;
 
 } // end ink
 

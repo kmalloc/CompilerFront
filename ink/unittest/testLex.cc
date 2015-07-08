@@ -7,8 +7,35 @@ using namespace ink;
 TEST(ink_test_suit, test_lexer)
 {
     Lexer lex("");
-    const char* txt = "a = c\n a * c + 25 - 23.3 / \"abc\" % ww";
 
+    const char* txt = "12 2.2 \"abc\" true false";
+    lex.Reset(txt);
+    lex.Start();
+
+    ASSERT_EQ(TOK_INT, lex.GetCurToken());
+    ASSERT_EQ(12, lex.GetIntVal());
+    lex.ConsumeCurToken();
+
+    ASSERT_EQ(TOK_FLOAT, lex.GetCurToken());
+    ASSERT_EQ(2.2, lex.GetFloatVal());
+    lex.ConsumeCurToken();
+
+    ASSERT_EQ(TOK_QUO, lex.GetCurToken());
+    lex.ConsumeCurToken();
+
+    ASSERT_EQ(TOK_STR, lex.GetCurToken());
+    ASSERT_STREQ("abc", lex.GetStringVal().c_str());
+    lex.ConsumeCurToken();
+
+    ASSERT_EQ(TOK_BOOL, lex.GetCurToken());
+    ASSERT_STREQ("true", lex.GetStringVal().c_str());
+    lex.ConsumeCurToken();
+
+    ASSERT_EQ(TOK_BOOL, lex.GetCurToken());
+    ASSERT_STREQ("false", lex.GetStringVal().c_str());
+    lex.ConsumeCurToken();
+
+    txt = "a = c\n a * c + 25 - 23.3 / \"abc\" % ww";
     lex.Reset(txt);
 
     ASSERT_TRUE(lex.GetCurToken() == TOK_UNKNOWN);

@@ -15,6 +15,7 @@ enum AstType
 {
     AST_NONE = -1,
     AST_INT,
+    AST_BOOL,
     AST_FLOAT,
     AST_STRING,
     AST_VAR,
@@ -109,6 +110,29 @@ class AstIntExp: public AstBase
         int64_t val_;
 };
 typedef std::shared_ptr<AstIntExp> AstIntExpPtr;
+
+class AstBoolExp: public AstBase
+{
+    public:
+        explicit AstBoolExp(bool b): AstBase(AST_BOOL), val_(b) {}
+
+        virtual void Accept(VisitorBase& v)
+        {
+            v.Visit(this);
+        }
+
+        virtual ValueNodePtr Evaluate()
+        {
+            // TODO
+            return ValueNodePtr();
+        }
+
+        bool GetValue() const { return val_; }
+
+    private:
+        bool val_;
+};
+typedef std::shared_ptr<AstBoolExp> AstBoolExpPtr;
 
 class AstFloatExp: public AstBase
 {

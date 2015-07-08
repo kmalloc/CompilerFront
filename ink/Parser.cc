@@ -45,6 +45,14 @@ AstBasePtr Parser::ParseIntExp()
     return ret;
 }
 
+AstBasePtr Parser::ParseBoolExp()
+{
+    bool val = ("true" == lex_.GetStringVal());
+    AstBasePtr ret(new AstBoolExp(val));
+    lex_.ConsumeCurToken();
+    return ret;
+}
+
 AstBasePtr Parser::ParseFloatExp()
 {
     AstBasePtr ret(new AstFloatExp(lex_.GetFloatVal()));
@@ -448,6 +456,7 @@ AstBasePtr Parser::ParsePrimary()
     switch (lex_.GetCurToken())
     {
         case TOK_ID: return ParseIdentifierExp();
+        case TOK_BOOL: return ParseBoolExp();
         case TOK_INT: return ParseIntExp();
         case TOK_FLOAT: return ParseFloatExp();
         case TOK_QUO: return ParseStringExp();

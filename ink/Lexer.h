@@ -35,6 +35,7 @@ enum TokenType
     TOK_IN, // for a in [a,b,c]
     TOK_WHILE, // while loop
     TOK_LOCAL, // local
+    TOK_BOOL,
 
     // primary operators
     TOK_COMA, //,

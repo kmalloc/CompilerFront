@@ -21,11 +21,13 @@ class AstTrueExp;
 class AstWhileExp;
 class AstForExp;
 class AstErrInfo;
+class AstBoolExp;
 
 class VisitorBase
 {
     public:
         virtual void Visit(AstIntExp*) {}
+        virtual void Visit(AstBoolExp*) {}
         virtual void Visit(AstFloatExp*) {}
         virtual void Visit(AstStringExp*) {}
         virtual void Visit(AstFuncProtoExp*) {}
