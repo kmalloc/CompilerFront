@@ -48,6 +48,8 @@ void vm::Run()
             case OP_LAD:
                 {
                 };
+            default:
+                return;
         }
     }
 }
