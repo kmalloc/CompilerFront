@@ -135,7 +135,7 @@ AstBasePtr Parser::ParseFuncProtoExp()
                 return ReportError("identical parameter name in function definition");
             }
 
-            args.push_back(arg);
+            args.push_back(std::move(arg));
             lex_.ConsumeCurToken();
 
             if (lex_.GetCurToken() == TOK_PAREN_RIGHT) break;
@@ -152,7 +152,7 @@ AstBasePtr Parser::ParseFuncProtoExp()
 
     // consume ')'
     lex_.ConsumeCurToken();
-    AstBasePtr ret(new AstFuncProtoExp(name, args));
+    AstBasePtr ret(new AstFuncProtoExp(std::move(name), std::move(args)));
 
     ret->SetLocation(file_, line);
     return ret;
@@ -172,7 +172,7 @@ AstBasePtr Parser::ParseFuncDefExp()
     return AstBasePtr(new AstFuncDefExp(proto, body));
 }
 
-AstBasePtr Parser::ParseFuncCallExp(const std::string& name)
+AstBasePtr Parser::ParseFuncCallExp(std::string name)
 {
     int line = lex_.GetCurLineNum();
 
@@ -199,7 +199,7 @@ AstBasePtr Parser::ParseFuncCallExp(const std::string& name)
 
     // consume ')'
     lex_.ConsumeCurToken();
-    AstBasePtr ret(new AstFuncCallExp(name, args));
+    AstBasePtr ret(new AstFuncCallExp(std::move(name), std::move(args)));
 
     ret->SetLocation(file_, line);
     return ret;
@@ -241,7 +241,7 @@ AstBasePtr Parser::ParseArrayExp()
     return AstBasePtr(new AstArrayExp(elem));
 }
 
-AstBasePtr Parser::ParseArrIndexExp(const std::string& name)
+AstBasePtr Parser::ParseArrIndexExp(std::string name)
 {
     AstBasePtr index = ParseExpression();
     if (IsError(index)) return index;
@@ -252,7 +252,7 @@ AstBasePtr Parser::ParseArrIndexExp(const std::string& name)
     }
 
     lex_.ConsumeCurToken();
-    return AstBasePtr(new AstArrayIndexExp(name, index));
+    return AstBasePtr(new AstArrayIndexExp(std::move(name), index));
 }
 
 AstBasePtr Parser::ParseIdentifierExp()
@@ -270,9 +270,9 @@ AstBasePtr Parser::ParseIdentifierExp()
     // consume '(' or '['
     lex_.ConsumeCurToken();
 
-    if (tok == TOK_PAREN_LEFT) return ParseFuncCallExp(name);
+    if (tok == TOK_PAREN_LEFT) return ParseFuncCallExp(std::move(name));
 
-    return ParseArrIndexExp(name);
+    return ParseArrIndexExp(std::move(name));
 }
 
 AstBasePtr Parser::ParseUaryExp(TokenType op)

@@ -40,9 +40,9 @@ class Parser: public noncopyable
 
         AstBasePtr ParseFuncProtoExp();
         AstBasePtr ParseFuncDefExp();
-        AstBasePtr ParseFuncCallExp(const std::string& fun);
         AstBasePtr ParseArrayExp();
-        AstBasePtr ParseArrIndexExp(const std::string& arr);
+        AstBasePtr ParseFuncCallExp(std::string fun);
+        AstBasePtr ParseArrIndexExp(std::string arr);
 
         AstBasePtr ParseExternExp();
         AstBasePtr ParseFuncRetExp();

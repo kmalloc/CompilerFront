@@ -175,8 +175,8 @@ typedef std::shared_ptr<AstFloatExp> AstFloatExpPtr;
 class AstStringExp: public AstBase
 {
     public:
-        explicit AstStringExp(const std::string& val)
-            : AstBase(AST_STRING), val_(val) {}
+        explicit AstStringExp(std::string val)
+            : AstBase(AST_STRING), val_(std::move(val)) {}
 
         ~AstStringExp() {}
 
@@ -201,8 +201,8 @@ typedef std::shared_ptr<AstStringExp> AstStringExpPtr;
 class AstVarExp: public AstBase
 {
     public:
-        explicit AstVarExp(const std::string& name)
-            : AstBase(AST_VAR), name_(name) {}
+        explicit AstVarExp(std::string name)
+            : AstBase(AST_VAR), name_(std::move(name)) {}
 
         ~AstVarExp() {}
 
@@ -285,8 +285,11 @@ typedef std::shared_ptr<AstBinaryExp> AstBinaryExpPtr;
 class AstFuncProtoExp: public AstBase
 {
     public:
-        AstFuncProtoExp(const std::string& fun, const std::vector<std::string>& args)
-            : AstBase(AST_FUNC_PROTO), func_(fun), params_(args) {}
+        AstFuncProtoExp(std::string fun, std::vector<std::string> args)
+            : AstBase(AST_FUNC_PROTO), func_(std::move(fun))
+            , params_(std::move(args))
+        {
+        }
 
         ~AstFuncProtoExp() {}
 
@@ -314,7 +317,7 @@ typedef std::shared_ptr<AstFuncProtoExp> AstFuncProtoExpPtr;
 class AstScopeStatementExp: public AstBase
 {
     public:
-        explicit AstScopeStatementExp(std::vector<AstBasePtr>&& exp)
+        explicit AstScopeStatementExp(std::vector<AstBasePtr> exp)
             : AstBase(AST_SCOPE), exp_(std::move(exp))
         {
         }
@@ -371,7 +374,7 @@ typedef std::shared_ptr<AstFuncDefExp> AstFuncDefExpPtr;
 class AstFuncCallExp: public AstBase
 {
     public:
-        AstFuncCallExp(const std::string& fun, std::vector<AstBasePtr>& args)
+        AstFuncCallExp(std::string fun, std::vector<AstBasePtr> args)
             : AstBase(AST_FUNC_CALL), func_(fun), args_(args) {}
 
         ~AstFuncCallExp() {}
@@ -423,8 +426,8 @@ typedef std::shared_ptr<AstArrayExp> AstArrayExpPtr;
 class AstArrayIndexExp: public AstBase
 {
     public:
-        AstArrayIndexExp(const std::string& arr, const AstBasePtr& index)
-            : AstBase(AST_ARR_INDEX), arr_(arr), index_(index) {}
+        AstArrayIndexExp(std::string arr, const AstBasePtr& index)
+            : AstBase(AST_ARR_INDEX), arr_(std::move(arr)), index_(index) {}
 
         ~AstArrayIndexExp() {}
 

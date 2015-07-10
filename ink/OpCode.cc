@@ -23,7 +23,7 @@ struct CodeFunc
 {
     // sink parameter
     CodeFunc(std::string name, std::vector<std::string> param)
-        : name_(std::move(name)), params_(param)
+        : name_(std::move(name)), params_(std::move(param))
     {
         ins_.reserve(64);
     }
