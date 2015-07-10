@@ -102,6 +102,7 @@ class Lexer: public noncopyable
         int GetCurTokenPrec() const { return GetTokenPrec(GetCurToken()); }
         void ConsumeCurToken() { token_ = ExtractToken(); }
 
+        int GetCurLineNum() const { return curLine_; }
         const std::string& GetStringVal() const { return strVal_; }
         int64_t GetIntVal() const { return intVal_; }
         double GetFloatVal() const { return floatVal_; }
@@ -109,7 +110,7 @@ class Lexer: public noncopyable
 
     private:
         TokenType ExtractToken();
-        CharType GetNextChar() { return *curPos_++; }
+        CharType GetNextChar() { curLine_ += *curPos_ == '\n'; return *curPos_++; }
         bool IsAlpha(CharType c) const { return std::isalpha(c); }
         bool IsAlNum(CharType c) const { return std::isalnum(c); }
         bool IsDigit(CharType c) const { return std::isdigit(c); }
@@ -120,6 +121,7 @@ class Lexer: public noncopyable
         CharType curChar_;
         CharType skipper_; // char that is skipped, default is space
 
+        int curLine_;
         int64_t intVal_;
         double floatVal_;
         std::string strVal_;

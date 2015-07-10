@@ -47,7 +47,7 @@ typedef std::shared_ptr<ValueNode> ValueNodePtr;
 class AstBase: noncopyable
 {
     public:
-        AstBase(AstType t): type_(t) {}
+        AstBase(AstType t): type_(t), line_(-1) {}
 
         virtual ~AstBase() {}
         virtual ValueNodePtr Evaluate() = 0;
@@ -56,11 +56,24 @@ class AstBase: noncopyable
         inline bool IsError() const;
         int GetType() const { return type_; }
 
+        void SetLocation(std::string file, int line)
+        {
+            line_ = line;
+            file_ = std::move(file);
+        }
+
+        int GetLocLine() const { return line_; }
+        std::string GetLocFile() const { return file_; }
+
     public:
         int type_;
+
+        int line_;
+        std::string file_;
 };
 typedef std::shared_ptr<AstBase> AstBasePtr;
 
+// TODO, sink parameter for c++11
 class AstErrInfo: public AstBase
 {
     public:

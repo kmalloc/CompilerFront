@@ -22,6 +22,7 @@ void Lexer::Reset(const CharType* buf)
     strVal_ = "";
     text_ = buf;
     curPos_ = buf;
+    curLine_ = 0;
 }
 
 static const std::unordered_map<std::string, TokenType> g_keyword_m =

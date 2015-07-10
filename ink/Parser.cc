@@ -2,6 +2,7 @@
 
 #include <fstream>
 #include <sstream>
+#include <algorithm>
 #include <assert.h>
 
 namespace ink {
@@ -28,7 +29,8 @@ AstBasePtr Parser::ReportError(const char* msg)
 
     std::ostringstream oss;
 
-    oss << msg << ", from " << file_ << std::endl;
+    oss << msg << ", from " << file_ << ", line:"
+        << lex_.GetCurLineNum() << std::endl;
     oss << "current token:" << lex_.GetCurToken() << " ";
     oss << "val(int):" << lex_.GetIntVal()
         << ", val(float):" << lex_.GetFloatVal()
@@ -102,6 +104,8 @@ AstBasePtr Parser::ParseFuncProtoExp()
     }
 
     std::string name = lex_.GetStringVal();
+    int line = lex_.GetCurLineNum();
+
     lex_.ConsumeCurToken();
 
     if (lex_.GetCurToken() != TOK_PAREN_LEFT)
@@ -126,6 +130,11 @@ AstBasePtr Parser::ParseFuncProtoExp()
             arg = lex_.GetStringVal();
             if (arg.empty()) return ReportError("expected non-empty parameter name");
 
+            if (std::find(args.begin(), args.end(), arg) != args.end())
+            {
+                return ReportError("identical parameter name in function definition");
+            }
+
             args.push_back(arg);
             lex_.ConsumeCurToken();
 
@@ -143,7 +152,10 @@ AstBasePtr Parser::ParseFuncProtoExp()
 
     // consume ')'
     lex_.ConsumeCurToken();
-    return AstBasePtr(new AstFuncProtoExp(name, args));
+    AstBasePtr ret(new AstFuncProtoExp(name, args));
+
+    ret->SetLocation(file_, line);
+    return ret;
 }
 
 AstBasePtr Parser::ParseFuncDefExp()
@@ -162,6 +174,8 @@ AstBasePtr Parser::ParseFuncDefExp()
 
 AstBasePtr Parser::ParseFuncCallExp(const std::string& name)
 {
+    int line = lex_.GetCurLineNum();
+
     std::vector<AstBasePtr> args;
     if (lex_.GetCurToken() != TOK_PAREN_RIGHT)
     {
@@ -185,7 +199,10 @@ AstBasePtr Parser::ParseFuncCallExp(const std::string& name)
 
     // consume ')'
     lex_.ConsumeCurToken();
-    return AstBasePtr(new AstFuncCallExp(name, args));
+    AstBasePtr ret(new AstFuncCallExp(name, args));
+
+    ret->SetLocation(file_, line);
+    return ret;
 }
 
 AstBasePtr Parser::ParseArrayExp()
@@ -315,9 +332,15 @@ AstBasePtr Parser::ParseExternExp()
 
 AstBasePtr Parser::ParseFuncRetExp()
 {
+    int line = lex_.GetCurLineNum();
+
     lex_.ConsumeCurToken();
     AstBasePtr val = ParseExpression();
-    return AstBasePtr(new AstRetExp(val));
+
+    AstBasePtr ret(new AstRetExp(val));
+
+    ret->SetLocation(file_, line);
+    return ret;
 }
 
 AstBasePtr Parser::ParseClassDefExp()

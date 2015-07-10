@@ -3,7 +3,14 @@
 
 #include "Parser.h"
 
+#include <string>
+
 namespace ink {
+
+/*
+register based instruction modeling lua byte code.
+instructions are all 4 byte long, 3 address code
+*/
 
 enum InkOpCode
 {
@@ -46,18 +53,17 @@ enum InkOpCode
 class CodeGen
 {
     public:
-        // input ast, and compiler context
         CodeGen();
         ~CodeGen();
 
-        void StartGenCode();
         void SetParser(const ParserPtr& p) { parser_ = p; }
+        std::string StartGenCode(unsigned char* buff, size_t sz);
 
     private:
         ParserPtr parser_;
 };
 
-}
+} // end namespace
 
 #endif
 
