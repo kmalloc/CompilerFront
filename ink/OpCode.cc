@@ -4,7 +4,10 @@
 #include <stack>
 #include <vector>
 #include <iostream>
+#include <algorithm>
 #include <unordered_map>
+
+#include <assert.h>
 
 namespace ink {
 
@@ -13,6 +16,14 @@ struct CodeVar
     explicit CodeVar(std::string name)
         : name_(std::move(name))
     {
+    }
+
+    CodeVar(CodeVar&& v)
+    {
+        if (this == &v) return;
+
+        name_ = std::move(v.name_);
+        ins_ = std::move(v.ins_);
     }
 
     std::string name_;
@@ -28,6 +39,16 @@ struct CodeFunc
         ins_.reserve(64);
     }
 
+    CodeFunc(CodeFunc&& fun)
+    {
+        if (this == &fun) return;
+
+        name_ = std::move(fun.name_);
+        params_ = std::move(fun.params_);
+        ins_ = std::move(fun.ins_);
+        var_pool_ = std::move(fun.var_pool_);
+    }
+
     std::string name_;
     std::vector<std::string> params_;
     std::vector<int> ins_;
@@ -36,6 +57,9 @@ struct CodeFunc
 
 struct CodeClass
 {
+    CodeClass() {}
+    CodeClass(CodeClass&&) {}
+
     std::string name_;
     std::vector<CodeFunc> func_; // member function
     std::vector<std::string> mem_; // member variables
@@ -46,8 +70,9 @@ class AstWalker: public VisitorBase
     public:
         AstWalker()
         {
-            CodeFunc main("main", std::vector<std::string>());
-            func_.push(main);
+            func_pool_.emplace_back("main", std::vector<std::string>());
+            func_pool_index_["main"] = 0;
+            cur_func_ = 0;
         }
 
         void ReportError(const AstBase* t, const std::string& msg)
@@ -92,7 +117,7 @@ class AstWalker: public VisitorBase
 
         virtual void Visit(AstStringExp* node)
         {
-            auto v = node->GetValue();
+            auto& v = node->GetValue();
             auto it = str_pool_index_.find(v);
             if (it != str_pool_index_.end()) return;
 
@@ -101,16 +126,35 @@ class AstWalker: public VisitorBase
             str_pool_index_[v] = i;
         }
 
+        virtual void Visit(AstVarExp* v)
+        {
+            assert(cur_func_ < func_pool_.size());
+
+            auto& name = v->GetName();
+            auto& fun = func_pool_[cur_func_];
+            auto& var = fun.var_pool_;
+            auto it = std::find(var.begin(), var.end(), name);
+            if (it != fun.var_pool_.end()) return;
+
+            fun.var_pool_.emplace_back(name);
+        }
+
+        virtual void Visit(AstArrayExp*) {}
+        virtual void Visit(AstArrayIndexExp*) {}
+
+        virtual void Visit(AstUnaryExp*) {}
+        virtual void Visit(AstBinaryExp*) {}
+
         virtual void Visit(AstFuncProtoExp* f)
         {
-            auto name = f->GetName();
-            auto params = f->GetParams();
+            auto& name = f->GetName();
+            auto& params = f->GetParams();
 
             auto it = func_pool_index_.find(name);
             if (it != func_pool_index_.end())
             {
                 auto ind = it->second;
-                auto func = func_pool_[ind];
+                auto& func = func_pool_[ind];
 
                 if (func.params_ == params) return;
 
@@ -123,14 +167,15 @@ class AstWalker: public VisitorBase
             func_pool_.emplace_back(name, params);
         }
 
+        virtual void Visit(AstFuncDefExp* f)
+        {
+            f->GetProto()->Accept(*this);
+            cur_func_ = func_pool_index_[f->GetProto()->GetName()];
+           // TODO
+        }
+
         virtual void Visit(AstScopeStatementExp*) {}
-        virtual void Visit(AstFuncDefExp*) {}
         virtual void Visit(AstFuncCallExp*) {}
-        virtual void Visit(AstArrayExp*) {}
-        virtual void Visit(AstArrayIndexExp*) {}
-        virtual void Visit(AstVarExp*) {}
-        virtual void Visit(AstUnaryExp*) {}
-        virtual void Visit(AstBinaryExp*) {}
         virtual void Visit(AstRetExp*) {}
         virtual void Visit(AstIfExp*) {}
         virtual void Visit(AstTrueExp*) {}
@@ -139,14 +184,12 @@ class AstWalker: public VisitorBase
         virtual void Visit(AstErrInfo*) {}
 
     private:
-        std::stack<CodeFunc> func_;
-        std::stack<CodeClass> class_;
+        size_t cur_func_;
 
         // const pool
 
         std::vector<int64_t> int_pool_;
-        // value to index
-        std::unordered_map<int64_t, size_t> int_pool_index_;
+        std::unordered_map<int64_t, size_t> int_pool_index_; // value to index
 
         std::vector<double> float_pool_;
         std::unordered_map<double, size_t> float_pool_index_;
