@@ -1,4 +1,5 @@
 #include "OpCode.h"
+#include "Lexer.h"
 #include "AstVisitor.h"
 
 #include <stack>
@@ -50,9 +51,12 @@ struct CodeFunc
     }
 
     std::string name_;
-    std::vector<std::string> params_;
     std::vector<int> ins_;
+    std::vector<std::string> params_;
     std::vector<std::string> var_pool_;
+
+    std::vector<CodeFunc> sub_func_;
+    std::unordered_map<std::string, size_t> sub_func_index_;
 };
 
 struct CodeClass
@@ -69,10 +73,9 @@ class AstWalker: public VisitorBase
 {
     public:
         AstWalker()
+            : main_func_("main", std::vector<std::string>())
         {
-            func_pool_.emplace_back("main", std::vector<std::string>());
-            func_pool_index_["main"] = 0;
-            cur_func_ = 0;
+            s_func_.push(&main_func_);
         }
 
         void ReportError(const AstBase* t, const std::string& msg)
@@ -128,33 +131,59 @@ class AstWalker: public VisitorBase
 
         virtual void Visit(AstVarExp* v)
         {
-            assert(cur_func_ < func_pool_.size());
-
             auto& name = v->GetName();
-            auto& fun = func_pool_[cur_func_];
-            auto& var = fun.var_pool_;
-            auto it = std::find(var.begin(), var.end(), name);
-            if (it != fun.var_pool_.end()) return;
+            auto& var = s_func_.top()->var_pool_;
 
-            fun.var_pool_.emplace_back(name);
+            auto it = std::find(var.begin(), var.end(), name);
+            if (it != var.end()) return;
+
+            var.emplace_back(name);
+        }
+
+        virtual void Visit(AstBinaryExp* exp)
+        {
+            OpCode op = OP_NOP;
+            switch (exp->GetOpType())
+            {
+                case TOK_ADD:
+                    op = OP_ADD;
+                    break;
+                case TOK_SUB:
+                    op = OP_SUB;
+                    break;
+                case TOK_MUL:
+                    op = OP_MUL;
+                    break;
+                case TOK_DIV:
+                    op = OP_DIV;
+                    break;
+                case TOK_POW:
+                    op = OP_POW;
+                    break;
+                default:
+                    break;
+            }
         }
 
         virtual void Visit(AstArrayExp*) {}
         virtual void Visit(AstArrayIndexExp*) {}
 
         virtual void Visit(AstUnaryExp*) {}
-        virtual void Visit(AstBinaryExp*) {}
 
         virtual void Visit(AstFuncProtoExp* f)
         {
             auto& name = f->GetName();
             auto& params = f->GetParams();
 
-            auto it = func_pool_index_.find(name);
-            if (it != func_pool_index_.end())
+            auto cur_func = s_func_.top();
+            auto& func_pool = cur_func->sub_func_;
+            auto& func_pool_index = cur_func->sub_func_index_;
+
+            auto it = func_pool_index.find(name);
+            if (it != func_pool_index.end())
             {
                 auto ind = it->second;
-                auto& func = func_pool_[ind];
+                auto& func = func_pool[ind];
 
                 if (func.params_ == params) return;
 
@@ -162,19 +191,38 @@ class AstWalker: public VisitorBase
                 return;
             }
 
-            auto ind = func_pool_.size();
-            func_pool_index_[name] = ind;
-            func_pool_.emplace_back(name, params);
+            auto ind = func_pool.size();
+            func_pool_index[name] = ind;
+            func_pool.emplace_back(name, params);
         }
 
         virtual void Visit(AstFuncDefExp* f)
         {
-            f->GetProto()->Accept(*this);
-            cur_func_ = func_pool_index_[f->GetProto()->GetName()];
-           // TODO
+            auto proto = f->GetProto();
+            proto->Accept(*this);
+
+            auto& name = proto->GetName();
+            auto& params = proto->GetParams();
+
+            auto cur_func = s_func_.top();
+            auto pos = cur_func->sub_func_.size();
+
+            cur_func->sub_func_index_[name] = pos;
+            cur_func->sub_func_.emplace_back(name, params);
+
+            s_func_.push(&cur_func->sub_func_[pos]);
+            // TODO
+
+            s_func_.pop();
         }
 
-        virtual void Visit(AstScopeStatementExp*) {}
+        virtual void Visit(AstScopeStatementExp* s)
+        {
+            auto& body = s->GetBody();
+            // TODO
+            (void)body;
+        }
+
         virtual void Visit(AstFuncCallExp*) {}
         virtual void Visit(AstRetExp*) {}
         virtual void Visit(AstIfExp*) {}
@@ -184,7 +232,8 @@ class AstWalker: public VisitorBase
         virtual void Visit(AstErrInfo*) {}
 
     private:
-        size_t cur_func_;
+        CodeFunc main_func_;
+        std::stack<CodeFunc*> s_func_;
 
         // const pool
 
@@ -197,8 +246,6 @@ class AstWalker: public VisitorBase
         std::vector<std::string> str_pool_;
         std::unordered_map<std::string, size_t> str_pool_index_;
 
-        std::vector<CodeFunc> func_pool_;
-        std::unordered_map<std::string, size_t> func_pool_index_;
 };
 
 CodeGen::CodeGen()

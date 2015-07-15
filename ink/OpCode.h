@@ -12,7 +12,7 @@ register based instruction modeling lua byte code.
 instructions are all 4 byte long, 3 address code
 */
 
-enum InkOpCode
+enum OpCode
 {
     OP_NOP,
     OP_MOV,
@@ -26,7 +26,7 @@ enum InkOpCode
     OP_JMP,
     OP_EQ,
     OP_LT,
-    OP_GT,
+    OP_LE, // less equal
     OP_TEST,
     OP_CALL,
     OP_RET,

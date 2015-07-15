@@ -31,7 +31,8 @@ static const std::unordered_map<std::string, TokenType> g_keyword_m =
     {"self", TOK_SELF}, {"extern", TOK_EXT}, {"if", TOK_IF},
     {"while", TOK_WHILE}, {"for", TOK_FOR}, {"in", TOK_IN},
     {"else", TOK_ELSE}, {"elif", TOK_ELIF}, {"local", TOK_LOCAL},
-    {"true", TOK_BOOL}, {"false", TOK_BOOL}
+    {"true", TOK_BOOL}, {"false", TOK_BOOL}, {"global", TOK_GLOBAL},
+    {"nil", ToK_NIL},
 };
 
 TokenType Lexer::ExtractToken()
