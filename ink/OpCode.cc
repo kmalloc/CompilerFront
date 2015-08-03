@@ -56,6 +56,7 @@ struct CodeFunc
     std::vector<std::string> var_pool_;
 
     std::vector<CodeFunc> sub_func_;
+    // function name to index of sub_func_
     std::unordered_map<std::string, size_t> sub_func_index_;
 };
 
@@ -120,7 +121,7 @@ class AstWalker: public VisitorBase
 
         virtual void Visit(AstStringExp* node)
         {
-            auto& v = node->GetValue();
+            const auto& v = node->GetValue();
             auto it = str_pool_index_.find(v);
             if (it != str_pool_index_.end()) return;
 
@@ -131,7 +132,7 @@ class AstWalker: public VisitorBase
 
         virtual void Visit(AstVarExp* v)
         {
-            auto& name = v->GetName();
+            const auto& name = v->GetName();
             auto& var = s_func_.top()->var_pool_;
 
             auto it = std::find(var.begin(), var.end(), name);
@@ -172,8 +173,8 @@ class AstWalker: public VisitorBase
 
         virtual void Visit(AstFuncProtoExp* f)
         {
-            auto& name = f->GetName();
-            auto& params = f->GetParams();
+            const auto& name = f->GetName();
+            const auto& params = f->GetParams();
 
             auto cur_func = s_func_.top();
             auto& func_pool = cur_func->sub_func_;
@@ -183,8 +184,7 @@ class AstWalker: public VisitorBase
             if (it != func_pool_index.end())
             {
                 auto ind = it->second;
-                auto& func = func_pool[ind];
-
+                const auto& func = func_pool[ind];
                 if (func.params_ == params) return;
 
                 ReportError(f, std::string("redefinition of function:") + name);
@@ -201,8 +201,8 @@ class AstWalker: public VisitorBase
             auto proto = f->GetProto();
             proto->Accept(*this);
 
-            auto& name = proto->GetName();
-            auto& params = proto->GetParams();
+            const auto& name = proto->GetName();
+            const auto& params = proto->GetParams();
 
             auto cur_func = s_func_.top();
             auto pos = cur_func->sub_func_.size();

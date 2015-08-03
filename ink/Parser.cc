@@ -37,12 +37,12 @@ AstBasePtr Parser::ReportError(const char* msg)
         << ", val(string):" << lex_.GetStringVal() << std::endl;
     oss << "parsing stop at:" << lex_.GetCurCharPos() << std::endl;
 
-    return AstErrInfoPtr(new AstErrInfo(oss.str()));
+    return std::make_shared<AstErrInfo>(oss.str());
 }
 
 AstBasePtr Parser::ParseIntExp()
 {
-    AstBasePtr ret(new AstIntExp(lex_.GetIntVal()));
+    auto ret = std::make_shared<AstIntExp>(lex_.GetIntVal());
     lex_.ConsumeCurToken();
     return ret;
 }
@@ -50,14 +50,14 @@ AstBasePtr Parser::ParseIntExp()
 AstBasePtr Parser::ParseBoolExp()
 {
     bool val = ("true" == lex_.GetStringVal());
-    AstBasePtr ret(new AstBoolExp(val));
+    auto ret = std::make_shared<AstBoolExp>(val);
     lex_.ConsumeCurToken();
     return ret;
 }
 
 AstBasePtr Parser::ParseFloatExp()
 {
-    AstBasePtr ret(new AstFloatExp(lex_.GetFloatVal()));
+    auto ret = std::make_shared<AstFloatExp>(lex_.GetFloatVal());
     lex_.ConsumeCurToken();
     return ret;
 }
@@ -91,7 +91,7 @@ AstBasePtr Parser::ParseStringExp()
         return ReportError("invalid string literal");
     }
 
-    AstBasePtr ret(new AstStringExp(lex_.GetStringVal()));
+    auto ret = std::make_shared<AstStringExp>(lex_.GetStringVal());
     lex_.ConsumeCurToken();
     return ret;
 }
@@ -152,7 +152,8 @@ AstBasePtr Parser::ParseFuncProtoExp()
 
     // consume ')'
     lex_.ConsumeCurToken();
-    AstBasePtr ret(new AstFuncProtoExp(std::move(name), std::move(args)));
+    auto ret = std::make_shared<AstFuncProtoExp>(
+            std::move(name), std::move(args));
 
     ret->SetLocation(file_, line);
     return ret;
@@ -169,7 +170,7 @@ AstBasePtr Parser::ParseFuncDefExp()
     auto body = ParseScopeStatement();
     if (IsError(body)) return body;
 
-    return AstBasePtr(new AstFuncDefExp(proto, body));
+    return std::make_shared<AstFuncDefExp>(proto, body);
 }
 
 AstBasePtr Parser::ParseFuncCallExp(std::string name)
@@ -199,7 +200,8 @@ AstBasePtr Parser::ParseFuncCallExp(std::string name)
 
     // consume ')'
     lex_.ConsumeCurToken();
-    AstBasePtr ret(new AstFuncCallExp(std::move(name), std::move(args)));
+    auto ret = std::make_shared<AstFuncCallExp>(
+            std::move(name), std::move(args));
 
     ret->SetLocation(file_, line);
     return ret;
@@ -238,7 +240,7 @@ AstBasePtr Parser::ParseArrayExp()
     }
 
     lex_.ConsumeCurToken();
-    return AstBasePtr(new AstArrayExp(elem));
+    return std::make_shared<AstArrayExp>(elem);
 }
 
 AstBasePtr Parser::ParseArrIndexExp(std::string name)
@@ -252,7 +254,7 @@ AstBasePtr Parser::ParseArrIndexExp(std::string name)
     }
 
     lex_.ConsumeCurToken();
-    return AstBasePtr(new AstArrayIndexExp(std::move(name), index));
+    return std::make_shared<AstArrayIndexExp>(std::move(name), index);
 }
 
 AstBasePtr Parser::ParseIdentifierExp()
@@ -264,7 +266,7 @@ AstBasePtr Parser::ParseIdentifierExp()
     TokenType tok = lex_.GetCurToken();
     if (tok != TOK_PAREN_LEFT && tok != TOK_BRACKET_LEFT)
     {
-        return AstBasePtr(new AstVarExp(name));
+        return std::make_shared<AstVarExp>(name);
     }
 
     // consume '(' or '['
@@ -284,7 +286,7 @@ AstBasePtr Parser::ParseUaryExp(TokenType op)
     AstBasePtr arg = ParsePrimary();
     if (IsError(arg)) return arg;
 
-    return AstBasePtr(new AstUnaryExp(op, arg));
+    return std::make_shared<AstUnaryExp>(op, arg);
 }
 
 AstBasePtr Parser::ParseBinaryExp(int prev_prec, const AstBasePtr& arg)
@@ -309,7 +311,7 @@ AstBasePtr Parser::ParseBinaryExp(int prev_prec, const AstBasePtr& arg)
             if (IsError(rhs)) return rhs;
         }
 
-        lhs = AstBasePtr(new AstBinaryExp(bin_op, lhs, rhs));
+        lhs = std::make_shared<AstBinaryExp>(bin_op, lhs, rhs);
     }
 
     return AstBasePtr();
@@ -337,7 +339,7 @@ AstBasePtr Parser::ParseFuncRetExp()
     lex_.ConsumeCurToken();
     AstBasePtr val = ParseExpression();
 
-    AstBasePtr ret(new AstRetExp(val));
+    auto ret = std::make_shared<AstRetExp>(val);
 
     ret->SetLocation(file_, line);
     return ret;
@@ -394,7 +396,7 @@ AstBasePtr Parser::ParseIfExp()
 
     } while (lex_.GetCurToken() == TOK_ELIF || lex_.GetCurToken() == TOK_ELSE);
 
-    return AstBasePtr(new AstIfExp(exe));
+    return std::make_shared<AstIfExp>(exe);
 }
 
 AstScopeStatementExpPtr Parser::ParseScopeStatement()
@@ -425,7 +427,7 @@ AstScopeStatementExpPtr Parser::ParseScopeStatement()
     }
 
     lex_.ConsumeCurToken();
-    return AstScopeStatementExpPtr(new AstScopeStatementExp(std::move(exps)));
+    return std::make_shared<AstScopeStatementExp>(std::move(exps));
 }
 
 AstBasePtr Parser::ParseWhileExp()
@@ -449,7 +451,7 @@ AstBasePtr Parser::ParseWhileExp()
     auto body = ParseScopeStatement();
     if (IsError(body)) return body;
 
-    return AstBasePtr(new AstWhileExp(cond, body));
+    return std::make_shared<AstWhileExp>(cond, body);
 }
 
 AstBasePtr Parser::ParseForExp()
@@ -471,7 +473,7 @@ AstBasePtr Parser::ParseForExp()
     auto body = ParseScopeStatement();
     if (IsError(body)) return body;
 
-    return AstForExpPtr(new AstForExp(var, arr, body));
+    return std::make_shared<AstForExp>(var, arr, body);
 }
 
 AstBasePtr Parser::ParsePrimary()
