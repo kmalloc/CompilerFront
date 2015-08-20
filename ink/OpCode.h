@@ -44,7 +44,7 @@ enum OpCode
     OP_NOT,
     OP_OR,
     OP_XOR,
-    OP_ADN,
+    OP_AND,
     OP_SHL,
     OP_SHR,
     OP_INV, //~

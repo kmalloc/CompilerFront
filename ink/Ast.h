@@ -9,6 +9,8 @@
 #include <vector>
 #include <memory>
 
+#define DefSharedPtr(T) typedef std::shared_ptr<T> T##Ptr
+
 namespace ink {
 
 enum AstType
@@ -42,7 +44,7 @@ class ValueNode
     public:
         virtual int GetValue() = 0;
 };
-typedef std::shared_ptr<ValueNode> ValueNodePtr;
+DefSharedPtr(ValueNode);
 
 class AstBase: noncopyable
 {
@@ -71,7 +73,7 @@ class AstBase: noncopyable
         int line_;
         std::string file_;
 };
-typedef std::shared_ptr<AstBase> AstBasePtr;
+DefSharedPtr(AstBase);
 
 // TODO, sink parameter for c++11
 class AstErrInfo: public AstBase
@@ -96,7 +98,7 @@ class AstErrInfo: public AstBase
     private:
         std::string err_;
 };
-typedef std::shared_ptr<AstErrInfo> AstErrInfoPtr;
+DefSharedPtr(AstErrInfo);
 
 bool AstBase::IsError() const { return dynamic_cast<const AstErrInfo*>(this); }
 
