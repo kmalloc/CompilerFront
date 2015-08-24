@@ -1,5 +1,6 @@
 #include "OpCode.h"
 #include "Lexer.h"
+#include "Types.h"
 #include "AstVisitor.h"
 
 #include <stack>
@@ -26,13 +27,6 @@ constexpr uint32_t InsBPos() { return 9; }
 constexpr uint32_t InsCPos() { return 0; }
 constexpr uint32_t InsOpPos() { return 26; }
 constexpr uint32_t MaxConstPoolNum() { return (1 << InsOpSize()) - 1; }
-
-
-// table impl mimics that in lua
-struct Table
-{
-    std::unordered_map<std::string, void*> map_;
-};
 
 struct CodeVar
 {
@@ -191,6 +185,13 @@ class AstWalker: public VisitorBase
             return i | (1 << InsOpASize());
         }
 
+        size_t AddTable(Table* t)
+        {
+            // TODO
+            (void)t;
+            return 0xffff;
+        }
+
         size_t AddVar(const std::string& name)
         {
             auto i = 0xffffu;
@@ -323,7 +324,31 @@ class AstWalker: public VisitorBase
             CreateBinInstruction(op, ret, l_rdx, r_rdx);
         }
 
-        virtual void Visit(AstArrayExp*) {}
+        std::unique_ptr<Table> CreateTable(const std::vector<Value>& vs)
+        {
+            //TODO
+            (void)vs;
+
+            return std::unique_ptr<Table>();
+        }
+
+        virtual void Visit(AstArrayExp* exp)
+        {
+            std::vector<Value> vs;
+            const auto& arr = exp->GetArray();
+
+            vs.reserve(arr.size());
+            for (auto& p: arr)
+            {
+                Value v;
+                p->Accept(*this);
+                vs.push_back(v);
+            }
+
+            std::unique_ptr<Table> t = CreateTable(vs);
+            AddTable(t.get());
+        }
+
         virtual void Visit(AstArrayIndexExp*) {}
 
         virtual void Visit(AstUnaryExp*) {}

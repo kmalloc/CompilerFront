@@ -48,6 +48,9 @@ enum OpCode
     OP_SHL,
     OP_SHR,
     OP_INV, //~
+
+    OP_NEW_TABLE, // create table
+    OP_SET_TABLE, // set table
 };
 
 class CodeGen
