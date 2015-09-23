@@ -8,3 +8,6 @@ tags
 count.sh
 testRegExp
 testRegExp.bak
+.idea
+build
+

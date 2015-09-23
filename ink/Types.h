@@ -16,7 +16,7 @@ struct Value
         void* p_; // table??
         double f_;
         int64_t i_;
-    } v_;
+    } v_; // or anonymous union?
 
     ObjType type_;
 };
