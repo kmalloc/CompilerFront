@@ -1,8 +1,6 @@
 #ifndef COMPILERFRONT_THREADPOOL_H
 #define COMPILERFRONT_THREADPOOL_H
 
-#include "Basic/NonCopyable.h"
-
 #include <deque>
 #include <vector>
 #include <functional>
@@ -81,7 +79,7 @@ namespace xthread {
         std::deque<task_t> tasks_;
     };
 
-    class ThreadPool : NonCopyable
+    class ThreadPool
     {
     public:
         ThreadPool()
@@ -149,6 +147,9 @@ namespace xthread {
                 fun();
             }
         }
+
+        ThreadPool(const ThreadPool&) = delete;
+        ThreadPool& operator=(const ThreadPool&) = delete;
 
     private:
         int thread_num_;
