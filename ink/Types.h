@@ -5,19 +5,28 @@
 
 enum ObjType
 {
+    OT_STR,
+    OT_FLOAT,
+    OT_INT,
+    OT_NONE,
 };
 
 //  gc object
-struct Value
+class Value
 {
+public:
+    Value(): type_(OT_NONE) {}
+
+private:
     union V
     {
         char* s_;
         void* p_; // table??
         double f_;
         int64_t i_;
-    } v_; // or anonymous union?
+    }; // anonymous union
 
+    // discriminated union
     ObjType type_;
 };
 

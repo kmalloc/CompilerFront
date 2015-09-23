@@ -328,7 +328,6 @@ class AstWalker: public VisitorBase
         {
             //TODO
             (void)vs;
-
             return std::unique_ptr<Table>();
         }
 
