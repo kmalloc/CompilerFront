@@ -139,14 +139,14 @@ namespace xthread {
         {
             static_assert(IsFunctor<T, task_t>::value, "invalid function type for the thread pool.");
 
-            ++sel_;
+            auto sel = sel_++;
             for (auto i = 0; i < thread_num_; ++i)
             {
-                auto& q = queue_[(i + sel_) % thread_num_];
+                auto& q = queue_[(i + sel) % thread_num_];
                 if (q.TryPush(std::forward<T>(f))) return true;
             }
 
-            return queue_[0].Push(std::forward<T>(f));
+            return queue_[sel].Push(std::forward<T>(f));
         }
 
         bool CloseThread(bool gracefully)
@@ -229,7 +229,7 @@ namespace xthread {
         ThreadPool& operator=(const ThreadPool&) = delete;
 
     private:
-        int thread_num_;
+        const int thread_num_;
         std::atomic<int> sel_{-1};
         std::atomic<bool> done_{false};
         std::vector<std::atomic<bool>> run_;
