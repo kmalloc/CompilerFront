@@ -124,7 +124,7 @@ namespace xthread {
         }
 
         explicit ThreadPool(int threadnum)
-            : run_(threadnum), queue_(threadnum), thread_num_(threadnum)
+            : thread_num_(threadnum), run_(threadnum), queue_(threadnum)
         {
             threads_.reserve(threadnum);
         }
@@ -139,7 +139,7 @@ namespace xthread {
         {
             static_assert(IsFunctor<T, task_t>::value, "invalid function type for the thread pool.");
 
-            auto sel = sel_++;
+            const int sel = sel_++;
             for (auto i = 0; i < thread_num_; ++i)
             {
                 auto& q = queue_[(i + sel) % thread_num_];
@@ -166,12 +166,12 @@ namespace xthread {
         {
             CloseThread(false);
 
-            for (auto i = 0; i < threads_.size(); ++i)
+            for (auto i = 0u; i < threads_.size(); ++i)
             {
                 threads_[i].join();
             }
 
-            for (auto i = 0; i < queue_.size(); ++i)
+            for (auto i = 0u; i < queue_.size(); ++i)
             {
                 queue_[i].Clear();
             }
