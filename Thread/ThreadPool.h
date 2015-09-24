@@ -14,6 +14,19 @@ namespace xthread {
 
     typedef std::function<void()> task_t;
 
+    template <typename T, typename F>
+    struct IsFunctor
+    {
+        typedef char small;
+        struct big { char d[2]; };
+
+        static T GetDummyT();
+        static big  test(...);
+        static small test(F&&);
+
+        enum { value = sizeof(test(GetDummyT())) == sizeof(small) };
+    };
+
     class TaskQueue
     {
     public:
@@ -24,10 +37,18 @@ namespace xthread {
             tasks_.clear();
         }
 
+        size_t GetTaskNum() const
+        {
+            std::unique_lock<std::mutex> lock(m_);
+            return tasks_.size();
+        }
+
         bool Pop(task_t& f)
         {
             std::unique_lock<std::mutex> lock(m_);
-            while (tasks_.empty()) cv_.wait(lock);
+            while (!exit_ && tasks_.empty()) cv_.wait(lock);
+
+            if (exit_) return false;
 
             f = std::move(tasks_.front());
             tasks_.pop_front();
@@ -45,7 +66,6 @@ namespace xthread {
             return true;
         }
 
-        // TODO: type check
         template<typename T>
         bool Push(T&& f)
         {
@@ -59,10 +79,25 @@ namespace xthread {
         }
 
         template<typename T>
+        bool PushExitTask(T&& f, bool linger)
+        {
+            {
+                std::unique_lock<std::mutex> lock{m_};
+                if (!linger) tasks_.clear();
+
+                exit_ = true;
+                tasks_.emplace_back(std::move(f));
+            }
+
+            cv_.notify_one();
+            return true;
+        }
+
+        template<typename T>
         bool TryPush(T&& f)
         {
             {
-                std::unique_lock lock{m_, std::try_to_lock};
+                std::unique_lock<std::mutex> lock{m_, std::try_to_lock};
                 if (!lock) return false;
 
                 tasks_.emplace_back(std::forward<T>(f));
@@ -73,7 +108,8 @@ namespace xthread {
         }
 
     private:
-        std::mutex m_;
+        bool exit_ = false;
+        mutable std::mutex m_;
         std::condition_variable cv_;
 
         std::deque<task_t> tasks_;
@@ -85,36 +121,59 @@ namespace xthread {
         ThreadPool()
             : ThreadPool(std::thread::hardware_concurrency())
         {
-
         }
 
         explicit ThreadPool(int threadnum)
-            : queue_(threadnum), thread_num_(threadnum)
+            : run_(threadnum), queue_(threadnum), thread_num_(threadnum)
         {
             threads_.reserve(threadnum);
+        }
+
+        ~ThreadPool()
+        {
+            Shutdown();
         }
 
         template <typename T>
         bool PushTask(T&& f)
         {
-            for (auto& q: queue_)
+            static_assert(IsFunctor<T, task_t>::value, "invalid function type for the thread pool.");
+
+            ++sel_;
+            for (auto i = 0; i < thread_num_; ++i)
             {
-               if (q.TryPush(std::forward<T>(f))) return true;
+                auto& q = queue_[(i + sel_) % thread_num_];
+                if (q.TryPush(std::forward<T>(f))) return true;
             }
 
             return queue_[0].Push(std::forward<T>(f));
         }
 
+        bool CloseThread(bool gracefully)
+        {
+            if (done_) return false;
+
+            done_ = true;
+            for (auto i = 0; i < thread_num_; ++i)
+            {
+                queue_[i].PushExitTask([&]() { run_[i]  = false; }, gracefully);
+            }
+
+            return true;
+        }
+
         void Shutdown()
         {
-            if (threads_.empty()) return;
+            CloseThread(false);
 
-            // TODO: need to impl shutdown of thread.
-            // current impl will block on empty queue.
-            done_ = true;
-            for (auto i = 0; i < threadnum; ++i)
+            for (auto i = 0; i < threads_.size(); ++i)
             {
                 threads_[i].join();
+            }
+
+            for (auto i = 0; i < queue_.size(); ++i)
+            {
+                queue_[i].Clear();
             }
 
             threads_.clear();
@@ -122,17 +181,32 @@ namespace xthread {
 
         void StartWorking()
         {
-            for (auto i = 0; i < threadnum; ++i)
+            sel_ = -1; done_ = false;
+            for (auto i = 0; i < thread_num_; ++i)
             {
-                threads_.emplace_back([&]() { Entry(i); });
+                run_[i] = true;
+                threads_.emplace_back([&, i]() { Entry(i); });
             }
+        }
+
+        std::vector<size_t> GetTaskNum() const
+        {
+            std::vector<size_t> num;
+
+            num.reserve(thread_num_);
+            for (const auto& q: queue_)
+            {
+                num.push_back(q.GetTaskNum());
+            }
+
+            return num;
         }
 
     private:
         void Entry(int id)
         {
             // the i-th thread.
-            while (true)
+            while (run_[id])
             {
                 task_t fun;
 
@@ -142,10 +216,13 @@ namespace xthread {
                     if (queue_[(id + i)%thread_num_].TryPop(fun)) break;
                 }
 
-                if (!fun && !queue_[id].Pop(fun)) return;
+                if (!fun && !queue_[id].Pop(fun)) break;
 
                 fun();
             }
+
+            // log the exit??
+            // std::cout << "thread " << id << " exiting\n";
         }
 
         ThreadPool(const ThreadPool&) = delete;
@@ -153,7 +230,9 @@ namespace xthread {
 
     private:
         int thread_num_;
-        std::atomic<bool> done_ = false;
+        std::atomic<int> sel_{-1};
+        std::atomic<bool> done_{false};
+        std::vector<std::atomic<bool>> run_;
         std::vector<TaskQueue> queue_;
         std::vector<std::thread> threads_;
     };
