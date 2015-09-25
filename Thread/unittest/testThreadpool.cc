@@ -49,6 +49,8 @@ TEST(test_xthread, test_basic_thread)
     }
 
     pool.CloseThread(true);
+    pool.Shutdown();
+
     ASSERT_EQ(1024, s);
 }
 
@@ -173,3 +175,95 @@ TEST(test_xthread, test_exiting_pool)
     ASSERT_EQ(30, v3);
     ASSERT_EQ(40, v4);
 }
+
+TEST(test_xthread, performance_test)
+{
+    ThreadPool pool;
+    pool.StartWorking();
+
+    auto t1 = [&]() { int i = 0; while (i < 100000) { ++i; } };
+    auto t2 = [&]() { int i = 0; while (i < 100000) { ++i; } };
+
+    std::mutex m1, m2, m3;
+    bool f1 = false, f2 = false, f3 = false;
+
+    auto th1 = [&]()
+    {
+        while (1)
+        {
+            pool.PushTask(t1);
+            std::this_thread::sleep_for(std::chrono::milliseconds(10));
+            std::unique_lock<std::mutex> lock{m1};
+            if (f1) break;
+        }
+    };
+
+    auto th2 = [&]()
+    {
+        while (1)
+        {
+            pool.PushTask(t2);
+            std::this_thread::yield();
+            // std::this_thread::sleep_for(std::chrono::milliseconds(10));
+            std::unique_lock<std::mutex> lock{m2};
+            if (f2) break;
+        }
+    };
+
+    auto th3 = [&]()
+    {
+        while (1)
+        {
+            pool.PushTask(t2);
+            std::this_thread::yield();
+            // std::this_thread::sleep_for(std::chrono::milliseconds(10));
+            std::unique_lock<std::mutex> lock{m3};
+            if (f3) break;
+        }
+    };
+
+    std::thread thread1(th1), thread2(th2), thread3(th3);
+
+    std::this_thread::sleep_for(std::chrono::seconds(2));
+
+    {
+        std::unique_lock<std::mutex> lock{m1};
+        f1 = true;
+    }
+
+    {
+        std::unique_lock<std::mutex> lock{m2};
+        f2 = true;
+    }
+
+    {
+        std::unique_lock<std::mutex> lock{m3};
+        f3 = true;
+    }
+
+    thread1.join();
+    thread2.join();
+    thread3.join();
+
+    std::cout << "\nnow waitting for all the tasks to finish, there are "
+              << pool.GetThreadNum() << " workers working on it, "
+              << "but it is still going to take long.\n" << std::endl;
+
+    while (1)
+    {
+        int all = 0;
+        auto num = pool.GetTaskNum();
+        for (auto i: num)
+        {
+            all += i;
+        }
+
+        if (!all) break;
+
+        std::cout << "(" << all << ") tasks remaining." << std::endl;
+        std::this_thread::sleep_for(std::chrono::milliseconds(400));
+    }
+
+    pool.CloseThread(true);
+}
+

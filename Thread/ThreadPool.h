@@ -134,12 +134,13 @@ namespace xthread {
             Shutdown();
         }
 
+        // may raise out-of-memory exception.
         template <typename T>
         bool PushTask(T&& f)
         {
             static_assert(IsFunctor<T, task_t>::value, "invalid function type for the thread pool.");
 
-            const int sel = sel_++;
+            const int sel = (sel_++) % thread_num_;
             for (auto i = 0; i < thread_num_; ++i)
             {
                 auto& q = queue_[(i + sel) % thread_num_];
@@ -181,7 +182,7 @@ namespace xthread {
 
         void StartWorking()
         {
-            sel_ = -1; done_ = false;
+            sel_ = 0; done_ = false;
             for (auto i = 0; i < thread_num_; ++i)
             {
                 run_[i] = true;
@@ -201,6 +202,8 @@ namespace xthread {
 
             return num;
         }
+
+        int GetThreadNum() const { return thread_num_; }
 
     private:
         void Entry(int id)
@@ -230,7 +233,7 @@ namespace xthread {
 
     private:
         const int thread_num_;
-        std::atomic<int> sel_{-1};
+        std::atomic<int> sel_{0};
         std::atomic<bool> done_{false};
         std::vector<std::atomic<bool>> run_;
         std::vector<TaskQueue> queue_;
