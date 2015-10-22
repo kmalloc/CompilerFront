@@ -7,6 +7,7 @@
 
 #include <functional>
 
+
 struct ForDestroy
 {
     ForDestroy(std::function<void(void)> fun)
@@ -25,6 +26,7 @@ struct ForDestroy
 
     std::function<void(void)> fun_;
 };
+
 
 TEST(ink_test_suit, test_invariant)
 {

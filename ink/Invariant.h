@@ -122,9 +122,7 @@ private:
 
     template <typename ...TS2> struct TryRelease
     {
-        static void Destroy(unsigned char* p, std::size_t id)
-        {
-        }
+        static void Destroy(unsigned char* p, std::size_t id) {}
     };
 
     template <typename T2, typename ...TS2>
