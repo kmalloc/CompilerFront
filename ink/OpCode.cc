@@ -260,7 +260,7 @@ class AstWalker: public VisitorBase
             return tmpRes_;
         }
 
-        // op: 6 bits out: 8 bits l: 9 bits r: 9 bits
+        // op: 6 bits, out: 8 bits, l: 9 bits, r: 9 bits
         // highest bit of l and r indicates whether it is const
         void CreateBinInstruction(OpCode op,
                 uint32_t out, uint32_t l, uint32_t r)

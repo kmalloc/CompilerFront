@@ -3,8 +3,8 @@ set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11")
 include_directories(.. ../..)
 
 set(INK_TEST_FILES
-    testLex.cc
-    testParser.cc)
+        testLex.cc
+        testParser.cc testInvariant.cpp)
 
 link_directories(..)
 add_executable(ink_unittest ${INK_TEST_FILES})
