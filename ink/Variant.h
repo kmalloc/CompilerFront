@@ -46,7 +46,6 @@ struct ExtractType<k, T, TS...>
     using type = typename ExtractType<k - 1, TS...>::type;
 };
 
-
 // get max size of type
 template <typename ...TS> struct TypeMaxSize;
 
@@ -73,6 +72,27 @@ public:
     {
     }
 
+    Variant(const Variant<TS...>& other)
+    {
+        type_ = other.type_;
+        if (other.type_ == 0) return;
+
+        ConstructType<TS...>::Construct(data_, type_);
+    }
+
+    Variant(Variant<TS...>&& other)
+    {
+        if (this == &other) return;
+
+        // TODO, check if other is movable.
+
+        Release();
+        if (other.type_ == 0) return;
+
+        type_ = other.type_;
+        MoveTypeObj<TS...>::Move(other.data_, data_, type_);
+    }
+
     template <typename T>
     Variant(T&& v)
         : type_(TypeExist<T, TS...>::id)
@@ -92,9 +112,25 @@ public:
         type_ = static_cast<std::size_t>(TypeExist<T, TS...>::id);
     }
 
+    Variant& operator=(const Variant<TS...>& other)
+    {
+        // TODO
+    }
+
+    Variant& operator=(Variant<TS...>&& other)
+    {
+        // TODO
+    }
+
     ~Variant()
     {
         Release();
+    }
+
+    template <typename T, typename ...TS2>
+    void EmplaceSet(TS2... arg)
+    {
+        // TODO
     }
 
     template <typename T>
@@ -146,7 +182,61 @@ private:
     void Release()
     {
         TryRelease<TS...>::Destroy(data_, type_);
+        type_ = 0;
     }
+
+
+    template <typename ...TS2>
+    struct ConstructType
+    {
+       static void Construct(unsigned char* p, std::size_t id) {}
+    };
+
+    template <typename T, typename ...TS2>
+    struct ConstructType<T, TS2...>
+    {
+        static void Construct(unsigned char* p, std::size_t id)
+        {
+            if (id == 0) return;
+
+            if (id > 1)
+            {
+                ConstructType<TS2...>::Construct(p, id - 1);
+            }
+            else
+            {
+                new(p) T();
+            }
+        }
+    };
+
+    template <typename ...TS2>
+    struct MoveTypeObj
+    {
+        static void Move(unsigned char* f, unsigned char* p, std::size_t id) {}
+    };
+
+    template <typename T, typename ...TS2>
+    struct MoveTypeObj<T, TS2...>
+    {
+        static void Move(unsigned char* f, unsigned char* p, std::size_t id)
+        {
+            if (id == 0) return;
+
+            if (id > 1)
+            {
+                MoveTypeObj<TS2...>::Move(f, p, id - 1);
+            }
+            else
+            {
+                T* tp = new(p) T();
+                T* fp = reinterpret_cast<T*>(f);
+
+                *tp = std::move(*fp);
+            }
+        }
+    };
+
 
 private:
     std::size_t type_;

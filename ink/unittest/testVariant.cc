@@ -31,6 +31,11 @@ struct ForDestroy
 
 TEST(ink_test_suit, test_invariant)
 {
+    // TODO:
+    // 1. test alignment.
+    // 2. test move semantic.
+    // 3. test copy construct.
+
     Variant<int, double> v1(32);
     ASSERT_EQ(1, v1.GetType());
     ASSERT_EQ(32, v1.GetRef<int>());
