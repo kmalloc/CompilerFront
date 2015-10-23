@@ -65,16 +65,16 @@ struct TypeMaxSize<T, TS...>
 };
 
 template <typename ...TS>
-class Invariant
+class Variant
 {
 public:
-    Invariant()
+    Variant()
         : type_(0)
     {
     }
 
     template <typename T>
-    Invariant(T&& v)
+    Variant(T&& v)
         : type_(TypeExist<T, TS...>::id)
     {
         static_assert(TypeExist<T, TS...>::exist, "invalid type for invariant.");
@@ -83,7 +83,7 @@ public:
     }
 
     template <typename T>
-    Invariant& operator=(T&& v)
+    Variant& operator=(T&& v)
     {
         static_assert(TypeExist<T, TS...>::exist, "invalid type for invariant.");
 
@@ -92,7 +92,7 @@ public:
         type_ = static_cast<std::size_t>(TypeExist<T, TS...>::id);
     }
 
-    ~Invariant()
+    ~Variant()
     {
         Release();
     }
@@ -132,7 +132,7 @@ private:
         {
             if (id == 0) return;
 
-            if (id >= 1)
+            if (id > 1)
             {
                 TryRelease<TS2...>::Destroy(p, id - 1);
             }
