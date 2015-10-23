@@ -5,6 +5,7 @@
 #include "gtest/gtest.h"
 #include "Variant.h"
 
+#include <string>
 #include <functional>
 
 
@@ -25,17 +26,13 @@ struct ForDestroy
         if (fun_) fun_();
     }
 
+    char data[1029];
     std::function<void(void)> fun_;
 };
 
 
-TEST(ink_test_suit, test_invariant)
+TEST(ink_test_suit, test_invariant_basic)
 {
-    // TODO:
-    // 1. test alignment.
-    // 2. test move semantic.
-    // 3. test copy construct.
-
     Variant<int, double> v1(32);
     ASSERT_EQ(1, v1.GetType());
     ASSERT_EQ(32, v1.GetRef<int>());
@@ -73,3 +70,117 @@ TEST(ink_test_suit, test_invariant)
     ASSERT_EQ(1, v4.GetType());
     ASSERT_EQ(21, tag);
 }
+
+
+struct ForMove
+{
+    explicit ForMove(int res)
+        : res_(res)
+    {
+
+    }
+
+    ForMove(const ForMove& v) = default;
+
+    ForMove(ForMove&& v)
+    {
+        res_ = v.res_;
+        v.res_ = 0;
+    }
+
+    ForMove& operator=(const ForMove& v)
+    {
+        if (this == &v) return *this;
+
+        res_ = v.res_;
+        return *this;
+    }
+
+    ForMove& operator=(ForMove&& v)
+    {
+        if (this == &v) return *this;
+
+        res_ = v.res_;
+        v.res_ = 0;
+
+        return *this;
+    }
+
+    int GetRes() const { return res_; }
+
+private:
+
+    int res_;
+};
+
+TEST(ink_test_suit, test_invariant_internal)
+{
+    // 1. test alignment.
+    // 2. test move semantic.
+    // 3. test copy construct.
+
+    Variant<int, double> v(232.3);
+    ASSERT_EQ(alignof(double), v.GetSize());
+
+    Variant<int, double, std::string, ForDestroy> v2(2);
+    ASSERT_EQ(alignof(ForDestroy), v2.GetSize());
+
+    // test copy
+
+    Variant<int, std::string> v3;
+    v3.EmplaceSet<std::string>("wwww");
+
+    ASSERT_STREQ("wwww", v3.Get<std::string>()->c_str());
+
+    v3.EmplaceSet<std::string>(4, 'c');
+    ASSERT_STREQ("cccc", v3.Get<std::string>()->c_str());
+
+    Variant<int, std::string> v4(v3);
+    ASSERT_EQ(2, v4.GetType());
+    ASSERT_STREQ("cccc", v4.Get<std::string>()->c_str());
+
+    Variant<int, std::string> v5 = v3;
+    ASSERT_EQ(2, v5.GetType());
+    ASSERT_STREQ("cccc", v5.Get<std::string>()->c_str());
+
+    v3 = 32;
+    v5 = v3;
+    ASSERT_EQ(1, v5.GetType());
+    ASSERT_EQ(32, v5.GetRef<int>());
+
+    // test move
+
+    Variant<int, ForMove> v6(ForMove(23));
+    ASSERT_EQ(23, v6.GetRef<ForMove>().GetRes());
+
+    ForMove fm(42);
+    v6 = std::move(fm);
+
+    ASSERT_EQ(0, fm.GetRes());
+    ASSERT_EQ(42, v6.GetRef<ForMove>().GetRes());
+
+    Variant<int, ForMove> v7(v6);
+    ASSERT_EQ(42, v6.GetRef<ForMove>().GetRes());
+    ASSERT_EQ(42, v7.GetRef<ForMove>().GetRes());
+
+    Variant<int, ForMove> v8 = v6;
+    ASSERT_EQ(42, v6.GetRef<ForMove>().GetRes());
+    ASSERT_EQ(42, v8.GetRef<ForMove>().GetRes());
+
+    Variant<int, ForMove> v9(std::move(v6));
+    ASSERT_EQ(0, v6.GetRef<ForMove>().GetRes());
+    ASSERT_EQ(42, v9.GetRef<ForMove>().GetRes());
+
+    Variant<int, ForMove> v10 = std::move(v7);
+    ASSERT_EQ(0, v7.GetRef<ForMove>().GetRes());
+    ASSERT_EQ(42, v10.GetRef<ForMove>().GetRes());
+
+    v7 = v8;
+    ASSERT_EQ(42, v7.GetRef<ForMove>().GetRes());
+    ASSERT_EQ(42, v8.GetRef<ForMove>().GetRes());
+
+    v8 = std::move(v10);
+    ASSERT_EQ(42, v8.GetRef<ForMove>().GetRes());
+    ASSERT_EQ(0, v10.GetRef<ForMove>().GetRes());
+}
+

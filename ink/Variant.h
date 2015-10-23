@@ -6,6 +6,7 @@
 #define COMPILERFRONT_INVARIANT_H
 
 #include <algorithm>
+#include <type_traits>
 
 
 // check if a type exists in the variadic type list
@@ -72,13 +73,23 @@ public:
     {
     }
 
+    template <typename T, typename D = typename std::enable_if<
+            !std::is_same<typename std::remove_reference<T>::type, Variant<TS...>>::value>::type>
+    Variant(T&& v)
+        : type_(TypeExist<T, TS...>::id)
+    {
+        static_assert(TypeExist<T, TS...>::exist, "invalid type for invariant.");
+
+        new(data_) T(std::forward<T>(v));
+    }
+
     Variant(const Variant<TS...>& other)
     {
         type_ = other.type_;
         if (other.type_ == 0) return;
 
         // TODO, check if other is copyable.
-        ConstructType<TS...>::Construct(data_, type_);
+        ConstructType<TS...>::Copy(other.data_, data_, type_);
     }
 
     Variant(Variant<TS...>&& other)
@@ -94,16 +105,8 @@ public:
         MoveTypeObj<TS...>::Move(other.data_, data_, type_);
     }
 
-    template <typename T>
-    Variant(T&& v)
-        : type_(TypeExist<T, TS...>::id)
-    {
-        static_assert(TypeExist<T, TS...>::exist, "invalid type for invariant.");
-
-        new(data_) T(std::forward<T>(v));
-    }
-
-    template <typename T>
+    template <typename T, typename D = typename std::enable_if<
+            !std::is_same<typename std::remove_reference<T>::type, Variant<TS...>>::value>::type>
     Variant& operator=(T&& v)
     {
         static_assert(TypeExist<T, TS...>::exist, "invalid type for invariant.");
@@ -111,16 +114,30 @@ public:
         Release();
         new(data_) T(std::forward<T>(v));
         type_ = static_cast<std::size_t>(TypeExist<T, TS...>::id);
+
+        return *this;
     }
 
     Variant& operator=(const Variant<TS...>& other)
     {
-        // TODO
+        if (this == &other) return *this;
+
+        Release();
+        type_ = other.type_;
+        ConstructType<TS...>::Copy(other.data_, data_, type_);
+
+        return *this;
     }
 
     Variant& operator=(Variant<TS...>&& other)
     {
-        // TODO
+        if (this == &other) return *this;
+
+        Release();
+        type_ = other.type_;
+        MoveTypeObj<TS...>::Move(other.data_, data_, type_);
+
+        return *this;
     }
 
     ~Variant()
@@ -129,9 +146,14 @@ public:
     }
 
     template <typename T, typename ...TS2>
-    void EmplaceSet(TS2... arg)
+    void EmplaceSet(TS2&& ...arg)
     {
-        // TODO
+        static_assert(TypeExist<T, TS...>::exist, "invalid type for invariant.");
+
+        Release();
+
+        type_ = TypeExist<T, TS...>::id;
+        new(data_) T(std::forward<TS2>(arg)...);
     }
 
     template <typename T>
@@ -154,6 +176,7 @@ public:
     }
 
     std::size_t GetType() const { return type_; }
+    std::size_t GetSize() const { return TypeMaxSize<TS...>::value; }
 
 private:
 
@@ -190,23 +213,23 @@ private:
     template <typename ...TS2>
     struct ConstructType
     {
-       static void Construct(unsigned char* p, std::size_t id) {}
+       static void Copy(const unsigned char*, unsigned char*, std::size_t) {}
     };
 
     template <typename T, typename ...TS2>
     struct ConstructType<T, TS2...>
     {
-        static void Construct(unsigned char* p, std::size_t id)
+        static void Copy(const unsigned char* f, unsigned char* p, std::size_t id)
         {
             if (id == 0) return;
 
             if (id > 1)
             {
-                ConstructType<TS2...>::Construct(p, id - 1);
+                ConstructType<TS2...>::Copy(f, p, id - 1);
             }
             else
             {
-                new(p) T();
+                new(p) T(*reinterpret_cast<const T*>(f));
             }
         }
     };
