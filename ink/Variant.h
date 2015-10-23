@@ -230,10 +230,8 @@ private:
             }
             else
             {
-                T* tp = new(p) T();
                 T* fp = reinterpret_cast<T*>(f);
-
-                *tp = std::move(*fp);
+                new(p) T(std::move(*fp));
             }
         }
     };
