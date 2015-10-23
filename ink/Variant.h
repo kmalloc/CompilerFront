@@ -8,7 +8,7 @@
 #include <algorithm>
 
 
-// check if a type exists the variadic types
+// check if a type exists in the variadic type list
 template <typename T, typename ...TS> struct TypeExist;
 
 template <typename T>
@@ -26,7 +26,7 @@ struct TypeExist<T, T2, TS...>
 };
 
 
-// extract type from the variadic types at position k
+// extract type from the variadic type list at position k
 template <std::size_t k, typename ...TS> struct ExtractType;
 
 template <typename T, typename ...TS>
@@ -46,7 +46,7 @@ struct ExtractType<k, T, TS...>
     using type = typename ExtractType<k - 1, TS...>::type;
 };
 
-// get max size of type
+// get the max size of type in the type list
 template <typename ...TS> struct TypeMaxSize;
 
 template <>
@@ -77,6 +77,7 @@ public:
         type_ = other.type_;
         if (other.type_ == 0) return;
 
+        // TODO, check if other is copyable.
         ConstructType<TS...>::Construct(data_, type_);
     }
 
