@@ -4,7 +4,7 @@ include_directories(.. ../..)
 
 set(INK_TEST_FILES
         testLex.cc
-        testParser.cc testVariant.cc)
+        testParser.cc)
 
 link_directories(..)
 add_executable(ink_unittest ${INK_TEST_FILES})

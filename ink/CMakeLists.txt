@@ -16,6 +16,6 @@ set(INK_FILES
         Types.h
         vm.cc
         vm.h
-        Variant.h)
+        ../Basic/Variant.h)
 
 add_library(ink STATIC ${INK_FILES})
