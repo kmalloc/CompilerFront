@@ -5,7 +5,6 @@
 #include "gtest/gtest.h"
 #include "Variant.h"
 
-#include <string>
 #include <functional>
 
 
@@ -14,6 +13,8 @@ struct ForDestroy
     ForDestroy(std::function<void(void)> fun)
             :fun_(std::move(fun))
     {}
+
+    ForDestroy(const ForDestroy& other) = default;
 
     ForDestroy(ForDestroy&& other)
     {
@@ -69,6 +70,9 @@ TEST(ink_test_suit, test_invariant_basic)
     v4 = 42;
     ASSERT_EQ(1, v4.GetType());
     ASSERT_EQ(21, tag);
+
+    Variant<int, std::string, ForDestroy> v5(v4);
+    ASSERT_EQ(42, v5.GetRef<int>());
 }
 
 
@@ -183,4 +187,3 @@ TEST(ink_test_suit, test_invariant_internal)
     ASSERT_EQ(42, v8.GetRef<ForMove>().GetRes());
     ASSERT_EQ(0, v10.GetRef<ForMove>().GetRes());
 }
-
