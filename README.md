@@ -30,5 +30,5 @@ syntaxs of the regular expression supported by my implementation.
 4. use {2, 4} to make repetition of the previous unit.
    eg, (ab){2, 4} means repeating ab 2 to 4 times(inclusive)
 
-# **2. ink - a toy scripting language modeling the syntax of python and c**
+# **2. ink - a toy scripting language modeling the syntax of python and c(ongoing)**
 

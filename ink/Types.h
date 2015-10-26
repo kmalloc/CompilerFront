@@ -1,41 +1,41 @@
 #ifndef __INK_TYPES_H__
 #define __INK_TYPES_H__
 
+#include "Basic/Variant.h"
+
 #include <unordered_map>
 
-enum ObjType
-{
-    OT_STR,
-    OT_FLOAT,
-    OT_INT,
-    OT_NONE,
-};
+namespace ink {
 
-//  gc object
-class Value
-{
-public:
-    Value(): type_(OT_NONE) {}
-
-private:
-    union V
+    enum ObjType
     {
-        char* s_;
-        void* p_; // table??
-        double f_;
-        int64_t i_;
-    }; // anonymous union
+        OT_NONE,
+        OT_INT,
+        OT_FLOAT,
+        OT_STR,
+        OT_TABLE,
+    };
 
-    // discriminated union
-    ObjType type_;
-};
+    // table impl mimics that in lua
+    struct Table
+    {
+        std::unordered_map<std::string, Value> map_;
+    };
 
-// table impl mimics that in lua
-struct Table
-{
-    std::unordered_map<std::string, Value> map_;
-};
+    //  gc object
+    class Value
+    {
+    public:
+        Value()
+        {
 
+        }
+
+    private:
+
+        Variant<int64_t, double, std::string, Table> val_;
+    };
+
+} // end namespace ink
 
 #endif  // end __INK_TYPES_H__
-

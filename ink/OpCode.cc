@@ -1,13 +1,8 @@
 #include "OpCode.h"
-#include "Lexer.h"
 #include "Types.h"
-#include "AstVisitor.h"
 
 #include <stack>
-#include <vector>
 #include <iostream>
-#include <algorithm>
-#include <unordered_map>
 
 #include <assert.h>
 
