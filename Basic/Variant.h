@@ -71,20 +71,16 @@ public:
 
     Variant(const Variant<TS...>& other)
     {
-        type_ = other.type_;
+        // TODO, check if other is copyable.
         if (other.type_ == 0) return;
 
-        // TODO, check if other is copyable.
+        type_ = other.type_;
         copy_[type_ - 1](other.data_, data_);
     }
 
     Variant(Variant<TS...>&& other)
     {
-        if (this == &other) return;
-
         // TODO, check if other is movable.
-
-        Release();
         if (other.type_ == 0) return;
 
         type_ = other.type_;
@@ -167,7 +163,6 @@ public:
     std::size_t GetSize() const { return VariantHelper::TypeMaxSize<TS...>::value; }
 
 private:
-
     void Release()
     {
         if (!type_) return;
@@ -204,10 +199,10 @@ private:
     using destroy_func_t = void(*)(unsigned char*);
     constexpr static destroy_func_t destroy_[] = {Destroy<TS>...};
 
-    using move_func_t = void(*)(unsigned char*, unsigned char*);
     using copy_func_t = void(*)(const unsigned char*, unsigned char*);
-
     constexpr static copy_func_t copy_[] = {CopyConstruct<TS>...};
+
+    using move_func_t = void(*)(unsigned char*, unsigned char*);
     constexpr static move_func_t move_[] = {MoveConstruct<TS>...};
 };
 
