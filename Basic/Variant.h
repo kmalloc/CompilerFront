@@ -28,26 +28,6 @@ namespace VariantHelper {
         static constexpr std::size_t id = std::is_same<T, T2>::value? 1 : 1 + TypeExist<T, TS...>::id;
     };
 
-    // extract type from the variadic type list at position k
-    template <std::size_t k, typename ...TS> struct ExtractType;
-
-    template <typename T, typename ...TS>
-    struct ExtractType<0, T, TS...>
-    {
-    };
-
-    template <typename T, typename ...TS>
-    struct ExtractType<1, T, TS...>
-    {
-        using type = T;
-    };
-
-    template <std::size_t k, typename T, typename ...TS>
-    struct ExtractType<k, T, TS...>
-    {
-        using type = typename ExtractType<k - 1, TS...>::type;
-    };
-
     // get the max size of type in the type list
     template <typename ...TS> struct TypeMaxSize;
 
