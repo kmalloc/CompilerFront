@@ -215,9 +215,11 @@ private:
         new(t) T(std::move(*fp));
     }
 
+    constexpr static size_t Alignment() { return VariantHelper::TypeMaxSize<TS...>::value; }
+
 private:
     std::size_t type_ = 0;
-    unsigned char data_[VariantHelper::TypeMaxSize<TS...>::value];
+    alignas(Alignment()) unsigned char data_[Alignment()];
 
     using destroy_func_t = void(*)(unsigned char*);
     constexpr static destroy_func_t destroy_[] = {Destroy<TS>...};
