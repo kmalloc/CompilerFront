@@ -82,6 +82,89 @@ namespace VariantHelper {
                typename SelectConvertible<T, TS...>::type>::type;
     };
 
+    using destroy_func_t = void(*)(unsigned char*);
+    using move_func_t = void(*)(unsigned char*, unsigned char*);
+    using copy_func_t = void(*)(const unsigned char*, unsigned char*);
+
+    template<class T>
+    void Destroy(unsigned char* data)
+    {
+        reinterpret_cast<T*>(data)->~T();
+    }
+
+    template<class T>
+    void CopyConstruct(const unsigned char* f, unsigned char* t)
+    {
+        new(t) T(*reinterpret_cast<const T*>(f));
+    }
+
+    template<>
+    void CopyConstruct<void>(const unsigned char*, unsigned char*)
+    {
+        throw "try to copy Variant object containing non-copyable type.";
+    }
+
+    template<class T>
+    void MoveConstruct(unsigned char* f, unsigned char* t)
+    {
+        T* fp = reinterpret_cast<T*>(f);
+        new(t) T(std::move(*fp));
+    }
+
+    template<>
+    void MoveConstruct<void>(unsigned char*, unsigned char*)
+    {
+        throw "try to move Variant object containing non-movable type.";
+    }
+
+    template<bool f, class T>
+    struct SelectCopyIf
+    {
+        constexpr static copy_func_t fun = CopyConstruct<T>;
+    };
+
+    template<class T>
+    struct SelectCopyIf<false, T>
+    {
+        constexpr static copy_func_t fun = CopyConstruct<void>;
+    };
+
+    template<class T>
+    struct SelectCopy
+    {
+        constexpr static copy_func_t fun = SelectCopyIf<std::is_copy_constructible<T>::value, T>::fun;
+    };
+
+    template<bool f, class T>
+    struct SelectMoveIf
+    {
+        constexpr static move_func_t fun = MoveConstruct<T>;
+    };
+
+    template<class T>
+    struct SelectMoveIf<false, T>
+    {
+        constexpr static move_func_t fun = MoveConstruct<void>;
+    };
+
+    template<class T>
+    struct SelectMove
+    {
+        constexpr static move_func_t fun = SelectMoveIf<std::is_move_constructible<T>::value, T>::fun;
+    };
+
+    template<bool lvalue, class T>
+    struct CheckConstructible
+    {
+        enum { value = std::is_copy_constructible<T>::value };
+    };
+
+    template<class T>
+    struct CheckConstructible<false, T>
+    {
+        enum { value = std::is_move_constructible<T>::value };
+    };
+
 } // end namespace VariantHelper
 
 
@@ -98,46 +181,54 @@ public:
 
     template <typename T, typename D = typename std::enable_if<
             !std::is_same<typename std::remove_reference<T>::type, Variant<TS...>>::value>::type,
-            typename CT = typename VariantHelper::SelectType<T, TS...>::type>
+            typename CT = typename VariantHelper::SelectType<
+                    typename std::remove_reference<T>::type, TS...>::type>
     Variant(T&& v)
         : type_(VariantHelper::TypeExist<CT, TS...>::id)
     {
         // following is a little overkill maybe.
-        static_assert(VariantHelper::SelectConvertible<T, TS...>::exist,
-                      "invalid type for invariant.");
+        static_assert(VariantHelper::TypeExist<CT, TS...>::exist,
+                     "invalid type for invariant.");
+
+        static_assert(VariantHelper::CheckConstructible<std::is_lvalue_reference<T>::value, CT>::value,
+                     "try to copy or move an object that is not copyable or moveable.");
 
         new(data_) CT(std::forward<T>(v));
     }
 
     Variant(const Variant<TS...>& other)
     {
-        // TODO, check if other is copyable.
         if (other.type_ == 0) return;
 
+        // FIXME, if underlying type is not copyable, copy_[type_ - 1] is null
+        copy_[other.type_ - 1](other.data_, data_);
         type_ = other.type_;
-        copy_[type_ - 1](other.data_, data_);
     }
 
     Variant(Variant<TS...>&& other)
     {
-        // TODO, check if other is movable.
         if (other.type_ == 0) return;
 
+        // FIXME, if underlying type is not movable, move_[type_ - 1] is null
+        move_[other.type_ - 1](other.data_, data_);
         type_ = other.type_;
-        move_[type_ - 1](other.data_, data_);
     }
 
     template <typename T, typename D = typename std::enable_if<
             !std::is_same<typename std::remove_reference<T>::type, Variant<TS...>>::value>::type,
-            typename CT = typename VariantHelper::SelectType<T, TS...>::type>
+            typename CT = typename VariantHelper::SelectType<
+                    typename std::remove_reference<T>::type, TS...>::type>
     Variant& operator=(T&& v)
     {
-        static_assert(VariantHelper::SelectConvertible<T, TS...>::exist,
-                      "invalid type for invariant.");
+        static_assert(VariantHelper::TypeExist<CT, TS...>::exist,
+                      "invalid type for Variant.");
+
+        static_assert(VariantHelper::CheckConstructible<std::is_lvalue_reference<T>::value, CT>::value,
+                      "try to copy or move an object that is not copyable or moveable.");
 
         Release();
         new(data_) CT(std::forward<T>(v));
-        type_ = static_cast<std::size_t>(VariantHelper::TypeExist<CT, TS...>::id);
+        type_ = VariantHelper::TypeExist<CT, TS...>::id;
 
         return *this;
     }
@@ -147,10 +238,10 @@ public:
         if (this == &other) return *this;
 
         Release();
-        type_ = other.type_;
-        if (!type_) return *this;
+        if (!other.type_) return *this;
 
-        copy_[type_ - 1](other.data_, data_);
+        copy_[other.type_ - 1](other.data_, data_);
+        type_ = other.type_;
         return *this;
     }
 
@@ -159,10 +250,10 @@ public:
         if (this == &other) return *this;
 
         Release();
-        type_ = other.type_;
-        if (!type_) return *this;
+        if (!other.type_) return *this;
 
-        move_[type_ - 1](other.data_, data_);
+        move_[other.type_ - 1](other.data_, data_);
+        type_ = other.type_;
         return *this;
     }
 
@@ -213,48 +304,24 @@ private:
         type_ = 0;
     }
 
-    template<class T>
-    static void Destroy(unsigned char* data)
-    {
-        reinterpret_cast<T*>(data)->~T();
-    }
-
-    template<class T>
-    static void CopyConstruct(const unsigned char* f, unsigned char* t)
-    {
-        new(t) T(*reinterpret_cast<const T*>(f));
-    }
-
-    template<class T>
-    static void MoveConstruct(unsigned char* f, unsigned char* t)
-    {
-        T* fp = reinterpret_cast<T*>(f);
-        new(t) T(std::move(*fp));
-    }
-
     constexpr static size_t Alignment() { return VariantHelper::TypeMaxSize<TS...>::value; }
 
 private:
     std::size_t type_ = 0;
     alignas(Alignment()) unsigned char data_[Alignment()];
 
-    using destroy_func_t = void(*)(unsigned char*);
-    constexpr static destroy_func_t destroy_[] = {Destroy<TS>...};
-
-    using copy_func_t = void(*)(const unsigned char*, unsigned char*);
-    constexpr static copy_func_t copy_[] = {CopyConstruct<TS>...};
-
-    using move_func_t = void(*)(unsigned char*, unsigned char*);
-    constexpr static move_func_t move_[] = {MoveConstruct<TS>...};
+    constexpr static VariantHelper::destroy_func_t destroy_[] = {VariantHelper::Destroy<TS>...};
+    constexpr static VariantHelper::copy_func_t copy_[] = {VariantHelper::SelectCopy<TS>::fun...};
+    constexpr static VariantHelper::move_func_t move_[] = {VariantHelper::SelectMove<TS>::fun...};
 };
 
 template<class ...TS>
-constexpr typename Variant<TS...>::destroy_func_t Variant<TS...>::destroy_[];
+constexpr typename VariantHelper::copy_func_t Variant<TS...>::copy_[];
 
 template<class ...TS>
-constexpr typename Variant<TS...>::copy_func_t Variant<TS...>::copy_[];
+constexpr typename VariantHelper::move_func_t Variant<TS...>::move_[];
 
 template<class ...TS>
-constexpr typename Variant<TS...>::move_func_t Variant<TS...>::move_[];
+constexpr typename VariantHelper::destroy_func_t Variant<TS...>::destroy_[];
 
 #endif //COMPILERFRONT_INVARIANT_H
