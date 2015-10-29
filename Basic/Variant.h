@@ -186,7 +186,6 @@ public:
     Variant(T&& v)
         : type_(VariantHelper::TypeExist<CT, TS...>::id)
     {
-        // following is a little overkill maybe.
         static_assert(VariantHelper::TypeExist<CT, TS...>::exist,
                      "invalid type for invariant.");
 
@@ -200,7 +199,6 @@ public:
     {
         if (other.type_ == 0) return;
 
-        // FIXME, if underlying type is not copyable, copy_[type_ - 1] is null
         copy_[other.type_ - 1](other.data_, data_);
         type_ = other.type_;
     }
@@ -209,7 +207,6 @@ public:
     {
         if (other.type_ == 0) return;
 
-        // FIXME, if underlying type is not movable, move_[type_ - 1] is null
         move_[other.type_ - 1](other.data_, data_);
         type_ = other.type_;
     }
