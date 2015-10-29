@@ -73,6 +73,29 @@ TEST(ink_test_suit, test_invariant_basic)
 
     Variant<int, std::string, ForDestroy> v5(v4);
     ASSERT_EQ(42, v5.GetRef<int>());
+
+    // test implicit convertion.
+    Variant<int, std::string, double> v6("abc");
+    ASSERT_EQ(2, v6.GetType());
+    ASSERT_STREQ("abc", v6.GetRef<std::string>().c_str());
+
+    char c = 'a';
+    v6 = c;
+    ASSERT_EQ(1, v6.GetType());
+    ASSERT_EQ(static_cast<int>(c), v6.GetRef<int>());
+
+    v6 = "hello";
+    ASSERT_EQ(2, v6.GetType());
+    ASSERT_STREQ("hello", v6.GetRef<std::string>().c_str());
+
+    Variant<double, std::string> v7(23);
+    ASSERT_EQ(1, v7.GetType());
+    ASSERT_DOUBLE_EQ(23, v7.GetRef<double>());
+
+    char str[] = "hello2";
+    v7 = str;
+    ASSERT_EQ(2, v7.GetType());
+    ASSERT_STREQ("hello2", v7.GetRef<std::string>().c_str());
 }
 
 

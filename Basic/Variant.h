@@ -25,7 +25,8 @@ namespace VariantHelper {
     struct TypeExist<T, T2, TS...>
     {
         enum { exist = std::is_same<T, T2>::value || TypeExist<T, TS...>::exist };
-        static constexpr std::size_t id = std::is_same<T, T2>::value? 1 : 1 + TypeExist<T, TS...>::id;
+        static constexpr std::size_t id =
+                std::is_same<T, T2>::value? 1 : 1 + TypeExist<T, TS...>::id;
     };
 
     // get the max size of type in the type list
@@ -44,6 +45,43 @@ namespace VariantHelper {
         static constexpr std::size_t next = TypeMaxSize<TS...>::value;
         static constexpr std::size_t value = cur > next? cur : next;
     };
+
+
+    template<bool f, class T1, class T2>
+    struct SelectTypeIf
+    {
+        using type = T1;
+    };
+
+    template<class T1, class T2>
+    struct SelectTypeIf<false, T1, T2>
+    {
+        using type = T2;
+    };
+
+    template<class T, class ...TS>
+    struct SelectConvertible
+    {
+        enum { exist = false };
+        using type = void;
+    };
+
+    template<class T, class T1, class ...TS>
+    struct SelectConvertible<T, T1, TS...>
+    {
+        enum { exist = std::is_convertible<T, T1>::value || SelectConvertible<T, TS...>::exist };
+
+        using type = typename SelectTypeIf<std::is_convertible<T, T1>::value,
+                T1, typename SelectConvertible<T, TS...>::type>::type ;
+    };
+
+    template<class T, class ...TS>
+    struct SelectType
+    {
+       using type = typename SelectTypeIf<TypeExist<T, TS...>::exist, T,
+               typename SelectConvertible<T, TS...>::type>::type;
+    };
+
 } // end namespace VariantHelper
 
 
@@ -59,14 +97,16 @@ public:
     }
 
     template <typename T, typename D = typename std::enable_if<
-            !std::is_same<typename std::remove_reference<T>::type, Variant<TS...>>::value>::type>
+            !std::is_same<typename std::remove_reference<T>::type, Variant<TS...>>::value>::type,
+            typename CT = typename VariantHelper::SelectType<T, TS...>::type>
     Variant(T&& v)
-        : type_(VariantHelper::TypeExist<T, TS...>::id)
+        : type_(VariantHelper::TypeExist<CT, TS...>::id)
     {
         // following is a little overkill maybe.
-        static_assert(VariantHelper::TypeExist<T, TS...>::exist, "invalid type for invariant.");
+        static_assert(VariantHelper::SelectConvertible<T, TS...>::exist,
+                      "invalid type for invariant.");
 
-        new(data_) T(std::forward<T>(v));
+        new(data_) CT(std::forward<T>(v));
     }
 
     Variant(const Variant<TS...>& other)
@@ -88,14 +128,16 @@ public:
     }
 
     template <typename T, typename D = typename std::enable_if<
-            !std::is_same<typename std::remove_reference<T>::type, Variant<TS...>>::value>::type>
+            !std::is_same<typename std::remove_reference<T>::type, Variant<TS...>>::value>::type,
+            typename CT = typename VariantHelper::SelectType<T, TS...>::type>
     Variant& operator=(T&& v)
     {
-        static_assert(VariantHelper::TypeExist<T, TS...>::exist, "invalid type for invariant.");
+        static_assert(VariantHelper::SelectConvertible<T, TS...>::exist,
+                      "invalid type for invariant.");
 
         Release();
-        new(data_) T(std::forward<T>(v));
-        type_ = static_cast<std::size_t>(VariantHelper::TypeExist<T, TS...>::id);
+        new(data_) CT(std::forward<T>(v));
+        type_ = static_cast<std::size_t>(VariantHelper::TypeExist<CT, TS...>::id);
 
         return *this;
     }
