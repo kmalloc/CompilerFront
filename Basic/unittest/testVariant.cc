@@ -39,9 +39,17 @@ TEST(ink_test_suit, test_variant_basic)
     ASSERT_EQ(1, v1.GetType());
     ASSERT_EQ(32, v1.GetRef<int>());
 
+    int& ri = v1.GetRef<int>();
+    ri = 33;
+    ASSERT_EQ(33, v1.GetRef<int>());
+
     v1 = 2.333;
     ASSERT_EQ(2, v1.GetType());
     ASSERT_DOUBLE_EQ(2.333, v1.GetRef<double>());
+
+    double& rd = v1.GetRef<double>();
+    rd = 23.33;
+    ASSERT_DOUBLE_EQ(23.33, v1.GetRef<double>());
 
     Variant<int, double> v2(2.2);
     ASSERT_EQ(2, v2.GetType());
@@ -53,6 +61,10 @@ TEST(ink_test_suit, test_variant_basic)
 
     Variant<int, std::string> v3(std::string("ww"));
     ASSERT_STREQ("ww", v3.GetRef<std::string>().c_str());
+
+    std::string& rs = v3.GetRef<std::string>();
+    rs = "hello";
+    ASSERT_STREQ("hello", v3.GetRef<std::string>().c_str());
 
     v3 = 23;
     ASSERT_EQ(1, v3.GetType());
