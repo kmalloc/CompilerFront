@@ -19,7 +19,6 @@ namespace ink {
     // table impl mimics that in lua
     struct Table
     {
-        std::unordered_map<std::string, Value> map_;
     };
 
     //  gc object

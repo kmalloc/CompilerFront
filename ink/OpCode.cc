@@ -26,7 +26,7 @@ constexpr uint32_t MaxConstPoolNum() { return (1 << InsOpSize()) - 1; }
 struct CodeVar
 {
     explicit CodeVar(std::string name)
-        : val_(NULL), name_(std::move(name))
+        : name_(std::move(name))
     {
     }
 
@@ -37,7 +37,7 @@ struct CodeVar
         name_ = std::move(v.name_);
     }
 
-    void* val_; // TODO, should handle simple type & array & table.
+    Value val_;
     std::string name_;
 };
 
@@ -45,8 +45,7 @@ struct CodeFunc
 {
     // sink parameter
     CodeFunc(std::string name, std::vector<std::string> param)
-        : name_(std::move(name)), params_(std::move(param))
-        , rdx_(0)
+        : name_(std::move(name)), params_(std::move(param)), rdx_(0)
     {
         ins_.reserve(64);
     }
@@ -70,7 +69,7 @@ struct CodeFunc
     uint32_t GetRegIdx() const { return rdx_; }
 
     std::string name_;
-    std::vector<std::string> params_; // TODO, not used?
+    std::vector<std::string> params_;
 
     std::vector<CodeVar> var_pool_;
     std::unordered_map<std::string, size_t> var_pool_index_; // value to index
@@ -91,6 +90,7 @@ struct CodeClass
     CodeClass() {}
     CodeClass(CodeClass&&) {}
 
+private:
     std::string name_;
     std::vector<CodeFunc> func_; // member function
     std::vector<std::string> mem_; // member variables

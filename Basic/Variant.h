@@ -47,18 +47,6 @@ namespace VariantHelper {
     };
 
 
-    template<bool f, class T1, class T2>
-    struct SelectTypeIf
-    {
-        using type = T1;
-    };
-
-    template<class T1, class T2>
-    struct SelectTypeIf<false, T1, T2>
-    {
-        using type = T2;
-    };
-
     template<class T, class ...TS>
     struct SelectConvertible
     {
@@ -71,14 +59,14 @@ namespace VariantHelper {
     {
         enum { exist = std::is_convertible<T, T1>::value || SelectConvertible<T, TS...>::exist };
 
-        using type = typename SelectTypeIf<std::is_convertible<T, T1>::value,
+        using type = typename std::conditional<std::is_convertible<T, T1>::value,
                 T1, typename SelectConvertible<T, TS...>::type>::type ;
     };
 
     template<class T, class ...TS>
     struct SelectType
     {
-       using type = typename SelectTypeIf<TypeExist<T, TS...>::exist, T,
+       using type = typename std::conditional<TypeExist<T, TS...>::exist, T,
                typename SelectConvertible<T, TS...>::type>::type;
     };
 
