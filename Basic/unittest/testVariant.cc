@@ -23,6 +23,15 @@ struct ForDestroy
         other.fun_ = std::function<void()>();
     }
 
+    ForDestroy& operator=(ForDestroy&& other)
+    {
+        if (this == &other) return *this;
+
+        fun_ = std::move(other.fun_);
+        other.fun_ = std::function<void()>();
+        return *this;
+    }
+
     ~ForDestroy()
     {
         if (fun_) fun_();
@@ -117,15 +126,37 @@ TEST(ink_test_suit, test_variant_basic)
     v7 = str;
     ASSERT_EQ(2, v7.GetType());
     ASSERT_STREQ("hello2", v7.GetRef<std::string>().c_str());
+
+    // variant of variant.
+    Variant<std::string, int, Variant<std::string, int>> vv("wwww");
+    ASSERT_EQ(1, vv.GetType());
+    ASSERT_STREQ("wwww", vv.GetRef<std::string>().c_str());
+
+    vv = Variant<std::string, int>(23);
+    ASSERT_EQ(3, vv.GetType());
+    Variant<std::string, int>& nv = vv.GetRef<Variant<std::string, int>>();
+    ASSERT_EQ(2, nv.GetType());
+    ASSERT_EQ(23, nv.GetRef<int>());
 }
 
 
 struct ForMove
 {
-    explicit ForMove(int res)
-        : res_(res)
+    ForMove(int res)
+        : res_(res), notify_([](){})
     {
 
+    }
+
+    ForMove(int res, std::function<void()> f)
+            : res_(res), notify_(std::move(f))
+    {
+
+    }
+
+    ~ForMove()
+    {
+        notify_();
     }
 
     ForMove(const ForMove& v) = default;
@@ -133,6 +164,9 @@ struct ForMove
     ForMove(ForMove&& v)
     {
         res_ = v.res_;
+
+        // copy notifier, not move
+        notify_ = v.notify_;
         v.res_ = 0;
     }
 
@@ -141,6 +175,7 @@ struct ForMove
         if (this == &v) return *this;
 
         res_ = v.res_;
+        notify_ = v.notify_;
         return *this;
     }
 
@@ -149,6 +184,7 @@ struct ForMove
         if (this == &v) return *this;
 
         res_ = v.res_;
+        notify_ = v.notify_;
         v.res_ = 0;
 
         return *this;
@@ -157,8 +193,8 @@ struct ForMove
     int GetRes() const { return res_; }
 
 private:
-
     int res_;
+    std::function<void(void)> notify_;
 };
 
 TEST(ink_test_suit, test_variant_internal)
@@ -171,7 +207,8 @@ TEST(ink_test_suit, test_variant_internal)
     ASSERT_EQ(alignof(double), v.GetSize());
 
     Variant<int, double, std::string, ForDestroy> v2(2);
-    ASSERT_EQ(alignof(ForDestroy), v2.GetSize());
+    ASSERT_EQ(alignof(ForDestroy), v2.Alignment());
+    ASSERT_EQ(sizeof(ForDestroy), v2.GetSize());
 
     // test copy
 
@@ -234,10 +271,13 @@ TEST(ink_test_suit, test_variant_internal)
     ASSERT_EQ(42, v8.GetRef<ForMove>().GetRes());
 
     v8 = std::move(v10);
+    ASSERT_EQ(2, v10.GetType());
     ASSERT_EQ(42, v8.GetRef<ForMove>().GetRes());
     ASSERT_EQ(0, v10.GetRef<ForMove>().GetRes());
-}
 
+
+    // TODO, test move assignment & noexcept
+}
 
 struct NonCopyableType
 {
@@ -252,6 +292,15 @@ struct NonCopyableType
         other.res_ = 0;
     }
 
+    NonCopyableType& operator=(NonCopyableType&& other)
+    {
+        if (this == &other) return *this;
+
+        res_ = other.res_;
+        other.res_ = 0;
+        return *this;
+    }
+
     int res_ = 0;
 };
 
@@ -263,6 +312,14 @@ struct NonMovableType
     NonMovableType(const NonMovableType& other)
     {
         res_ = other.res_;
+    }
+
+    NonMovableType& operator=(const NonMovableType& other)
+    {
+        if (this == &other) return *this;
+
+        res_ = other.res_;
+        return *this;
     }
 
     NonMovableType(NonMovableType&&) = delete;
@@ -323,4 +380,5 @@ TEST(ink_test_suit, test_variant_non_copy_move)
 
     ASSERT_TRUE(flag);
 }
+
 

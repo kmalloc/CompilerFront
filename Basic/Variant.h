@@ -36,14 +36,19 @@ namespace VariantHelper {
     struct TypeMaxSize<>
     {
         static constexpr std::size_t value = 0;
+        static constexpr std::size_t align = 0;
     };
 
     template <typename T, typename ...TS>
     struct TypeMaxSize<T, TS...>
     {
-        static constexpr std::size_t cur = alignof(T);
-        static constexpr std::size_t next = TypeMaxSize<TS...>::value;
-        static constexpr std::size_t value = cur > next? cur : next;
+        static constexpr std::size_t cur_align = alignof(T);
+        static constexpr std::size_t next_align = TypeMaxSize<TS...>::align;
+        static constexpr std::size_t align = cur_align > next_align? cur_align : next_align;
+
+        static constexpr std::size_t cur_size = sizeof(T);
+        static constexpr std::size_t next_size = TypeMaxSize<TS...>::value;
+        static constexpr std::size_t value = cur_size > next_size? cur_size : next_size;
     };
 
 
@@ -105,6 +110,21 @@ namespace VariantHelper {
         throw "try to move Variant object containing non-movable type.";
     }
 
+    template<class T>
+    void AssignConstruct(unsigned char* f, unsigned char* t)
+    {
+        T* fp = reinterpret_cast<T*>(f);
+        T* tp = reinterpret_cast<T*>(t);
+
+        *tp = std::move(*fp);
+    }
+
+    template<>
+    void AssignConstruct<void>(unsigned char*, unsigned char*)
+    {
+        throw "try to move assign Variant object containing non-assignable type.";
+    }
+
     template<bool f, class T>
     struct SelectCopyIf
     {
@@ -141,6 +161,24 @@ namespace VariantHelper {
         constexpr static move_func_t fun = SelectMoveIf<std::is_move_constructible<T>::value, T>::fun;
     };
 
+    template<bool f, class T>
+    struct SelectAssignIf
+    {
+        constexpr static move_func_t fun = AssignConstruct<T>;
+    };
+
+    template<class T>
+    struct SelectAssignIf<false, T>
+    {
+        constexpr static move_func_t fun = AssignConstruct<void>;
+    };
+
+    template<class T>
+    struct SelectAssign
+    {
+        constexpr static move_func_t fun = SelectAssignIf<std::is_move_assignable<T>::value, T>::fun;
+    };
+
     template<bool lvalue, class T>
     struct CheckConstructible
     {
@@ -153,6 +191,17 @@ namespace VariantHelper {
         enum { value = std::is_move_constructible<T>::value };
     };
 
+    template<template<typename> class CHECK, typename ...TS>
+    struct CheckTypeList
+    {
+        enum { value = 1 };
+    };
+
+    template<template<typename> class CHECK, typename T, typename ...TS>
+    struct CheckTypeList<CHECK, T, TS...>
+    {
+        enum { value = CHECK<T>::value && CheckTypeList<CHECK, TS...>::value };
+    };
 } // end namespace VariantHelper
 
 
@@ -191,7 +240,8 @@ public:
         type_ = other.type_;
     }
 
-    Variant(Variant<TS...>&& other)
+    Variant(Variant<TS...>&& other) noexcept(
+        VariantHelper::CheckTypeList<std::is_nothrow_move_constructible, TS...>::value)
     {
         if (other.type_ == 0) return;
 
@@ -211,9 +261,21 @@ public:
         static_assert(VariantHelper::CheckConstructible<std::is_lvalue_reference<T>::value, CT>::value,
                       "try to copy or move an object that is not copyable or moveable.");
 
-        Release();
-        new(data_) CT(std::forward<T>(v));
-        type_ = VariantHelper::TypeExist<CT, TS...>::id;
+        if (type_ != VariantHelper::TypeExist<CT,TS...>::id)
+        {
+            Release();
+            new(data_) CT(std::forward<T>(v));
+            type_ = VariantHelper::TypeExist<CT, TS...>::id;
+        }
+        else if (type_)
+        {
+            *reinterpret_cast<CT*>(data_) = std::forward<T>(v);
+        }
+        else
+        {
+            new(data_) CT(std::forward<T>(v));
+            type_ = VariantHelper::TypeExist<CT, TS...>::id;
+        }
 
         return *this;
     }
@@ -230,15 +292,24 @@ public:
         return *this;
     }
 
-    Variant& operator=(Variant<TS...>&& other)
+    Variant& operator=(Variant<TS...>&& other) noexcept(
+        VariantHelper::CheckTypeList<std::is_nothrow_move_constructible, TS...>::value &&
+        VariantHelper::CheckTypeList<std::is_nothrow_move_assignable, TS...>::value)
     {
         if (this == &other) return *this;
 
-        Release();
-        if (!other.type_) return *this;
+        if (type_ != other.type_)
+        {
+            Release();
+            if (!other.type_) return *this;
 
-        move_[other.type_ - 1](other.data_, data_);
-        type_ = other.type_;
+            move_[other.type_ - 1](other.data_, data_);
+            type_ = other.type_;
+        }
+        else
+        {
+            assign_[type_ - 1](other.data_, data_);
+        }
         return *this;
     }
 
@@ -278,7 +349,9 @@ public:
     }
 
     std::size_t GetType() const { return type_; }
-    std::size_t GetSize() const { return VariantHelper::TypeMaxSize<TS...>::value; }
+
+    constexpr static size_t Alignment() { return VariantHelper::TypeMaxSize<TS...>::align; }
+    constexpr static std::size_t GetSize() { return VariantHelper::TypeMaxSize<TS...>::value; }
 
 private:
     void Release()
@@ -289,15 +362,14 @@ private:
         type_ = 0;
     }
 
-    constexpr static size_t Alignment() { return VariantHelper::TypeMaxSize<TS...>::value; }
-
 private:
     std::size_t type_ = 0;
-    alignas(Alignment()) unsigned char data_[Alignment()];
+    alignas(Alignment()) unsigned char data_[GetSize()];
 
     constexpr static VariantHelper::destroy_func_t destroy_[] = {VariantHelper::Destroy<TS>...};
     constexpr static VariantHelper::copy_func_t copy_[] = {VariantHelper::SelectCopy<TS>::fun...};
     constexpr static VariantHelper::move_func_t move_[] = {VariantHelper::SelectMove<TS>::fun...};
+    constexpr static VariantHelper::move_func_t assign_[] = {VariantHelper::SelectAssign<TS>::fun...};
 };
 
 template<class ...TS>
@@ -305,6 +377,9 @@ constexpr typename VariantHelper::copy_func_t Variant<TS...>::copy_[];
 
 template<class ...TS>
 constexpr typename VariantHelper::move_func_t Variant<TS...>::move_[];
+
+template<class ...TS>
+constexpr typename VariantHelper::move_func_t Variant<TS...>::assign_[];
 
 template<class ...TS>
 constexpr typename VariantHelper::destroy_func_t Variant<TS...>::destroy_[];
