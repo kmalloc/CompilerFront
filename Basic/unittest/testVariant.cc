@@ -163,7 +163,7 @@ struct ForMove
 
     ForMove(ForMove&& v) noexcept(true)
     {
-        res_ = v.res_;
+        res_ = v.res_ + 23;
 
         // copy notifier, not move
         notify_ = v.notify_;
@@ -174,7 +174,7 @@ struct ForMove
     {
         if (this == &v) return *this;
 
-        res_ = v.res_;
+        res_ = v.res_ + 3;
         notify_ = v.notify_;
         return *this;
     }
@@ -183,7 +183,7 @@ struct ForMove
     {
         if (this == &v) return *this;
 
-        res_ = v.res_;
+        res_ = v.res_ + 13;
         notify_ = v.notify_;
         v.res_ = 0;
 
@@ -229,6 +229,7 @@ TEST(ink_test_suit, test_variant_internal)
     // 3. test copy construct.
 
     Variant<int, double> v(232.3);
+    ASSERT_EQ(sizeof(double), v.Alignment());
     ASSERT_EQ(alignof(double), v.GetSize());
 
     Variant<int, double, std::string, ForDestroy> v2(2);
@@ -265,46 +266,46 @@ TEST(ink_test_suit, test_variant_internal)
     ASSERT_EQ(32, v5.GetRef<int>());
 
     // test move
-
     int num_destruct = 0;
     Variant<int, ForMove> v6(ForMove(23, [&](){ ++num_destruct; }));
-    ASSERT_EQ(23, v6.GetRef<ForMove>().GetRes());
+    ASSERT_EQ(23 + 23, v6.GetRef<ForMove>().GetRes());
 
     ASSERT_EQ(1, num_destruct);
 
+    // test assign
     ForMove fm(42, [&](){ ++num_destruct; });
     v6 = std::move(fm);
     ASSERT_EQ(1, num_destruct);
 
     ASSERT_EQ(0, fm.GetRes());
-    ASSERT_EQ(42, v6.GetRef<ForMove>().GetRes());
+    ASSERT_EQ(42 + 13, v6.GetRef<ForMove>().GetRes());
 
     Variant<int, ForMove> v7(v6);
-    ASSERT_EQ(42, v6.GetRef<ForMove>().GetRes());
-    ASSERT_EQ(42, v7.GetRef<ForMove>().GetRes());
+    ASSERT_EQ(42 + 13, v6.GetRef<ForMove>().GetRes());
+    ASSERT_EQ(42 + 13, v7.GetRef<ForMove>().GetRes());
 
     Variant<int, ForMove> v8 = v6;
-    ASSERT_EQ(42, v6.GetRef<ForMove>().GetRes());
-    ASSERT_EQ(42, v8.GetRef<ForMove>().GetRes());
+    ASSERT_EQ(42 + 13, v6.GetRef<ForMove>().GetRes());
+    ASSERT_EQ(42 + 13, v8.GetRef<ForMove>().GetRes());
 
     Variant<int, ForMove> v9(std::move(v6));
     ASSERT_EQ(0, v6.GetRef<ForMove>().GetRes());
-    ASSERT_EQ(42, v9.GetRef<ForMove>().GetRes());
+    ASSERT_EQ(42 + 13 + 23, v9.GetRef<ForMove>().GetRes());
 
     v6 = 23;
     ASSERT_EQ(2, num_destruct);
 
     Variant<int, ForMove> v10 = std::move(v7);
     ASSERT_EQ(0, v7.GetRef<ForMove>().GetRes());
-    ASSERT_EQ(42, v10.GetRef<ForMove>().GetRes());
+    ASSERT_EQ(42 + 13 + 23, v10.GetRef<ForMove>().GetRes());
 
     v7 = v8;
-    ASSERT_EQ(42, v7.GetRef<ForMove>().GetRes());
-    ASSERT_EQ(42, v8.GetRef<ForMove>().GetRes());
+    ASSERT_EQ(42 + 13 + 3, v7.GetRef<ForMove>().GetRes());
+    ASSERT_EQ(42 + 13, v8.GetRef<ForMove>().GetRes());
 
     v8 = std::move(v10);
     ASSERT_EQ(2, v10.GetType());
-    ASSERT_EQ(42, v8.GetRef<ForMove>().GetRes());
+    ASSERT_EQ(42 + 13 + 23 + 13, v8.GetRef<ForMove>().GetRes());
     ASSERT_EQ(0, v10.GetRef<ForMove>().GetRes());
 
     num_destruct = 0;
@@ -316,6 +317,30 @@ TEST(ink_test_suit, test_variant_internal)
     ASSERT_EQ(1, num_destruct);
     va = 23;
     ASSERT_EQ(2, num_destruct);
+
+    Variant<int, std::string> vn, vn2;
+    Variant<int, std::string> vs("sss");
+
+    vn = vs;
+    vn2 = std::move(vs);
+
+    ASSERT_EQ(2, vn.GetType());
+    ASSERT_EQ(2, vn2.GetType());
+    ASSERT_STREQ("sss", vn.GetRef<std::string>().c_str());
+    ASSERT_STREQ("sss", vn2.GetRef<std::string>().c_str());
+
+    vn = Variant<int, std::string>();
+    vn2 = Variant<int, std::string>();
+    ASSERT_EQ(0, vn2.GetType());
+
+    vn = vn2;
+    ASSERT_EQ(0, vn.GetType());
+
+    vn = std::move(vn2);
+    ASSERT_EQ(0, vn.GetType());
+
+    vn2 = vn2;
+    ASSERT_EQ(0, vn2.GetType());
 
     using variant_t1 = Variant<int, ForMove>;
     ASSERT_FALSE(std::is_nothrow_move_assignable<variant_t1>::value);
@@ -438,6 +463,7 @@ TEST(ink_test_suit, test_variant_non_copy_move)
     }
 
     ASSERT_TRUE(flag);
+
 }
 
 

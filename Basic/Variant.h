@@ -325,7 +325,7 @@ public:
             copy_[other.type_ - 1](other.data_, data_);
             type_ = other.type_;
         }
-        else
+        else if (type_)
         {
             copy_assign_[type_ - 1](other.data_, data_);
         }
@@ -347,10 +347,11 @@ public:
             move_[other.type_ - 1](other.data_, data_);
             type_ = other.type_;
         }
-        else
+        else if (type_)
         {
             move_assign_[type_ - 1](other.data_, data_);
         }
+
         return *this;
     }
 
