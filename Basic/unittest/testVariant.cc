@@ -161,7 +161,7 @@ struct ForMove
 
     ForMove(const ForMove& v) = default;
 
-    ForMove(ForMove&& v)
+    ForMove(ForMove&& v) noexcept(true)
     {
         res_ = v.res_;
 
@@ -179,7 +179,7 @@ struct ForMove
         return *this;
     }
 
-    ForMove& operator=(ForMove&& v)
+    ForMove& operator=(ForMove&& v) noexcept(false)
     {
         if (this == &v) return *this;
 
@@ -195,6 +195,31 @@ struct ForMove
 private:
     int res_;
     std::function<void(void)> notify_;
+};
+
+struct ForNoexcept
+{
+    ForNoexcept(ForNoexcept&& v) noexcept(false)
+    {
+
+    }
+
+    ForNoexcept& operator=(ForNoexcept&& v) noexcept(true)
+    {
+        return *this;
+    }
+};
+
+struct ForNoexcept2
+{
+    ForNoexcept2(ForNoexcept2&& v) noexcept(true)
+    {
+    }
+
+    ForNoexcept2& operator=(ForNoexcept2&& v) noexcept(true)
+    {
+        return *this;
+    }
 };
 
 TEST(ink_test_suit, test_variant_internal)
@@ -241,11 +266,15 @@ TEST(ink_test_suit, test_variant_internal)
 
     // test move
 
-    Variant<int, ForMove> v6(ForMove(23));
+    int num_destruct = 0;
+    Variant<int, ForMove> v6(ForMove(23, [&](){ ++num_destruct; }));
     ASSERT_EQ(23, v6.GetRef<ForMove>().GetRes());
 
-    ForMove fm(42);
+    ASSERT_EQ(1, num_destruct);
+
+    ForMove fm(42, [&](){ ++num_destruct; });
     v6 = std::move(fm);
+    ASSERT_EQ(1, num_destruct);
 
     ASSERT_EQ(0, fm.GetRes());
     ASSERT_EQ(42, v6.GetRef<ForMove>().GetRes());
@@ -262,6 +291,9 @@ TEST(ink_test_suit, test_variant_internal)
     ASSERT_EQ(0, v6.GetRef<ForMove>().GetRes());
     ASSERT_EQ(42, v9.GetRef<ForMove>().GetRes());
 
+    v6 = 23;
+    ASSERT_EQ(2, num_destruct);
+
     Variant<int, ForMove> v10 = std::move(v7);
     ASSERT_EQ(0, v7.GetRef<ForMove>().GetRes());
     ASSERT_EQ(42, v10.GetRef<ForMove>().GetRes());
@@ -275,8 +307,35 @@ TEST(ink_test_suit, test_variant_internal)
     ASSERT_EQ(42, v8.GetRef<ForMove>().GetRes());
     ASSERT_EQ(0, v10.GetRef<ForMove>().GetRes());
 
+    num_destruct = 0;
+    Variant<int, ForMove> va(ForMove(23, [&](){ ++num_destruct; }));
 
-    // TODO, test move assignment & noexcept
+    ASSERT_EQ(1, num_destruct);
+    ForMove df(23, [&](){ ++num_destruct; });
+    va = df;
+    ASSERT_EQ(1, num_destruct);
+    va = 23;
+    ASSERT_EQ(2, num_destruct);
+
+    using variant_t1 = Variant<int, ForMove>;
+    ASSERT_FALSE(std::is_nothrow_move_assignable<variant_t1>::value);
+    ASSERT_TRUE(std::is_nothrow_move_constructible<variant_t1>::value);
+
+    using variant_t2 = Variant<int, ForNoexcept>;
+    ASSERT_FALSE(std::is_nothrow_move_assignable<variant_t2>::value);
+    ASSERT_FALSE(std::is_nothrow_move_constructible<variant_t2>::value);
+
+    using variant_t3 = Variant<int, ForNoexcept2>;
+    ASSERT_TRUE(std::is_nothrow_move_assignable<variant_t3>::value);
+    ASSERT_TRUE(std::is_nothrow_move_constructible<variant_t3>::value);
+
+    using variant_t4 = Variant<int, ForMove, ForNoexcept, ForNoexcept2>;
+    ASSERT_FALSE(std::is_nothrow_move_assignable<variant_t4>::value);
+    ASSERT_FALSE(std::is_nothrow_move_constructible<variant_t4>::value);
+
+    using variant_t5 = Variant<int, ForMove, ForNoexcept2>;
+    ASSERT_FALSE(std::is_nothrow_move_assignable<variant_t5>::value);
+    ASSERT_TRUE(std::is_nothrow_move_constructible<variant_t5>::value);
 }
 
 struct NonCopyableType
