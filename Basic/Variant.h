@@ -51,7 +51,6 @@ namespace VariantHelper {
         static constexpr std::size_t value = cur_size > next_size? cur_size : next_size;
     };
 
-
     template<class T, class ...TS>
     struct SelectConvertible
     {
@@ -140,76 +139,32 @@ namespace VariantHelper {
         throw "try to copy assign Variant object containing non-assignable type.";
     }
 
-    template<bool f, class T>
-    struct SelectCopyIf
-    {
-        constexpr static copy_func_t fun = CopyConstruct<T>;
-    };
-
-    template<class T>
-    struct SelectCopyIf<false, T>
-    {
-        constexpr static copy_func_t fun = CopyConstruct<void>;
-    };
-
     template<class T>
     struct SelectCopy
     {
-        constexpr static copy_func_t fun = SelectCopyIf<std::is_copy_constructible<T>::value, T>::fun;
-    };
-
-    template<bool f, class T>
-    struct SelectMoveIf
-    {
-        constexpr static move_func_t fun = MoveConstruct<T>;
-    };
-
-    template<class T>
-    struct SelectMoveIf<false, T>
-    {
-        constexpr static move_func_t fun = MoveConstruct<void>;
+        using type = typename std::conditional<std::is_copy_constructible<T>::value, T, void>::type;
+        constexpr static copy_func_t fun = CopyConstruct<type>;
     };
 
     template<class T>
     struct SelectMove
     {
-        constexpr static move_func_t fun = SelectMoveIf<std::is_move_constructible<T>::value, T>::fun;
-    };
-
-    template<bool f, class T>
-    struct SelectMoveAssignIf
-    {
-        constexpr static move_func_t fun = MoveAssignConstruct<T>;
-    };
-
-    template<class T>
-    struct SelectMoveAssignIf<false, T>
-    {
-        constexpr static move_func_t fun = MoveAssignConstruct<void>;
+        using type = typename std::conditional<std::is_move_constructible<T>::value, T, void>::type;
+        constexpr static move_func_t fun = MoveConstruct<type>;
     };
 
     template<class T>
     struct SelectMoveAssign
     {
-        constexpr static move_func_t fun = SelectMoveAssignIf<std::is_move_assignable<T>::value, T>::fun;
-    };
-
-    template<bool f, class T>
-    struct SelectCopyAssignIf
-    {
-        constexpr static copy_func_t fun = CopyAssignConstruct<T>;
-    };
-
-    template<class T>
-    struct SelectCopyAssignIf<false, T>
-    {
-        constexpr static copy_func_t fun = CopyAssignConstruct<void>;
+        using type = typename std::conditional<std::is_move_assignable<T>::value, T, void>::type;
+        constexpr static move_func_t fun = MoveAssignConstruct<type>;
     };
 
     template<class T>
     struct SelectCopyAssign
     {
-        constexpr static copy_func_t fun = SelectCopyAssignIf<std::is_copy_assignable<T>::value, T>::fun;
+        using type = typename std::conditional<std::is_copy_assignable<T>::value, T, void>::type;
+        constexpr static copy_func_t fun = CopyAssignConstruct<type>;
     };
 
     template<bool lvalue, class T>
