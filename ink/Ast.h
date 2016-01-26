@@ -53,7 +53,7 @@ class AstBase: noncopyable
 
         virtual ~AstBase() {}
         virtual ValueNodePtr Evaluate() = 0;
-        virtual void Accept(VisitorBase& v) = 0;
+        virtual int64_t Accept(VisitorBase& v) = 0;
 
         inline bool IsError() const;
         int GetType() const { return type_; }
@@ -82,9 +82,9 @@ class AstErrInfo: public AstBase
         explicit AstErrInfo(const std::string& info)
             : AstBase(AST_ERR_INFO), err_(info) {}
 
-        virtual void Accept(VisitorBase& v)
+        virtual int64_t Accept(VisitorBase& v)
         {
-            v.Visit(this);
+            return v.Visit(this);
         }
 
         virtual ValueNodePtr Evaluate()
@@ -108,9 +108,9 @@ class AstIntExp: public AstBase
         explicit AstIntExp(int64_t val): AstBase(AST_INT), val_(val) {}
         ~AstIntExp() {}
 
-        virtual void Accept(VisitorBase& v)
+        virtual int64_t Accept(VisitorBase& v)
         {
-            v.Visit(this);
+            return v.Visit(this);
         }
 
         virtual ValueNodePtr Evaluate()
@@ -131,9 +131,9 @@ class AstBoolExp: public AstBase
     public:
         explicit AstBoolExp(bool b): AstBase(AST_BOOL), val_(b) {}
 
-        virtual void Accept(VisitorBase& v)
+        virtual int64_t Accept(VisitorBase& v)
         {
-            v.Visit(this);
+            return v.Visit(this);
         }
 
         virtual ValueNodePtr Evaluate()
@@ -155,9 +155,9 @@ class AstFloatExp: public AstBase
         explicit AstFloatExp(double v): AstBase(AST_FLOAT), val_(v) {}
         ~AstFloatExp() {}
 
-        virtual void Accept(VisitorBase& v)
+        virtual int64_t Accept(VisitorBase& v)
         {
-            v.Visit(this);
+            return v.Visit(this);
         }
 
         virtual ValueNodePtr Evaluate()
@@ -182,9 +182,9 @@ class AstStringExp: public AstBase
 
         ~AstStringExp() {}
 
-        virtual void Accept(VisitorBase& v)
+        virtual int64_t Accept(VisitorBase& v)
         {
-            v.Visit(this);
+            return v.Visit(this);
         }
 
         virtual ValueNodePtr Evaluate()
@@ -208,9 +208,9 @@ class AstVarExp: public AstBase
 
         ~AstVarExp() {}
 
-        virtual void Accept(VisitorBase& v)
+        virtual int64_t Accept(VisitorBase& v)
         {
-            v.Visit(this);
+            return v.Visit(this);
         }
 
         virtual ValueNodePtr Evaluate()
@@ -234,9 +234,9 @@ class AstUnaryExp: public AstBase
 
         ~AstUnaryExp() {}
 
-        virtual void Accept(VisitorBase& v)
+        virtual int64_t Accept(VisitorBase& v)
         {
-            v.Visit(this);
+            return v.Visit(this);
         }
 
         virtual ValueNodePtr Evaluate()
@@ -262,9 +262,9 @@ class AstBinaryExp: public AstBase
 
         ~AstBinaryExp() {}
 
-        virtual void Accept(VisitorBase& v)
+        virtual int64_t Accept(VisitorBase& v)
         {
-            v.Visit(this);
+            return v.Visit(this);
         }
 
         virtual ValueNodePtr Evaluate()
@@ -295,9 +295,9 @@ class AstFuncProtoExp: public AstBase
 
         ~AstFuncProtoExp() {}
 
-        virtual void Accept(VisitorBase& v)
+        virtual int64_t Accept(VisitorBase& v)
         {
-            v.Visit(this);
+            return v.Visit(this);
         }
 
         virtual ValueNodePtr Evaluate()
@@ -326,9 +326,9 @@ class AstScopeStatementExp: public AstBase
 
         ~AstScopeStatementExp() {}
 
-        virtual void Accept(VisitorBase& v)
+        virtual int64_t Accept(VisitorBase& v)
         {
-            v.Visit(this);
+            return v.Visit(this);
         }
 
         virtual ValueNodePtr Evaluate()
@@ -353,9 +353,9 @@ class AstFuncDefExp: public AstBase
 
         ~AstFuncDefExp() {}
 
-        virtual void Accept(VisitorBase& v)
+        virtual int64_t Accept(VisitorBase& v)
         {
-            v.Visit(this);
+            return v.Visit(this);
         }
 
         virtual ValueNodePtr Evaluate()
@@ -381,9 +381,9 @@ class AstFuncCallExp: public AstBase
 
         ~AstFuncCallExp() {}
 
-        virtual void Accept(VisitorBase& v)
+        virtual int64_t Accept(VisitorBase& v)
         {
-            v.Visit(this);
+            return v.Visit(this);
         }
 
         virtual ValueNodePtr Evaluate()
@@ -407,9 +407,9 @@ class AstArrayExp: public AstBase
         explicit AstArrayExp(const std::vector<AstBasePtr>& arr)
             : AstBase(AST_ARR), arr_(arr) {}
 
-        virtual void Accept(VisitorBase& v)
+        virtual int64_t Accept(VisitorBase& v)
         {
-            v.Visit(this);
+            return v.Visit(this);
         }
 
         virtual ValueNodePtr Evaluate()
@@ -433,9 +433,9 @@ class AstArrayIndexExp: public AstBase
 
         ~AstArrayIndexExp() {}
 
-        virtual void Accept(VisitorBase& v)
+        virtual int64_t Accept(VisitorBase& v)
         {
-            v.Visit(this);
+            return v.Visit(this);
         }
 
         virtual ValueNodePtr Evaluate()
@@ -460,9 +460,9 @@ class AstRetExp: public AstBase
 
         ~AstRetExp() {}
 
-        virtual void Accept(VisitorBase& v)
+        virtual int64_t Accept(VisitorBase& v)
         {
-            v.Visit(this);
+            return v.Visit(this);
         }
 
         virtual ValueNodePtr Evaluate()
@@ -494,9 +494,9 @@ class AstIfExp: public AstBase
 
         ~AstIfExp() {}
 
-        virtual void Accept(VisitorBase& v)
+        virtual int64_t Accept(VisitorBase& v)
         {
-            v.Visit(this);
+            return v.Visit(this);
         }
 
         virtual ValueNodePtr Evaluate()
@@ -520,9 +520,9 @@ class AstWhileExp: public AstBase
 
         ~AstWhileExp() {}
 
-        virtual void Accept(VisitorBase& v)
+        virtual int64_t Accept(VisitorBase& v)
         {
-            v.Visit(this);
+            return v.Visit(this);
         }
 
         virtual ValueNodePtr Evaluate()
@@ -549,9 +549,9 @@ class AstForExp: public AstBase
 
         ~AstForExp() {}
 
-        virtual void Accept(VisitorBase& v)
+        virtual int64_t Accept(VisitorBase& v)
         {
-            v.Visit(this);
+            return v.Visit(this);
         }
 
         virtual ValueNodePtr Evaluate()

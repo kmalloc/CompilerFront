@@ -247,7 +247,7 @@ public:
                       "invalid type for Variant.");
 
         static_assert(VariantHelper::CheckConstructible<std::is_lvalue_reference<T>::value, CT>::value,
-                      "try to copy or move an object that is not copyable or moveable.");
+                      "try to copy or move an object that is not copyable or movable.");
 
         if (type_ != VariantHelper::TypeExist<CT,TS...>::id)
         {
@@ -327,7 +327,7 @@ public:
     }
 
     template <typename T>
-    T* Get() noexcept
+    T* GetPtr() noexcept
     {
         static_assert(VariantHelper::TypeExist<T, TS...>::exist, "invalid type for invariant.");
 
@@ -337,9 +337,34 @@ public:
     }
 
     template <typename T>
+    const T* GetConstPtr() const noexcept
+    {
+        static_assert(VariantHelper::TypeExist<T, TS...>::exist, "invalid type for invariant.");
+
+        if (type_ != VariantHelper::TypeExist<T, TS...>::id) return NULL;
+
+        return reinterpret_cast<const T*>(data_);
+    }
+
+    template <typename T>
+    T Get() const noexcept
+    {
+        return *GetConstPtr();
+    }
+
+    template <typename T>
     T& GetRef()
     {
-        T* p = Get<T>();
+        T* p = GetPtr<T>();
+        if (!p) throw "invalid type for Invariant::Get<>()";
+
+        return *p;
+    }
+
+    template <typename T>
+    const T& GetConstRef() const
+    {
+        const T* p = GetConstPtr<T>();
         if (!p) throw "invalid type for Invariant::Get<>()";
 
         return *p;

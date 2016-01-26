@@ -65,8 +65,7 @@ struct CodeFunc
         ins_.push_back(in);
     }
 
-    void IncRegIdx() { ++rdx_; }
-    uint32_t GetRegIdx() const { return rdx_; }
+    uint32_t FetchAndIncIdx() { return rdx_++; }
 
     std::string name_;
     std::vector<std::string> params_;
@@ -83,6 +82,10 @@ struct CodeFunc
     std::vector<CodeFunc> sub_func_;
     // function name to index of sub_func_
     std::unordered_map<std::string, size_t> sub_func_index_;
+
+    // const values attached to the function.
+    ConstPool const_val_pool_;
+    std::unordered_map<std::string, size_t> const_val_ind_;
 };
 
 struct CodeClass
@@ -120,63 +123,20 @@ class AstWalker: public VisitorBase
 
         size_t AddLiteralInt(int64_t v)
         {
-            auto i  = 0xffffu;
-            auto it = int_pool_index_.find(v);
-            if (it == int_pool_index_.end())
-            {
-                i = int_pool_.size();
-                assert(i < MaxConstPoolNum());
-
-                int_pool_.push_back(v);
-                int_pool_index_[v] = i;
-            }
-            else
-            {
-                i = it->second;
-            }
+            auto i = s_func_.top()->const_val_pool_.AddConst(v);
 
             return i | (1 << InsOpASize());
         }
 
         size_t AddLiteralFloat(double v)
         {
-            auto i  = 0xffffu;
-            auto it = float_pool_index_.find(v);
-
-            if (it == float_pool_index_.end())
-            {
-                i = float_pool_.size();
-                assert(i < MaxConstPoolNum());
-
-                float_pool_.push_back(v);
-                float_pool_index_[v] = i;
-            }
-            else
-            {
-                i = it->second;
-            }
-
+            auto i = s_func_.top()->const_val_pool_.AddConst(v);
             return i | (1 << InsOpASize());
         }
 
         size_t AddLiteralString(const std::string& v)
         {
-            auto i  = 0xffffu;
-            auto it = str_pool_index_.find(v);
-
-            if (it == str_pool_index_.end())
-            {
-                i = str_pool_.size();
-                assert(i < MaxConstPoolNum());
-
-                str_pool_.push_back(v);
-                str_pool_index_[v] = i;
-            }
-            else
-            {
-                i = it->second;
-            }
-
+            auto i = s_func_.top()->const_val_pool_.AddConst(v);
             return i | (1 << InsOpASize());
         }
 
@@ -200,7 +160,7 @@ class AstWalker: public VisitorBase
                 assert(i < MaxConstPoolNum());
 
                 idx[name] = i;
-                var.emplace_back(name);
+                var.emplace_back(string(name));
             }
             else
             {
@@ -210,49 +170,49 @@ class AstWalker: public VisitorBase
             return i | (1 << InsOpASize());
         }
 
-        virtual void Visit(AstIntExp* node)
+        virtual int64_t Visit(AstIntExp* node)
         {
             auto v = node->GetValue();
             auto i = AddLiteralInt(v);
-            SetTmpRes(i);
+
+            // TODO
+            return i;
         }
 
-        virtual void Visit(AstBoolExp* node)
+        virtual int64_t Visit(AstBoolExp* node)
         {
             int64_t v = node->GetValue();
             auto i = AddLiteralInt(v);
-            SetTmpRes(i);
+
+            // TODO
+            return i;
         }
 
-        virtual void Visit(AstFloatExp* node)
+        virtual int64_t Visit(AstFloatExp* node)
         {
             auto v = node->GetValue();
             auto i = AddLiteralFloat(v);
-            SetTmpRes(i);
+
+            // TODO
+            return i;
         }
 
-        virtual void Visit(AstStringExp* node)
+        virtual int64_t Visit(AstStringExp* node)
         {
             const auto& v = node->GetValue();
             auto i = AddLiteralString(v);
-            SetTmpRes(i);
+
+            // TODO
+            return i;
         }
 
-        virtual void Visit(AstVarExp* v)
+        virtual int64_t Visit(AstVarExp* v)
         {
             const auto& name = v->GetName();
             auto i = AddVar(name);
-            SetTmpRes(i);
-        }
 
-        void SetTmpRes(uint32_t res)
-        {
-            tmpRes_ = res;
-        }
-
-        uint32_t GetTmpRes() const
-        {
-            return tmpRes_;
+            // TODO
+            return i;
         }
 
         // op: 6 bits, out: 8 bits, l: 9 bits, r: 9 bits
@@ -269,7 +229,7 @@ class AstWalker: public VisitorBase
             s_func_.top()->AddInstruction(in);
         }
 
-        virtual void Visit(AstBinaryExp* exp)
+        virtual int64_t Visit(AstBinaryExp* exp)
         {
             OpCode op = OP_NOP;
             auto func = s_func_.top();
@@ -279,28 +239,23 @@ class AstWalker: public VisitorBase
             {
                 case TOK_ADD:
                     op  = OP_ADD;
-                    ret = func->GetRegIdx();
-                    func->IncRegIdx();
+                    ret = func->FetchAndIncIdx();
                     break;
                 case TOK_SUB:
                     op  = OP_SUB;
-                    ret = func->GetRegIdx();
-                    func->IncRegIdx();
+                    ret = func->FetchAndIncIdx();
                     break;
                 case TOK_MUL:
                     op  = OP_MUL;
-                    ret = func->GetRegIdx();
-                    func->IncRegIdx();
+                    ret = func->FetchAndIncIdx();
                     break;
                 case TOK_DIV:
                     op  = OP_DIV;
-                    ret = func->GetRegIdx();
-                    func->IncRegIdx();
+                    ret = func->FetchAndIncIdx();
                     break;
                 case TOK_POW:
                     op  = OP_POW;
-                    ret = func->GetRegIdx();
-                    func->IncRegIdx();
+                    ret = func->FetchAndIncIdx();
                     break;
                 case TOK_AS:
                     op = OP_MOV;
@@ -309,14 +264,11 @@ class AstWalker: public VisitorBase
                     break;
             }
 
-            exp->GetLeftOperand()->Accept(*this);
-            auto l_rdx = GetTmpRes();
+            auto l_rdx = exp->GetLeftOperand()->Accept(*this);
+            auto r_rdx = exp->GetRightOperand()->Accept(*this);
 
-            exp->GetRightOperand()->Accept(*this);
-            auto r_rdx = GetTmpRes();
-
-            SetTmpRes(ret);
             CreateBinInstruction(op, ret, l_rdx, r_rdx);
+            return ret;
         }
 
         std::unique_ptr<Table> CreateTable(const std::vector<Value>& vs)
@@ -326,7 +278,7 @@ class AstWalker: public VisitorBase
             return std::unique_ptr<Table>();
         }
 
-        virtual void Visit(AstArrayExp* exp)
+        virtual int64_t Visit(AstArrayExp* exp)
         {
             std::vector<Value> vs;
             const auto& arr = exp->GetArray();
@@ -341,13 +293,21 @@ class AstWalker: public VisitorBase
 
             std::unique_ptr<Table> t = CreateTable(vs);
             AddTable(t.get());
+
+            // TODO, return value
         }
 
-        virtual void Visit(AstArrayIndexExp*) {}
+        virtual int64_t Visit(AstArrayIndexExp*)
+        {
+            // TODO
+        }
 
-        virtual void Visit(AstUnaryExp*) {}
+        virtual int64_t Visit(AstUnaryExp*)
+        {
+            // TODO
+        }
 
-        virtual void Visit(AstFuncProtoExp* f)
+        virtual int64_t Visit(AstFuncProtoExp* f)
         {
             const auto& name = f->GetName();
             const auto& params = f->GetParams();
@@ -361,30 +321,35 @@ class AstWalker: public VisitorBase
             {
                 auto ind = it->second;
                 const auto& func = func_pool[ind];
-                if (func.params_ == params) return;
+
+                // TODO
+                if (func.params_ == params) return 0x0000;
 
                 ReportError(f, std::string("redefinition of function:") + name);
-                return;
+
+                return 0xffffff;
             }
 
             auto ind = func_pool.size();
             func_pool_index[name] = ind;
-            func_pool.emplace_back(name, params);
+            func_pool.emplace_back(std::string(name), params);
+
+            // TODO
         }
 
-        virtual void Visit(AstFuncDefExp* f)
+        virtual int64_t Visit(AstFuncDefExp* f)
         {
             auto proto = f->GetProto();
             proto->Accept(*this);
 
-            const auto& name = proto->GetName();
+            auto name = proto->GetName();
             const auto& params = proto->GetParams();
 
             auto cur_func = s_func_.top();
             auto pos = cur_func->sub_func_.size();
 
             cur_func->sub_func_index_[name] = pos;
-            cur_func->sub_func_.emplace_back(name, params);
+            cur_func->sub_func_.emplace_back(std::move(name), params);
 
             s_func_.push(&cur_func->sub_func_[pos]);
             // TODO
@@ -392,37 +357,25 @@ class AstWalker: public VisitorBase
             s_func_.pop();
         }
 
-        virtual void Visit(AstScopeStatementExp* s)
+        virtual int64_t Visit(AstScopeStatementExp* s)
         {
             auto& body = s->GetBody();
             // TODO
             (void)body;
         }
 
-        virtual void Visit(AstFuncCallExp*) {}
-        virtual void Visit(AstRetExp*) {}
-        virtual void Visit(AstIfExp*) {}
-        virtual void Visit(AstTrueExp*) {}
-        virtual void Visit(AstWhileExp*) {}
-        virtual void Visit(AstForExp*) {}
-        virtual void Visit(AstErrInfo*) {}
+        virtual int64_t Visit(AstFuncCallExp*) {}
+        virtual int64_t Visit(AstRetExp*) {}
+        virtual int64_t Visit(AstIfExp*) {}
+        virtual int64_t Visit(AstTrueExp*) {}
+        virtual int64_t Visit(AstWhileExp*) {}
+        virtual int64_t Visit(AstForExp*) {}
+        virtual int64_t Visit(AstErrInfo*) {}
 
     private:
         bool debug_;
-        uint32_t tmpRes_;
         CodeFunc main_func_;
         std::stack<CodeFunc*> s_func_;
-
-        // const pool
-
-        std::vector<int64_t> int_pool_;
-        std::unordered_map<int64_t, size_t> int_pool_index_; // value to index
-
-        std::vector<double> float_pool_;
-        std::unordered_map<double, size_t> float_pool_index_;
-
-        std::vector<std::string> str_pool_;
-        std::unordered_map<std::string, size_t> str_pool_index_;
 };
 
 CodeGen::CodeGen()

@@ -93,7 +93,7 @@ TEST(ink_test_suit, test_variant_basic)
         v4 = ForDestroy([&tag]() { tag--; });
         ASSERT_EQ(3, v4.GetType());
 
-        v4.Get<ForDestroy>()->fun_();
+        v4.GetPtr<ForDestroy>()->fun_();
         ASSERT_EQ(22, tag);
 
         v4 = 42;
@@ -241,18 +241,18 @@ TEST(ink_test_suit, test_variant_internal)
     Variant<int, std::string> v3;
     v3.EmplaceSet<std::string>("wwww");
 
-    ASSERT_STREQ("wwww", v3.Get<std::string>()->c_str());
+    ASSERT_STREQ("wwww", v3.GetPtr<std::string>()->c_str());
 
     v3.EmplaceSet<std::string>(4, 'c');
-    ASSERT_STREQ("cccc", v3.Get<std::string>()->c_str());
+    ASSERT_STREQ("cccc", v3.GetPtr<std::string>()->c_str());
 
     Variant<int, std::string> v4(v3);
     ASSERT_EQ(2, v4.GetType());
-    ASSERT_STREQ("cccc", v4.Get<std::string>()->c_str());
+    ASSERT_STREQ("cccc", v4.GetPtr<std::string>()->c_str());
 
     Variant<int, std::string> v5 = v3;
     ASSERT_EQ(2, v5.GetType());
-    ASSERT_STREQ("cccc", v5.Get<std::string>()->c_str());
+    ASSERT_STREQ("cccc", v5.GetPtr<std::string>()->c_str());
 
     ForMove fm1(33);
     Variant<int, ForMove> vfm = fm1;

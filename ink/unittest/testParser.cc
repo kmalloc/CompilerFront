@@ -8,11 +8,11 @@ using namespace ink;
 class BinVisitor: public VisitorBase
 {
     public:
-        typedef void (*VisitProc)(AstBinaryExp*);
+        typedef int64_t (*VisitProc)(AstBinaryExp*);
 
-        virtual void Visit(AstBinaryExp* t)
+        virtual int64_t Visit(AstBinaryExp* t)
         {
-            proc_(t);
+            return proc_(t);
         }
 
         void SetProc(VisitProc proc) { proc_ = proc; }
