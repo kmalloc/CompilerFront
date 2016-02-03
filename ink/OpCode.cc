@@ -16,12 +16,15 @@ constexpr uint32_t InsOpSize() { return 6; }
 constexpr uint32_t InsOpASize() { return 8; }
 constexpr uint32_t InsOpBSize() { return 9; }
 constexpr uint32_t InsOpCSize() { return 9; }
+constexpr uint32_t InsBxSize() { return 18; }
 
-constexpr uint32_t InsAPos() { return 18; }
-constexpr uint32_t InsBPos() { return 9; }
-constexpr uint32_t InsCPos() { return 0; }
-constexpr uint32_t InsOpPos() { return 26; }
-constexpr uint32_t MaxConstPoolNum() { return (1 << InsOpSize()) - 1; }
+constexpr uint32_t InsOpPos() { return 0; }
+constexpr uint32_t InsAPos() { return InsOpSize(); }
+constexpr uint32_t InsBPos() { return InsAPos() + InsOpASize(); }
+constexpr uint32_t InsCPos() { return InsBPos() + InsOpBSize(); }
+constexpr uint32_t InsBxPos() { return InsBPos(); }
+
+constexpr uint32_t MaxConstPoolNum() { return 1 << InsBxSize(); }
 
 struct CodeVar
 {
@@ -123,24 +126,20 @@ class AstWalker: public VisitorBase
 
         size_t AddLiteralInt(int64_t v)
         {
-            auto i = s_func_.top()->const_val_pool_.AddConst(v);
-
-            return i | (1 << InsOpASize());
+            return s_func_.top()->const_val_pool_.AddConst(v);
         }
 
         size_t AddLiteralFloat(double v)
         {
-            auto i = s_func_.top()->const_val_pool_.AddConst(v);
-            return i | (1 << InsOpASize());
+            return s_func_.top()->const_val_pool_.AddConst(v);
         }
 
         size_t AddLiteralString(const std::string& v)
         {
-            auto i = s_func_.top()->const_val_pool_.AddConst(v);
-            return i | (1 << InsOpASize());
+            return s_func_.top()->const_val_pool_.AddConst(v);
         }
 
-        size_t AddTable(Table* t)
+        size_t AddTable(InkTable* t)
         {
             // TODO
             (void)t;
@@ -149,7 +148,7 @@ class AstWalker: public VisitorBase
 
         size_t AddVar(const std::string& name)
         {
-            auto i = 0xffffu;
+            size_t i;
             auto& var = s_func_.top()->var_pool_;
             auto& idx = s_func_.top()->var_pool_index_;
 
@@ -160,58 +159,71 @@ class AstWalker: public VisitorBase
                 assert(i < MaxConstPoolNum());
 
                 idx[name] = i;
-                var.emplace_back(string(name));
+                var.emplace_back(std::string(name));
             }
             else
             {
                 i = it->second;
             }
 
-            return i | (1 << InsOpASize());
+            return i;
         }
 
         virtual int64_t Visit(AstIntExp* node)
         {
             auto v = node->GetValue();
             auto i = AddLiteralInt(v);
+            auto r = s_func_.top()->FetchAndIncIdx();
+            auto in = OP_LDK | (i << InsAPos()) | (r << InsBxPos());
 
-            // TODO
-            return i;
+            s_func_.top()->AddInstruction(in);
+
+            return r;
         }
 
         virtual int64_t Visit(AstBoolExp* node)
         {
             int64_t v = node->GetValue();
             auto i = AddLiteralInt(v);
+            auto r = s_func_.top()->FetchAndIncIdx();
+            auto in = OP_LDK | (i << InsAPos()) | (r << InsBxPos());
 
-            // TODO
-            return i;
+            s_func_.top()->AddInstruction(in);
+
+            return r;
         }
 
         virtual int64_t Visit(AstFloatExp* node)
         {
             auto v = node->GetValue();
             auto i = AddLiteralFloat(v);
+            auto r = s_func_.top()->FetchAndIncIdx();
+            auto in = OP_LDF | (i << InsAPos()) | (r << InsBxPos());
 
-            // TODO
-            return i;
+            s_func_.top()->AddInstruction(in);
+
+            return r;
         }
 
         virtual int64_t Visit(AstStringExp* node)
         {
             const auto& v = node->GetValue();
             auto i = AddLiteralString(v);
+            auto r = s_func_.top()->FetchAndIncIdx();
+            auto in = OP_LDS | (i << InsAPos()) | (r << InsBxPos());
 
-            // TODO
-            return i;
+            s_func_.top()->AddInstruction(in);
+
+            return r;
         }
 
         virtual int64_t Visit(AstVarExp* v)
         {
             const auto& name = v->GetName();
+
+            // FIXME: find variable first, if no found then add new variable.
             auto i = AddVar(name);
 
-            // TODO
             return i;
         }
 
@@ -220,20 +232,20 @@ class AstWalker: public VisitorBase
         void CreateBinInstruction(OpCode op,
                 uint32_t out, uint32_t l, uint32_t r)
         {
-            uint32_t in = 0xFC000000 & (op << InsOpPos());
+            uint32_t in = op << InsOpPos();
 
-            in |= 0x03FC0000 & (out << InsAPos());
-            in |= 0x0003FE00 & (l << InsBPos());
-            in |= 0x000001FF & (r << InsCPos());
+            in |= out << InsAPos();
+            in |= l << InsBPos();
+            in |= r << InsCPos();
 
             s_func_.top()->AddInstruction(in);
         }
 
         virtual int64_t Visit(AstBinaryExp* exp)
         {
+            auto ret = 0;
             OpCode op = OP_NOP;
             auto func = s_func_.top();
-            auto ret = 0;
 
             switch (exp->GetOpType())
             {
@@ -271,11 +283,11 @@ class AstWalker: public VisitorBase
             return ret;
         }
 
-        std::unique_ptr<Table> CreateTable(const std::vector<Value>& vs)
+        std::unique_ptr<InkTable> CreateTable(const std::vector<Value>& vs)
         {
             //TODO
             (void)vs;
-            return std::unique_ptr<Table>();
+            return std::unique_ptr<InkTable>();
         }
 
         virtual int64_t Visit(AstArrayExp* exp)
@@ -291,7 +303,7 @@ class AstWalker: public VisitorBase
                 vs.push_back(v);
             }
 
-            std::unique_ptr<Table> t = CreateTable(vs);
+            std::unique_ptr<InkTable> t = CreateTable(vs);
             AddTable(t.get());
 
             // TODO, return value

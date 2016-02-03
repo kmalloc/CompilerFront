@@ -51,6 +51,9 @@ enum OpCode
 
     OP_NEW_TABLE, // create table
     OP_SET_TABLE, // set table
+
+    // maximum instruction.
+    OP_MAX = (1 << 6),
 };
 
 class CodeGen

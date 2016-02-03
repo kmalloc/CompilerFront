@@ -35,6 +35,8 @@ namespace ink {
         std::unordered_map<std::string, type> data_;
     };
 
+    using InkTable = Table<int64_t, double, std::string>;
+
     template<typename T> struct TypeTrait
     {
         static constexpr ObjType type = OT_NIL;
@@ -45,7 +47,7 @@ namespace ink {
         static constexpr ObjType type = OT_BOOL;
     };
 
-    template<> struct TypeTrait<int>
+    template<> struct TypeTrait<int64_t>
     {
         static constexpr ObjType type = OT_INT;
     };
@@ -70,7 +72,7 @@ namespace ink {
         static constexpr ObjType type = OT_STR;
     };
 
-    template<> struct TypeTrait<Table>
+    template<> struct TypeTrait<InkTable>
     {
         static constexpr ObjType type = OT_TABLE;
     };
@@ -85,10 +87,10 @@ namespace ink {
         template<typename T>
         Value(T&& v)
         {
-            static_assert(TypeTrait<std::decay<T>::type>::type, "invalid value type for Value.");
+            static_assert(TypeTrait<typename std::decay<T>::type>::type, "invalid value type for Value.");
 
             val_ = std::forward<T>(v);
-            type_ = TypeTrait<std::decay<T>::type>::type;
+            type_ = TypeTrait<typename std::decay<T>::type>::type;
         }
 
         ObjType GetType() const { return type_; }
@@ -98,16 +100,15 @@ namespace ink {
 
     private:
         ObjType type_;
-        Variant<int64_t, double, std::string, Table> val_;
+        Variant<int64_t, double, std::string, InkTable> val_;
     };
-
 
     struct ConstPool
     {
-        size_t AddConst(int v)
+        size_t AddConst(int64_t v)
         {
-            size_t ret = -1u;
-            auto pred = [v](const auto& it) { return it->GetValue<int64_t>() == v; };
+            size_t ret;
+            auto pred = [v](const Value& it) { return it.GetValue<int64_t>() == v; };
             auto pos = std::find_if(int_.begin(), int_.end(), pred);
 
             if (pos == int_.end())
@@ -125,10 +126,10 @@ namespace ink {
 
         size_t AddConst(double v)
         {
-            size_t ret = -1u;
+            size_t ret;
 
             // yes, float comparision.
-            auto pred = [v](const auto& it) { return it->GetValue<double>() == v; };
+            auto pred = [v](const Value& it) { return it.GetValue<double>() == v; };
             auto pos = std::find_if(float_.begin(), float_.end(), pred);
 
             if (pos == float_.end())
@@ -146,9 +147,9 @@ namespace ink {
 
         size_t AddConst(std::string v)
         {
-            size_t ret = -1u;
+            size_t ret;
 
-            auto pred = [v](const auto& it) { return it->GetValue<std::string>() == v; };
+            auto pred = [v](const Value& it) { return it.GetValue<std::string>() == v; };
             auto pos = std::find_if(str_.begin(), str_.end(), pred);
 
             if (pos == str_.end())
