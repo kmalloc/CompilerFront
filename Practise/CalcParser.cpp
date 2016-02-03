@@ -1,27 +1,32 @@
-#include <precompile.h>
-
 #include "CalcParser.h"
 
 #include <vector>
+#include <string>
 #include <sstream>
 #include <iostream>
 
 #include <boost/assign.hpp>
-#include <boost/spirit/core.hpp>
-#include <boost/spirit/attribute.hpp>
 #include <boost/variant/apply_visitor.hpp>
 #include <boost/variant/recursive_variant.hpp>
 
-using namespace std;
-using namespace boost::spirit;
-using namespace phoenix;
+#include <boost/spirit/version.hpp>
+
+#if SPIRIT_VERSION <= 0x1806
+#include <boost/spirit/core.hpp>
+#include <boost/spirit/attribute.hpp>
+namespace spirit_ns = boost::spirit;
+#else
+#include <boost/spirit/home/classic/core.hpp>
+#include <boost/spirit/home/classic/attribute.hpp>
+namespace spirit_ns = boost::spirit::classic;
+#endif
 
 namespace CalcParser {
 
-struct ErrException: public exception
+struct ErrException: public std::exception
 {
-    string msg_;
-    explicit ErrException(const string& s): msg_(s) {}
+    std::string msg_;
+    explicit ErrException(const std::string& s): msg_(s) {}
     ~ErrException() throw() {}
 
     const char* what() const throw() { return msg_.c_str(); }
@@ -36,7 +41,7 @@ struct ExpAst
 {
     typedef boost::variant<nil
         , double
-        , string
+        , std::string
         , boost::recursive_wrapper<ExpAst>
         , boost::recursive_wrapper<binary_op>
         , boost::recursive_wrapper<unary_op>
@@ -62,6 +67,7 @@ struct ExpAst
     // add unary operand
     ExpAst& operator^=(const ExpAst& rhs);
 
+    Type tmp_;
     Type expr_;
 };
 
@@ -72,10 +78,10 @@ static std::map<std::string, OpType> gs_op2_map = boost::assign::map_list_of("==
     ("+", OT_2_Add)("-", OT_2_Sub)("*", OT_2_Mul)("/", OT_2_Div)
     ("%", OT_2_Mod)("^", OT_2_Xor)("&", OT_2_And)("|", OT_2_Or)
     (">", OT_2_GT)(">=", OT_2_GET)("<", OT_2_LT)("<=", OT_2_LET)
-    ("!=", OT_2_Neq);
+    ("!=", OT_2_Neq)("&&", OT_2_LAND)("and", OT_2_LAND)("||", OT_2_LOR)("or", OT_2_LOR);
 
 static std::map<std::string, OpType> gs_op_fun_map = boost::assign::map_list_of("if", OT_3_If)
-    ("left", OT_2_Left)("right", OT_2_Right)("concat", OT_2_Concat);
+    ("left", OT_2_Left)("right", OT_2_Right)("concat", OT_2_Concat)("abs", OT_1_Abs);
 
 static std::map<OpType, std::string> gs_op_map_reverse = boost::assign::map_list_of(OT_2_Eq, "==")
     (OT_2_Add, "+")(OT_2_Sub, "-")(OT_2_Mul, "*")(OT_2_Div, "/")
@@ -83,14 +89,14 @@ static std::map<OpType, std::string> gs_op_map_reverse = boost::assign::map_list
     (OT_2_Left, "left")(OT_2_Right, "right")(OT_2_Concat, "concat")
     (OT_1_Pos, "+")(OT_1_Neg, "-")(OT_3_If, "if")(OT_NOP, "nop")
     (OT_2_GT, ">")(OT_2_GET, ">=")(OT_2_LT, "<")(OT_2_LET, "<=")
-    (OT_2_Neq, "!=");
+    (OT_2_Neq, "!=")(OT_1_Abs, "abs")(OT_2_LAND, "&&")(OT_2_LOR, "||");
 
 struct binary_op
 {
-    binary_op(const string& op, const ExpAst& left)
+    binary_op(const std::string& op, const ExpAst& left)
             : op_(gs_op2_map[op]), left_(left), right_(nil())
     {
-        if (op_ == OT_NOP) throw ErrException(string("unrecognized operator:") + op);
+        if (op_ == OT_NOP) throw ErrException(std::string("unrecognized operator:") + op);
     }
 
     OpType op_;
@@ -100,10 +106,10 @@ struct binary_op
 
 struct unary_op
 {
-    explicit unary_op(const string& op)
+    explicit unary_op(const std::string& op)
         : op_(gs_op1_map[op]), subject_(nil())
     {
-        if (op_ == OT_NOP) throw ErrException(string("unrecognized operator:") + op);
+        if (op_ == OT_NOP) throw ErrException(std::string("unrecognized operator:") + op);
     }
 
     OpType op_;
@@ -112,10 +118,10 @@ struct unary_op
 
 struct func_op
 {
-    explicit func_op(const string& op)
+    explicit func_op(const std::string& op)
         : op_(gs_op_fun_map[op])
     {
-        if (op_ == OT_NOP) throw ErrException(string("unrecognized operator:") + op);
+        if (op_ == OT_NOP) throw ErrException(std::string("unrecognized operator:") + op);
 
         params_.reserve(5);
     }
@@ -126,7 +132,7 @@ struct func_op
     }
 
     OpType op_;
-    vector<ExpAst> params_;
+    std::vector<ExpAst> params_;
 };
 
 struct string_op
@@ -134,25 +140,28 @@ struct string_op
     string_op() {}
     string_op(const char* s, const char* e): operand_(s, e) {}
 
-    string operand_;
+    std::string operand_;
 };
 
+// get a binary operator, cache it until we get right operand.
 ExpAst& ExpAst::operator+=(const ExpAst& rhs)
 {
-    expr_ = binary_op(boost::get<string>(rhs.expr_), expr_);
+    tmp_ = boost::get<std::string>(rhs.expr_);
     return *this;
 }
 
+// get a right operand, now create a binary node.
 ExpAst& ExpAst::operator-=(const ExpAst& rhs)
 {
-    binary_op& op = boost::get<binary_op>(this->expr_);
+    expr_ = binary_op(boost::get<std::string>(tmp_), expr_);
+    binary_op& op = boost::get<binary_op>(expr_);
     op.right_ = rhs;
     return *this;
 }
 
 ExpAst& ExpAst::operator*=(const ExpAst& rhs)
 {
-    expr_ = func_op(boost::get<string>(expr_));
+    expr_ = func_op(boost::get<std::string>(expr_));
     return *this;
 }
 
@@ -165,7 +174,7 @@ ExpAst& ExpAst::operator/=(const ExpAst& rhs)
 
 ExpAst& ExpAst::operator%=(const ExpAst& expr)
 {
-    expr_ = unary_op(boost::get<string>(expr.expr_));
+    expr_ = unary_op(boost::get<std::string>(expr.expr_));
     return *this;
 }
 
@@ -176,54 +185,74 @@ ExpAst& ExpAst::operator^=(const ExpAst& expr)
     return *this;
 }
 
-struct ExpClosure: boost::spirit::closure<ExpClosure, ExpAst>
+struct ExpClosure: spirit_ns::closure<ExpClosure, ExpAst>
 {
     member1 val_;
 };
 
-struct CalcGrammar: public grammar<CalcGrammar, ExpClosure::context_t>
+struct CalcGrammar: public spirit_ns::grammar<CalcGrammar, ExpClosure::context_t>
 {
     template <class scanner>
     struct definition
     {
-        typedef rule<scanner, ExpClosure::context_t> rule_t;
+        typedef spirit_ns::rule<scanner, ExpClosure::context_t> rule_t;
 
         const rule_t& start() const { return top; }
 
         explicit definition(const CalcGrammar& self)
         {
-            top = exp[self.val_ = arg1] >> end_p;
+            using namespace phoenix;
+            using namespace spirit_ns;
+
+            top = log[self.val_ = arg1] >> end_p;
+
+            // logical operator
+            log = blog[log.val_ = arg1] >>
+                *((str_p("&&")[log.val_ += construct_<std::string>(arg1, arg2)]
+                            >> blog[log.val_ -= arg1]) |
+                (str_p("||")[log.val_ += construct_<std::string>(arg1, arg2)]
+                            >> blog[log.val_ -= arg1]) |
+                (str_p("and")[log.val_ += construct_<std::string>(arg1, arg2)]
+                            >> blog[log.val_ -= arg1]) |
+                (str_p("or")[log.val_ += construct_<std::string>(arg1, arg2)]
+                            >> blog[log.val_ -= arg1]));
+
+            // bitwise logical
+            blog = rel[blog.val_ = arg1] >>
+                *((str_p("&")[blog.val_ += construct_<std::string>(arg1, arg2)]
+                            >> rel[blog.val_ -= arg1]) |
+                (str_p("|")[blog.val_ += construct_<std::string>(arg1, arg2)]
+                            >> rel[blog.val_ -= arg1]) |
+                (str_p("^")[blog.val_ += construct_<std::string>(arg1, arg2)]
+                            >> rel[blog.val_ -= arg1]));
+
+            // relational operators
+            rel = exp[rel.val_ = arg1] >>
+                *((str_p(">=")[rel.val_ += construct_<std::string>(arg1, arg2)]
+                            >> exp[rel.val_ -= arg1]) |
+                (str_p(">")[rel.val_ += construct_<std::string>(arg1, arg2)]
+                            >> exp[rel.val_ -= arg1]) |
+                (str_p("<=")[rel.val_ += construct_<std::string>(arg1, arg2)]
+                            >> exp[rel.val_ -= arg1]) |
+                (str_p("<")[rel.val_ += construct_<std::string>(arg1, arg2)]
+                            >> exp[rel.val_ -= arg1]) |
+                (str_p("==")[rel.val_ += construct_<std::string>(arg1, arg2)]
+                            >> exp[rel.val_ -= arg1]) |
+                (str_p("!=")[rel.val_ += construct_<std::string>(arg1, arg2)]
+                            >> exp[rel.val_ -= arg1]));
 
             exp = term[exp.val_ = arg1] >>
-                *((str_p("+")[exp.val_ += construct_<string>(arg1, arg2)]
+                *((str_p("+")[exp.val_ += construct_<std::string>(arg1, arg2)]
                             >> term[exp.val_ -= arg1]) |
-                (str_p("-")[exp.val_ += construct_<string>(arg1, arg2)]
+                (str_p("-")[exp.val_ += construct_<std::string>(arg1, arg2)]
                             >> term[exp.val_ -= arg1]));
 
             term = factor[term.val_ = arg1] >>
-                *((str_p("*")[term.val_ += construct_<string>(arg1, arg2)]
+                *((str_p("*")[term.val_ += construct_<std::string>(arg1, arg2)]
                             >> factor[term.val_ -= arg1]) |
-                (str_p("/")[term.val_ += construct_<string>(arg1, arg2)]
+                (str_p("/")[term.val_ += construct_<std::string>(arg1, arg2)]
                             >> factor[term.val_ -= arg1]) |
-                (str_p("%")[term.val_ += construct_<string>(arg1, arg2)]
-                            >> factor[term.val_ -= arg1]) |
-                (str_p("&")[term.val_ += construct_<string>(arg1, arg2)]
-                            >> factor[term.val_ -= arg1]) |
-                (str_p("|")[term.val_ += construct_<string>(arg1, arg2)]
-                            >> factor[term.val_ -= arg1]) |
-                (str_p("^")[term.val_ += construct_<string>(arg1, arg2)]
-                            >> factor[term.val_ -= arg1]) |
-                (str_p(">=")[term.val_ += construct_<string>(arg1, arg2)]
-                            >> factor[term.val_ -= arg1]) |
-                (str_p(">")[term.val_ += construct_<string>(arg1, arg2)]
-                            >> factor[term.val_ -= arg1]) |
-                (str_p("<=")[term.val_ += construct_<string>(arg1, arg2)]
-                            >> factor[term.val_ -= arg1]) |
-                (str_p("<")[term.val_ += construct_<string>(arg1, arg2)]
-                            >> factor[term.val_ -= arg1]) |
-                (str_p("==")[term.val_ += construct_<string>(arg1, arg2)]
-                            >> factor[term.val_ -= arg1]) |
-                (str_p("!=")[term.val_ += construct_<string>(arg1, arg2)]
+                (str_p("%")[term.val_ += construct_<std::string>(arg1, arg2)]
                             >> factor[term.val_ -= arg1]));
 
             factor =
@@ -237,21 +266,21 @@ struct CalcGrammar: public grammar<CalcGrammar, ExpClosure::context_t>
                 // parse decimal digit into a double
                 real_p[factor.val_ = arg1] |
                 // parse a variable, eg, x
-                id[factor.val_ = construct_<string>(arg1, arg2)] |
-                '(' >> exp[factor.val_ = arg1] >> ')' |
+                id[factor.val_ = construct_<std::string>(arg1, arg2)] |
+                '(' >> log[factor.val_ = arg1] >> ')' |
                 // parse a negate operation, eg, -x
-                (str_p("-")[factor.val_ %= construct_<string>(arg1, arg2)]
+                (str_p("-")[factor.val_ %= construct_<std::string>(arg1, arg2)]
                 >> factor[factor.val_ ^= arg1]) |
                 ('+' >> factor[factor.val_ = arg1]);
 
-            func = id[func.val_ = construct_<string>(arg1, arg2)] >>
-                ch_p('(')[func.val_ *= arg1] >> (exp[func.val_ /= arg1] % ',') >> ')';
+            func = id[func.val_ = construct_<std::string>(arg1, arg2)] >>
+                ch_p('(')[func.val_ *= arg1] >> !(log[func.val_ /= arg1] % ',') >> ')';
 
             id  = (('$' | alpha_p | '_') >> *(alnum_p | '_'));
         }
 
-        rule<scanner> id;
-        rule_t exp, term, factor, top, func;
+        spirit_ns::rule<scanner> id;
+        rule_t log, blog, rel, exp, term, factor, top, func;
     };
 };
 
@@ -259,13 +288,15 @@ struct AstWalker: public boost::static_visitor<OperandType>
 {
     public:
 
-        explicit AstWalker(const map<std::string, OperandType>* ref = NULL)
-            : m_handler(NULL), m_refValue(ref)
+        explicit AstWalker(const std::map<std::string, OperandType>* ref = NULL)
+            : m_reportUnknowVar(false), m_handler(NULL), m_refValue(ref)
         {
         }
 
         void SetHandler(FuncHandlerBase* func) { m_handler = func; }
-        void SetVariable(const map<std::string, OperandType>* ref) { m_refValue = ref; }
+
+        void SetReportUnknowVar(bool f) { m_reportUnknowVar = f; }
+        void SetVariable(const std::map<std::string, OperandType>* ref) { m_refValue = ref; }
 
         OperandType Walk(const ExpAst& ast) const
         {
@@ -290,12 +321,14 @@ struct AstWalker: public boost::static_visitor<OperandType>
             return k.operand_;
         }
 
-        OperandType operator()(const string& k) const
+        OperandType operator()(const std::string& k) const
         {
             if (!m_refValue) return k;
 
-            map<string, OperandType>::const_iterator it = (*m_refValue).find(k);
+            std::map<std::string, OperandType>::const_iterator it = (*m_refValue).find(k);
             if (it != (*m_refValue).end()) return it->second;
+
+            if (m_reportUnknowVar) throw ErrException(std::string("Unknown operand:") + k);
 
             return k;
         }
@@ -345,7 +378,7 @@ struct AstWalker: public boost::static_visitor<OperandType>
         }
 
     private:
-
+        bool m_reportUnknowVar;
         FuncHandlerBase* m_handler;
         const std::map<std::string, OperandType>* m_refValue;
 };
@@ -355,16 +388,52 @@ FuncHandlerBase::~FuncHandlerBase() {}
 
 OperandType FuncHandlerBase::Func0(OpType op) const
 {
-    assert(0 && "unrecognized unary operator");
+    std::string err = "parameters mismatched for function:" + gs_op_map_reverse[op];
+    throw ErrException(err);
+
     return 0;
 }
 
 OperandType FuncHandlerBase::Func1(OpType op, OperandType a1) const
 {
-    if (op == OT_1_Neg) return -boost::get<double>(a1);
-    else if (op == OT_1_Pos) return a1;
+    try {
+        switch (op) {
+            case OT_1_Neg: return -boost::get<double>(a1);
+            case OT_1_Pos: return a1;
+            case OT_1_Abs: return fabs(boost::get<double>(a1));
+            default: break;
+        }
+    } catch (...) {
+    }
 
-    assert(0 && "unrecognized unary operator");
+    std::string err = "invalid operand for function:" + gs_op_map_reverse[op];
+    throw ErrException(err);
+
+    return 0;
+}
+
+static inline OperandType LogicalOperation(OpType op, OperandType a1, OperandType a2)
+{
+    bool left = false, right = false;
+
+    try {
+        left = boost::get<double>(a1);
+    } catch (...) {
+        left = !boost::get<std::string>(a1).empty();
+    }
+
+    try {
+        right = boost::get<double>(a2);
+    } catch (...) {
+        right = !boost::get<std::string>(a2).empty();
+    }
+
+    switch (op)
+    {
+        case OT_2_LAND: return left && right;
+        case OT_2_LOR: return left || right;
+        default: throw ErrException("invalid logical operator");
+    }
 
     return 0;
 }
@@ -378,7 +447,7 @@ static inline OperandType CalcVariantType(OpType op, OperandType a1, OperandType
                 try {
                     return boost::get<double>(a1) + boost::get<double>(a2);
                 } catch (...) {
-                    return boost::get<string>(a1) + boost::get<string>(a2);
+                    return boost::get<std::string>(a1) + boost::get<std::string>(a2);
                 }
             }
         case OT_2_GT:
@@ -386,7 +455,7 @@ static inline OperandType CalcVariantType(OpType op, OperandType a1, OperandType
                 try {
                     return boost::get<double>(a1) > boost::get<double>(a2);
                 } catch (...) {
-                    return boost::get<string>(a1) > boost::get<string>(a2);
+                    return boost::get<std::string>(a1) > boost::get<std::string>(a2);
                 }
             };
         case OT_2_GET:
@@ -394,7 +463,7 @@ static inline OperandType CalcVariantType(OpType op, OperandType a1, OperandType
                 try {
                     return boost::get<double>(a1) >= boost::get<double>(a2);
                 } catch (...) {
-                    return boost::get<string>(a1) >= boost::get<string>(a2);
+                    return boost::get<std::string>(a1) >= boost::get<std::string>(a2);
                 }
             };
         case OT_2_LT:
@@ -402,7 +471,7 @@ static inline OperandType CalcVariantType(OpType op, OperandType a1, OperandType
                 try {
                     return boost::get<double>(a1) < boost::get<double>(a2);
                 } catch (...) {
-                    return boost::get<string>(a1) < boost::get<string>(a2);
+                    return boost::get<std::string>(a1) < boost::get<std::string>(a2);
                 }
             };
         case OT_2_LET:
@@ -410,7 +479,7 @@ static inline OperandType CalcVariantType(OpType op, OperandType a1, OperandType
                 try {
                     return boost::get<double>(a1) <= boost::get<double>(a2);
                 } catch (...) {
-                    return boost::get<string>(a1) <= boost::get<string>(a2);
+                    return boost::get<std::string>(a1) <= boost::get<std::string>(a2);
                 }
             };
         default:
@@ -445,11 +514,8 @@ OperandType FuncHandlerBase::Func2(OpType op, OperandType a1, OperandType a2) co
                 return static_cast<double>(static_cast<long long>(boost::get<double>(a1)) |
                         static_cast<long long>(boost::get<double>(a2)));
             case OT_2_GT:
-                return CalcVariantType(op, a1, a2);
             case OT_2_GET:
-                return CalcVariantType(op, a1, a2);
             case OT_2_LT:
-                return CalcVariantType(op, a1, a2);
             case OT_2_LET:
                 return CalcVariantType(op, a1, a2);
             case OT_2_Eq:
@@ -458,7 +524,7 @@ OperandType FuncHandlerBase::Func2(OpType op, OperandType a1, OperandType a2) co
                 return !(a1 == a2);
             case OT_2_Left:
                 {
-                    string& s = boost::get<string>(a1);
+                    std::string& s = boost::get<std::string>(a1);
                     size_t k = static_cast<size_t>(boost::get<double>(a2));
                     size_t len = s.size();
 
@@ -467,7 +533,7 @@ OperandType FuncHandlerBase::Func2(OpType op, OperandType a1, OperandType a2) co
                 }
             case OT_2_Right:
                 {
-                    string& s = boost::get<string>(a1);
+                    std::string& s = boost::get<std::string>(a1);
                     size_t k = static_cast<size_t>(boost::get<double>(a2));
                     size_t len = s.size();
 
@@ -477,17 +543,20 @@ OperandType FuncHandlerBase::Func2(OpType op, OperandType a1, OperandType a2) co
                 }
             case OT_2_Concat:
                 {
-                    string& s1 = boost::get<string>(a1);
-                    string& s2 = boost::get<string>(a2);
+                    std::string& s1 = boost::get<std::string>(a1);
+                    std::string& s2 = boost::get<std::string>(a2);
                     return s1 + s2;
                 }
+            case OT_2_LAND:
+            case OT_2_LOR:
+                return LogicalOperation(op, a1, a2);
             default:
-                assert(0 && "unrecognized binary operator");
+                throw "invalid parameters";
         }
     } catch (...) {
-        ostringstream oss;
+        std::ostringstream oss;
         oss.precision(16);
-        oss << "Invaliad operation: " << gs_op_map_reverse[op] << "(" << a1 << ", " << a2 << ")";
+        oss << "Invalid operation: " << gs_op_map_reverse[op] << "(" << a1 << ", " << a2 << ")";
         throw ErrException(oss.str());
     }
 
@@ -502,20 +571,68 @@ OperandType FuncHandlerBase::Func3(OpType op, OperandType a1,
         try {
             return boost::get<double>(a1)? a2 : a3;
         } catch(...) {
-            return (boost::get<string>(a1)).empty()? a3:a2;
+            return (boost::get<std::string>(a1)).empty()? a3:a2;
         }
     }
 
-    assert(0 && "unrecognized function operator");
+    std::string err = "parameters mismatched for function:" + gs_op_map_reverse[op];
+    throw ErrException(err);
+
     return 0;
 }
 
 OperandType FuncHandlerBase::Func4(OpType op, OperandType a1,
         OperandType a2, OperandType a3, OperandType a4) const
 {
-    assert(0 && "unrecognized function operator");
+    std::string err = "parameters mismatched for function:" + gs_op_map_reverse[op];
+    throw ErrException(err);
+
     return 0;
 }
+
+struct FuncHandlerForVerify: FuncHandlerBase
+{
+    virtual OperandType Func0(OpType op) const
+    {
+        throw ErrException("Parameters mismatched for function:" + gs_op_map_reverse[op]);
+        return nil();
+    }
+
+    virtual OperandType Func1(OpType op, OperandType a1) const
+    {
+        if (op <= OT_1_Start || op >= OT_1_End)
+        {
+            throw ErrException("Parameters mismatched for function:" + gs_op_map_reverse[op]);
+        }
+        return nil();
+    }
+
+    virtual OperandType Func2(OpType op, OperandType a1, OperandType a2) const
+    {
+        if (op <= OT_2_Start || op >= OT_2_End)
+        {
+            throw ErrException("Parameters mismatched for function:" + gs_op_map_reverse[op]);
+        }
+        return nil();
+    }
+
+    virtual OperandType Func3(OpType op, OperandType a1,
+            OperandType a2, OperandType a3) const
+    {
+        if (op <= OT_3_Start || op >= OT_3_End)
+        {
+            throw ErrException("Parameters mismatched for function:" + gs_op_map_reverse[op]);
+        }
+        return nil();
+    }
+
+    virtual OperandType Func4(OpType op, OperandType a1,
+            OperandType a2, OperandType a3, OperandType a4) const
+    {
+        throw ErrException("Parameters mismatched for function:" + gs_op_map_reverse[op]);
+        return nil();
+    }
+};
 
 class CalcParserImpl
 {
@@ -545,24 +662,56 @@ class CalcParserImpl
             m_handler = handler;
         }
 
+        FuncHandlerBase* GetHandler() const { return m_handler; }
+
         bool ParseExpression(const std::string& exp, std::string& err)
         {
+            using namespace phoenix;
+            using namespace spirit_ns;
+
             try {
                 parse_info<> pi = parse(exp.c_str(), m_grammar[var(m_ast) = arg1], space_p);
                 if (pi.hit && pi.full) return true;
 
-                ostringstream oss;
+                std::ostringstream oss;
                 oss << "Invalid expression, parser stopped at position "
                     << pi.stop - exp.c_str() << ":" << pi.stop;
 
                 err += oss.str();
-            } catch (exception& e) {
-                err += string("Error occurs during parsing:") + e.what();
+            } catch (std::exception& e) {
+                err += std::string("Error occurs during parsing:") + e.what();
             } catch (...) {
                 err += "Unknown error occurs while parsing the expression";
             }
 
             return false;
+        }
+
+        bool ParseExpression(const std::string& exp, std::string& err,
+                const std::map<std::string, OperandType>& ref)
+        {
+            bool ret = ParseExpression(exp, err);
+
+            if (!ret) return ret;
+
+            FuncHandlerForVerify verify;
+
+            m_walker.SetHandler(&verify);
+            m_walker.SetVariable(&ref);
+            m_walker.SetReportUnknowVar(true);
+
+            try {
+                m_walker.Walk(m_ast);
+            } catch (std::exception& e) {
+                ret = false;
+                err += e.what();
+            } catch (...) {
+                ret = false;
+            }
+
+            m_walker.SetHandler(m_handler);
+            m_walker.SetReportUnknowVar(false);
+            return ret;
         }
 
         OperandType GenValue(const std::map<std::string,
@@ -572,7 +721,7 @@ class CalcParserImpl
             m_walker.SetVariable(&ref);
             try {
                 ret = m_walker.Walk(m_ast);
-            } catch (exception& e) {
+            } catch (std::exception& e) {
                 err += e.what();
             } catch (...) {
                 err += "Unknown error occurs while walking the AST";
@@ -609,12 +758,23 @@ void CalculatorParser::SetHandler(FuncHandlerBase* handler, bool del)
     m_impl->SetHandler(handler, del);
 }
 
-bool CalculatorParser::ParseExpression(const string& exp, string& err)
+FuncHandlerBase* CalculatorParser::GetHandler() const
+{
+    return m_impl->GetHandler();
+}
+
+bool CalculatorParser::ParseExpression(const std::string& exp, std::string& err)
 {
     return m_impl->ParseExpression(exp, err);
 }
 
-OperandType CalculatorParser::GenValue(const map<string, OperandType>& ref, string& err)
+bool CalculatorParser::ParseExpression(const std::string& exp, std::string& err,
+        const std::map<std::string, OperandType>& ref)
+{
+    return m_impl->ParseExpression(exp, err, ref);
+}
+
+OperandType CalculatorParser::GenValue(const std::map<std::string, OperandType>& ref, std::string& err)
 {
     return m_impl->GenValue(ref, err);
 }
