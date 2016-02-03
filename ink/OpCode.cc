@@ -8,24 +8,6 @@
 
 namespace ink {
 
-constexpr uint32_t GetReg64Num() { return 32; }
-constexpr uint32_t GetReg32Num() { return 128; }
-
-constexpr uint32_t InsSize() { return 32; }
-constexpr uint32_t InsOpSize() { return 6; }
-constexpr uint32_t InsOpASize() { return 8; }
-constexpr uint32_t InsOpBSize() { return 9; }
-constexpr uint32_t InsOpCSize() { return 9; }
-constexpr uint32_t InsBxSize() { return 18; }
-
-constexpr uint32_t InsOpPos() { return 0; }
-constexpr uint32_t InsAPos() { return InsOpSize(); }
-constexpr uint32_t InsBPos() { return InsAPos() + InsOpASize(); }
-constexpr uint32_t InsCPos() { return InsBPos() + InsOpBSize(); }
-constexpr uint32_t InsBxPos() { return InsBPos(); }
-
-constexpr uint32_t MaxConstPoolNum() { return 1 << InsBxSize(); }
-
 struct CodeVar
 {
     explicit CodeVar(std::string name)
@@ -73,14 +55,12 @@ struct CodeFunc
     std::string name_;
     std::vector<std::string> params_;
 
+    // for generating local variable stack.
     std::vector<CodeVar> var_pool_;
     std::unordered_map<std::string, size_t> var_pool_index_; // value to index
 
     uint32_t rdx_;
-    std::vector<uint32_t> ins_;
-
-    uint32_t reg32_[GetReg32Num()];
-    uint64_t reg64_[GetReg64Num()];
+    std::vector<ins_t> ins_;
 
     std::vector<CodeFunc> sub_func_;
     // function name to index of sub_func_
@@ -146,25 +126,27 @@ class AstWalker: public VisitorBase
             return 0xffff;
         }
 
-        size_t AddVar(const std::string& name)
+        size_t AddVar(const std::string& name, bool is_local)
         {
-            size_t i;
-            auto& var = s_func_.top()->var_pool_;
-            auto& idx = s_func_.top()->var_pool_index_;
+            // all global variables stored in main's stack.
+            auto func = is_local? s_func_.top():&main_func_;
+            auto& var = func->var_pool_;
+            auto& idx = func->var_pool_index_;
 
+            // FIXME, searching global variable is not implemented correctly yet.
+            // should search up along the calling chain instead of just searching main.
             auto it = idx.find(name);
-            if (it == idx.end())
-            {
-                i = var.size();
-                assert(i < MaxConstPoolNum());
+            if (it != idx.end()) return it->second;
 
-                idx[name] = i;
-                var.emplace_back(std::string(name));
-            }
-            else
+            auto i = var.size();
+            if (i >= MaxOpAddr())
             {
-                i = it->second;
+                assert(0 && "number of local variable exceed.");
+                return ~0u;
             }
+
+            idx[name] = i;
+            var.emplace_back(std::string(name));
 
             return i;
         }
@@ -174,7 +156,9 @@ class AstWalker: public VisitorBase
             auto v = node->GetValue();
             auto i = AddLiteralInt(v);
             auto r = s_func_.top()->FetchAndIncIdx();
-            auto in = OP_LDK | (i << InsAPos()) | (r << InsBxPos());
+
+            // load pointer of the literal value(which stored in slot i) to register r.
+            ins_t in = OP_LDK | (i << InsAPos()) | (r << InsBPos());
 
             s_func_.top()->AddInstruction(in);
 
@@ -186,7 +170,7 @@ class AstWalker: public VisitorBase
             int64_t v = node->GetValue();
             auto i = AddLiteralInt(v);
             auto r = s_func_.top()->FetchAndIncIdx();
-            auto in = OP_LDK | (i << InsAPos()) | (r << InsBxPos());
+            ins_t in = OP_LDK | (i << InsAPos()) | (r << InsBPos());
 
             s_func_.top()->AddInstruction(in);
 
@@ -198,7 +182,7 @@ class AstWalker: public VisitorBase
             auto v = node->GetValue();
             auto i = AddLiteralFloat(v);
             auto r = s_func_.top()->FetchAndIncIdx();
-            auto in = OP_LDF | (i << InsAPos()) | (r << InsBxPos());
+            ins_t in = OP_LDF | (i << InsAPos()) | (r << InsBPos());
 
             s_func_.top()->AddInstruction(in);
 
@@ -210,7 +194,7 @@ class AstWalker: public VisitorBase
             const auto& v = node->GetValue();
             auto i = AddLiteralString(v);
             auto r = s_func_.top()->FetchAndIncIdx();
-            auto in = OP_LDS | (i << InsAPos()) | (r << InsBxPos());
+            ins_t in = OP_LDS | (i << InsAPos()) | (r << InsBPos());
 
             s_func_.top()->AddInstruction(in);
 
@@ -219,12 +203,19 @@ class AstWalker: public VisitorBase
 
         virtual int64_t Visit(AstVarExp* v)
         {
+            auto is_local = v->IsLocal();
             const auto& name = v->GetName();
 
-            // FIXME: find variable first, if no found then add new variable.
-            auto i = AddVar(name);
+            auto i = AddVar(name, is_local);
+            auto r = s_func_.top()->FetchAndIncIdx();
 
-            return i;
+            ins_t in = is_local? OP_LDL:OP_LDG;
+
+            // load pointer of the variable i to register r.
+            in = in | (i << InsAPos()) | (r << InsBPos());
+            s_func_.top()->AddInstruction(in);
+
+            return r;
         }
 
         // op: 6 bits, out: 8 bits, l: 9 bits, r: 9 bits
@@ -232,7 +223,7 @@ class AstWalker: public VisitorBase
         void CreateBinInstruction(OpCode op,
                 uint32_t out, uint32_t l, uint32_t r)
         {
-            uint32_t in = op << InsOpPos();
+            ins_t in = op << InsOpPos();
 
             in |= out << InsAPos();
             in |= l << InsBPos();
@@ -345,8 +336,6 @@ class AstWalker: public VisitorBase
             auto ind = func_pool.size();
             func_pool_index[name] = ind;
             func_pool.emplace_back(std::string(name), params);
-
-            // TODO
         }
 
         virtual int64_t Visit(AstFuncDefExp* f)
@@ -364,7 +353,8 @@ class AstWalker: public VisitorBase
             cur_func->sub_func_.emplace_back(std::move(name), params);
 
             s_func_.push(&cur_func->sub_func_[pos]);
-            // TODO
+
+            // TODO, store/serialize the function to somewhere appropriately.
 
             s_func_.pop();
         }

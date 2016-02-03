@@ -1,7 +1,6 @@
 #include "Lexer.h"
 
 #include <unordered_map>
-#include <type_traits>
 
 namespace ink {
 

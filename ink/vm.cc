@@ -45,8 +45,16 @@ void vm::Run()
         switch (in)
         {
             case OP_MOV:
-            case OP_LAD:
+            {
+                break;
+            }
+            case OP_LDL:
+            case OP_LDG:
+            case OP_LDK:
+            case OP_LDF:
+            case OP_LDS:
                 {
+                    break;
                 };
             default:
                 return;

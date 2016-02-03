@@ -203,8 +203,8 @@ typedef std::shared_ptr<AstStringExp> AstStringExpPtr;
 class AstVarExp: public AstBase
 {
     public:
-        explicit AstVarExp(std::string name)
-            : AstBase(AST_VAR), name_(std::move(name)) {}
+        AstVarExp(std::string name, bool is_local)
+            : AstBase(AST_VAR), is_local_(is_local), name_(std::move(name)) {}
 
         ~AstVarExp() {}
 
@@ -219,9 +219,11 @@ class AstVarExp: public AstBase
             return ValueNodePtr();
         }
 
+        bool IsLocal() const { return is_local_; }
         const std::string& GetName() const { return name_; }
 
     private:
+        bool is_local_;
         std::string name_;
 };
 typedef std::shared_ptr<AstVarExp> AstVarExpPtr;

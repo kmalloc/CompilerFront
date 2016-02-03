@@ -23,13 +23,13 @@ class BinVisitor: public VisitorBase
 
 TEST(ink_test_suit, test_var_definition)
 {
-    const char* txt = "a = 23 b = a + 2.2";
+    const char* txt = "a = 23 local b = a + 2.2 global c = a + b";
     Parser p(txt, "dummy.cc");
 
     p.StartParsing();
     std::vector<AstBasePtr>& res = p.GetResult();
 
-    ASSERT_EQ(2, res.size());
+    ASSERT_EQ(3, res.size());
 
     auto pt = res[0];
     ASSERT_EQ(AST_OP_BINARY, pt->GetType());
@@ -42,6 +42,7 @@ TEST(ink_test_suit, test_var_definition)
     ASSERT_EQ(AST_VAR, lhs->GetType());
     auto spl = std::dynamic_pointer_cast<AstVarExp>(lhs);
     ASSERT_STREQ("a", spl->GetName().c_str());
+    ASSERT_FALSE(spl->IsLocal());
 
     auto rhs = bpt->GetRightOperand();
     ASSERT_EQ(AST_INT, rhs->GetType());
@@ -60,6 +61,7 @@ TEST(ink_test_suit, test_var_definition)
     ASSERT_EQ(AST_VAR, lhs2->GetType());
     auto spl2 = std::dynamic_pointer_cast<AstVarExp>(lhs2);
     ASSERT_STREQ("b", spl2->GetName().c_str());
+    ASSERT_TRUE(spl2->IsLocal());
 
     auto rhs2 = bpt2->GetRightOperand();
     ASSERT_EQ(AST_OP_BINARY, rhs2->GetType());
@@ -78,6 +80,19 @@ TEST(ink_test_suit, test_var_definition)
     ASSERT_EQ(AST_FLOAT, op2->GetType());
     auto float_op2 = std::dynamic_pointer_cast<AstFloatExp>(op2);
     ASSERT_DOUBLE_EQ(2.2, float_op2->GetValue());
+
+    // 3th expression
+    auto pt3 = res[2];
+    ASSERT_EQ(AST_OP_BINARY, pt3->GetType());
+    auto bpt3 = std::dynamic_pointer_cast<AstBinaryExp>(pt3);
+
+    ASSERT_EQ(TOK_AS, bpt3->GetOpType());
+
+    auto lhs3 = bpt3->GetLeftOperand();
+    ASSERT_EQ(AST_VAR, lhs3->GetType());
+    auto spl3 = std::dynamic_pointer_cast<AstVarExp>(lhs3);
+    ASSERT_STREQ("c", spl3->GetName().c_str());
+    ASSERT_FALSE(spl3->IsLocal());
 }
 
 TEST(ink_test_suit, test_var_calc)

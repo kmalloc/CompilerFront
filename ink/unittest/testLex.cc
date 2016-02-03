@@ -4,11 +4,11 @@
 
 using namespace ink;
 
-TEST(ink_test_suit, test_lexer)
+TEST(ink_test_suit, test_lexer_literal)
 {
     Lexer lex("");
 
-    const char* txt = "12 2.2 \"abc\" true false";
+    const char *txt = "12 2.2 \"abc\" true false";
     lex.Reset(txt);
     lex.Start();
 
@@ -34,8 +34,41 @@ TEST(ink_test_suit, test_lexer)
     ASSERT_EQ(TOK_BOOL, lex.GetCurToken());
     ASSERT_STREQ("false", lex.GetStringVal().c_str());
     lex.ConsumeCurToken();
+}
 
-    txt = "a = c\n a * c + 25 - 23.3 / \"abc\" % ww";
+TEST(ink_test_suit, test_lexer_variable_def)
+{
+    Lexer lex("");
+    auto txt = "a = 3; local b = 2.3; global c = \"ss\"";
+
+    lex.Reset(txt);
+    lex.Start();
+
+    ASSERT_TRUE(lex.GetCurToken() == TOK_ID);
+    ASSERT_STREQ("a", lex.GetStringVal().c_str());
+    lex.ConsumeCurToken();
+    ASSERT_TRUE(lex.GetCurToken() == TOK_AS);
+    lex.ConsumeCurToken();
+    ASSERT_TRUE(lex.GetCurToken() == TOK_INT);
+    lex.ConsumeCurToken();
+    ASSERT_TRUE(lex.GetCurToken() == TOK_LOCAL);
+    lex.ConsumeCurToken();
+
+    ASSERT_TRUE(lex.GetCurToken() == TOK_ID);
+    ASSERT_STREQ("b", lex.GetStringVal().c_str());
+    lex.ConsumeCurToken();
+    ASSERT_TRUE(lex.GetCurToken() == TOK_AS);
+    lex.ConsumeCurToken();
+    ASSERT_TRUE(lex.GetCurToken() == TOK_FLOAT);
+    lex.ConsumeCurToken();
+    ASSERT_TRUE(lex.GetCurToken() == TOK_GLOBAL);
+    lex.ConsumeCurToken();
+}
+
+TEST(ink_test_suit, test_lexer_arithmtic)
+{
+    Lexer lex("");
+    auto txt = "a = c\n a * c + 25 - 23.3 / \"abc\" % ww";
     lex.Reset(txt);
 
     ASSERT_TRUE(lex.GetCurToken() == TOK_UNKNOWN);
@@ -84,8 +117,12 @@ TEST(ink_test_suit, test_lexer)
     ASSERT_TRUE(lex.GetCurToken() == TOK_ID);
     ASSERT_STREQ("ww", lex.GetStringVal().c_str());
 
+}
 
-    txt = "extern foo(a, b, c)\nfunc foo(a, b, c)\n { a = b + c\n return a }";
+TEST(ink_test_suit, test_lexer_function)
+{
+    Lexer lex("");
+    auto txt = "extern foo(a, b, c)\nfunc foo(a, b, c)\n { a = b + c\n return a }";
     lex.Reset(txt);
 
     ASSERT_TRUE(lex.GetCurToken() == TOK_UNKNOWN);
@@ -172,9 +209,13 @@ TEST(ink_test_suit, test_lexer)
     ASSERT_TRUE(lex.GetCurToken() == TOK_ID);
     ASSERT_STREQ(lex.GetStringVal().c_str(), "a");
 
-    // comment, class, array index, bitwise operator(&^|~), and negate operation.
+}
 
-    txt = "class foo {} \n a = [23, 23.2, \"abc\"]\n# dummy comment\n b = a[2] + a[c]\n a = b & c | e + w ^ !w";
+TEST(ink_test_suit, test_lexer_class_and_calc)
+{
+    // comment, class, array index, bitwise operator(&^|~), and negate operation.
+    Lexer lex("");
+    auto txt = "class foo {} \n a = [23, 23.2, \"abc\"]\n# dummy comment\n b = a[2] + a[c]\n a = b & c | e + w ^ !w";
     lex.Reset(txt);
 
     ASSERT_TRUE(lex.GetCurToken() == TOK_UNKNOWN);
@@ -295,13 +336,17 @@ TEST(ink_test_suit, test_lexer)
     lex.ConsumeCurToken();
     ASSERT_TRUE(lex.GetCurToken() == TOK_ID);
     ASSERT_STREQ(lex.GetStringVal().c_str(), "w");
+}
 
+TEST(ink_test_suit, test_lexer_stm_construct)
+{
     // operator precedences
     // if elif else while for
     // logical operation, &&, ||, >, >=, <, <=, !=, ==
 
-    txt = "if (a) { a = b + c && 23 } elif (c || a) {}\n elif (23 && w) {} else {} \n"
-        "while (a) { a = 12 } \nfor a in [a,b,c] { a = a + 1 }";
+    Lexer lex("");
+    auto txt = "if (a) { a = b + c && 23 } elif (c || a) {}\n elif (23 && w) {} else {} \n"
+            "while (a) { a = 12 } \nfor a in [a,b,c] { a = a + 1 }";
     lex.Reset(txt);
 
     ASSERT_TRUE(lex.GetCurToken() == TOK_UNKNOWN);
@@ -450,11 +495,17 @@ TEST(ink_test_suit, test_lexer)
     lex.ConsumeCurToken();
     ASSERT_TRUE(lex.GetCurToken() == TOK_BRACE_RIGHT);
 
+}
+
+TEST(ink_test_suit,  test_lexer_precedence)
+{
     // ascending order for operator precedences
     // 35 -> 36 -> 37 -> 38 -> 39 -> 40 -> 41 41 -> 42 42 42 42
     // =  -> || -> && -> |  -> ^  -> &  -> == != -> < <= > >=
     // 43 43 -> 44 44 -> 45 45 -> 46 -> 47 -> 48 48
     // >> << -> + - -> * / -> % -> power -> ~ !
+
+    Lexer lex("");
 
     ASSERT_TRUE(lex.GetTokenPrec(TOK_AS) < lex.GetTokenPrec(TOK_LOR));
     ASSERT_TRUE(lex.GetTokenPrec(TOK_LOR) < lex.GetTokenPrec(TOK_LAND));
