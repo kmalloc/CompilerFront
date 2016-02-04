@@ -53,7 +53,7 @@ class AstBase: noncopyable
 
         virtual ~AstBase() {}
         virtual ValueNodePtr Evaluate() = 0;
-        virtual int64_t Accept(VisitorBase& v) = 0;
+        virtual uint32_t Accept(VisitorBase& v) = 0;
         virtual void SetWriteMode(bool) {}
         virtual bool IsWriteMode() const { return false; }
 
@@ -84,7 +84,7 @@ class AstErrInfo: public AstBase
         explicit AstErrInfo(const std::string& info)
             : AstBase(AST_ERR_INFO), err_(info) {}
 
-        virtual int64_t Accept(VisitorBase& v)
+        virtual uint32_t Accept(VisitorBase& v)
         {
             return v.Visit(this);
         }
@@ -107,10 +107,10 @@ bool AstBase::IsError() const { return dynamic_cast<const AstErrInfo*>(this); }
 class AstIntExp: public AstBase
 {
     public:
-        explicit AstIntExp(int64_t val): AstBase(AST_INT), val_(val) {}
+        explicit AstIntExp(uint32_t val): AstBase(AST_INT), val_(val) {}
         ~AstIntExp() {}
 
-        virtual int64_t Accept(VisitorBase& v)
+        virtual uint32_t Accept(VisitorBase& v)
         {
             return v.Visit(this);
         }
@@ -121,10 +121,10 @@ class AstIntExp: public AstBase
             return ValueNodePtr();
         }
 
-        int64_t GetValue() const { return val_; }
+        uint32_t GetValue() const { return val_; }
 
     private:
-        int64_t val_;
+        uint32_t val_;
 };
 typedef std::shared_ptr<AstIntExp> AstIntExpPtr;
 
@@ -133,7 +133,7 @@ class AstBoolExp: public AstBase
     public:
         explicit AstBoolExp(bool b): AstBase(AST_BOOL), val_(b) {}
 
-        virtual int64_t Accept(VisitorBase& v)
+        virtual uint32_t Accept(VisitorBase& v)
         {
             return v.Visit(this);
         }
@@ -157,7 +157,7 @@ class AstFloatExp: public AstBase
         explicit AstFloatExp(double v): AstBase(AST_FLOAT), val_(v) {}
         ~AstFloatExp() {}
 
-        virtual int64_t Accept(VisitorBase& v)
+        virtual uint32_t Accept(VisitorBase& v)
         {
             return v.Visit(this);
         }
@@ -184,7 +184,7 @@ class AstStringExp: public AstBase
 
         ~AstStringExp() {}
 
-        virtual int64_t Accept(VisitorBase& v)
+        virtual uint32_t Accept(VisitorBase& v)
         {
             return v.Visit(this);
         }
@@ -211,7 +211,7 @@ class AstVarExp: public AstBase
 
         ~AstVarExp() {}
 
-        virtual int64_t Accept(VisitorBase& v)
+        virtual uint32_t Accept(VisitorBase& v)
         {
             return v.Visit(this);
         }
@@ -243,7 +243,7 @@ class AstUnaryExp: public AstBase
 
         ~AstUnaryExp() {}
 
-        virtual int64_t Accept(VisitorBase& v)
+        virtual uint32_t Accept(VisitorBase& v)
         {
             return v.Visit(this);
         }
@@ -271,7 +271,7 @@ class AstBinaryExp: public AstBase
 
         ~AstBinaryExp() {}
 
-        virtual int64_t Accept(VisitorBase& v)
+        virtual uint32_t Accept(VisitorBase& v)
         {
             return v.Visit(this);
         }
@@ -304,7 +304,7 @@ class AstFuncProtoExp: public AstBase
 
         ~AstFuncProtoExp() {}
 
-        virtual int64_t Accept(VisitorBase& v)
+        virtual uint32_t Accept(VisitorBase& v)
         {
             return v.Visit(this);
         }
@@ -335,7 +335,7 @@ class AstScopeStatementExp: public AstBase
 
         ~AstScopeStatementExp() {}
 
-        virtual int64_t Accept(VisitorBase& v)
+        virtual uint32_t Accept(VisitorBase& v)
         {
             return v.Visit(this);
         }
@@ -362,7 +362,7 @@ class AstFuncDefExp: public AstBase
 
         ~AstFuncDefExp() {}
 
-        virtual int64_t Accept(VisitorBase& v)
+        virtual uint32_t Accept(VisitorBase& v)
         {
             return v.Visit(this);
         }
@@ -390,7 +390,7 @@ class AstFuncCallExp: public AstBase
 
         ~AstFuncCallExp() {}
 
-        virtual int64_t Accept(VisitorBase& v)
+        virtual uint32_t Accept(VisitorBase& v)
         {
             return v.Visit(this);
         }
@@ -416,7 +416,7 @@ class AstArrayExp: public AstBase
         explicit AstArrayExp(const std::vector<AstBasePtr>& arr)
             : AstBase(AST_ARR), arr_(arr) {}
 
-        virtual int64_t Accept(VisitorBase& v)
+        virtual uint32_t Accept(VisitorBase& v)
         {
             return v.Visit(this);
         }
@@ -442,7 +442,7 @@ class AstArrayIndexExp: public AstBase
 
         ~AstArrayIndexExp() {}
 
-        virtual int64_t Accept(VisitorBase& v)
+        virtual uint32_t Accept(VisitorBase& v)
         {
             return v.Visit(this);
         }
@@ -469,7 +469,7 @@ class AstRetExp: public AstBase
 
         ~AstRetExp() {}
 
-        virtual int64_t Accept(VisitorBase& v)
+        virtual uint32_t Accept(VisitorBase& v)
         {
             return v.Visit(this);
         }
@@ -503,7 +503,7 @@ class AstIfExp: public AstBase
 
         ~AstIfExp() {}
 
-        virtual int64_t Accept(VisitorBase& v)
+        virtual uint32_t Accept(VisitorBase& v)
         {
             return v.Visit(this);
         }
@@ -529,7 +529,7 @@ class AstWhileExp: public AstBase
 
         ~AstWhileExp() {}
 
-        virtual int64_t Accept(VisitorBase& v)
+        virtual uint32_t Accept(VisitorBase& v)
         {
             return v.Visit(this);
         }
@@ -558,7 +558,7 @@ class AstForExp: public AstBase
 
         ~AstForExp() {}
 
-        virtual int64_t Accept(VisitorBase& v)
+        virtual uint32_t Accept(VisitorBase& v)
         {
             return v.Visit(this);
         }

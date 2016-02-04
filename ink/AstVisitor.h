@@ -26,25 +26,25 @@ class AstBoolExp;
 class VisitorBase
 {
     public:
-        virtual int64_t Visit(AstIntExp*) {}
-        virtual int64_t Visit(AstBoolExp*) {}
-        virtual int64_t Visit(AstFloatExp*) {}
-        virtual int64_t Visit(AstStringExp*) {}
-        virtual int64_t Visit(AstFuncProtoExp*) {}
-        virtual int64_t Visit(AstScopeStatementExp*) {}
-        virtual int64_t Visit(AstFuncDefExp*) {}
-        virtual int64_t Visit(AstFuncCallExp*) {}
-        virtual int64_t Visit(AstArrayExp*) {}
-        virtual int64_t Visit(AstArrayIndexExp*) {}
-        virtual int64_t Visit(AstVarExp*) {}
-        virtual int64_t Visit(AstUnaryExp*) {}
-        virtual int64_t Visit(AstBinaryExp*) {}
-        virtual int64_t Visit(AstRetExp*) {}
-        virtual int64_t Visit(AstIfExp*) {}
-        virtual int64_t Visit(AstTrueExp*) {}
-        virtual int64_t Visit(AstWhileExp*) {}
-        virtual int64_t Visit(AstForExp*) {}
-        virtual int64_t Visit(AstErrInfo*) {}
+        virtual uint32_t Visit(AstIntExp*) {}
+        virtual uint32_t Visit(AstBoolExp*) {}
+        virtual uint32_t Visit(AstFloatExp*) {}
+        virtual uint32_t Visit(AstStringExp*) {}
+        virtual uint32_t Visit(AstFuncProtoExp*) {}
+        virtual uint32_t Visit(AstScopeStatementExp*) {}
+        virtual uint32_t Visit(AstFuncDefExp*) {}
+        virtual uint32_t Visit(AstFuncCallExp*) {}
+        virtual uint32_t Visit(AstArrayExp*) {}
+        virtual uint32_t Visit(AstArrayIndexExp*) {}
+        virtual uint32_t Visit(AstVarExp*) {}
+        virtual uint32_t Visit(AstUnaryExp*) {}
+        virtual uint32_t Visit(AstBinaryExp*) {}
+        virtual uint32_t Visit(AstRetExp*) {}
+        virtual uint32_t Visit(AstIfExp*) {}
+        virtual uint32_t Visit(AstTrueExp*) {}
+        virtual uint32_t Visit(AstWhileExp*) {}
+        virtual uint32_t Visit(AstForExp*) {}
+        virtual uint32_t Visit(AstErrInfo*) {}
 };
 
 } // end namespace

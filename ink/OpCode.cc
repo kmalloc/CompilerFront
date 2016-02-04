@@ -82,7 +82,7 @@ VarInfo AstWalker::AddVar(const std::string& name, bool is_local, bool write)
     return ret;
 }
 
-int64_t AstWalker::Visit(AstIntExp* node)
+uint32_t AstWalker::Visit(AstIntExp* node)
 {
     auto v = node->GetValue();
     auto i = AddLiteralInt(v);
@@ -96,9 +96,9 @@ int64_t AstWalker::Visit(AstIntExp* node)
     return r;
 }
 
-int64_t AstWalker::Visit(AstBoolExp* node)
+uint32_t AstWalker::Visit(AstBoolExp* node)
 {
-    int64_t v = node->GetValue();
+    uint32_t v = node->GetValue();
     auto i = AddLiteralInt(v);
     auto r = s_func_.back()->FetchAndIncIdx();
     ins_t in = OP_LDK | (i << InsAPos()) | (r << InsBPos());
@@ -108,7 +108,7 @@ int64_t AstWalker::Visit(AstBoolExp* node)
     return r;
 }
 
-int64_t AstWalker::Visit(AstFloatExp* node)
+uint32_t AstWalker::Visit(AstFloatExp* node)
 {
     auto v = node->GetValue();
     auto i = AddLiteralFloat(v);
@@ -120,7 +120,7 @@ int64_t AstWalker::Visit(AstFloatExp* node)
     return r;
 }
 
-int64_t AstWalker::Visit(AstStringExp* node)
+uint32_t AstWalker::Visit(AstStringExp* node)
 {
     const auto& v = node->GetValue();
     auto i = AddLiteralString(v);
@@ -132,7 +132,7 @@ int64_t AstWalker::Visit(AstStringExp* node)
     return r;
 }
 
-int64_t AstWalker::Visit(AstVarExp* v)
+uint32_t AstWalker::Visit(AstVarExp* v)
 {
     auto is_local = v->IsLocal();
     const auto& name = v->GetName();
@@ -172,10 +172,10 @@ void AstWalker::CreateBinInstruction(OpCode op,
     s_func_.back()->AddInstruction(in);
 }
 
-int64_t AstWalker::Visit(AstBinaryExp* exp)
+uint32_t AstWalker::Visit(AstBinaryExp* exp)
 {
     OpCode op;
-    auto ret = 0;
+    auto ret = 0u;
     auto func = s_func_.back();
 
     switch (exp->GetOpType())
@@ -223,7 +223,7 @@ std::unique_ptr<InkTable> AstWalker::CreateTable(const std::vector<Value>& vs)
     return std::unique_ptr<InkTable>();
 }
 
-int64_t AstWalker::Visit(AstArrayExp* exp)
+uint32_t AstWalker::Visit(AstArrayExp* exp)
 {
     std::vector<Value> vs;
     const auto& arr = exp->GetArray();
@@ -242,17 +242,17 @@ int64_t AstWalker::Visit(AstArrayExp* exp)
     // TODO, return value
 }
 
-int64_t AstWalker::Visit(AstArrayIndexExp*)
+uint32_t AstWalker::Visit(AstArrayIndexExp*)
 {
     // TODO
 }
 
-int64_t AstWalker::Visit(AstUnaryExp*)
+uint32_t AstWalker::Visit(AstUnaryExp*)
 {
     // TODO
 }
 
-int64_t AstWalker::Visit(AstFuncProtoExp* f)
+uint32_t AstWalker::Visit(AstFuncProtoExp* f)
 {
     const auto& name = f->GetName();
     const auto& params = f->GetParams();
@@ -280,7 +280,7 @@ int64_t AstWalker::Visit(AstFuncProtoExp* f)
     func_pool.emplace_back(std::string(name), params);
 }
 
-int64_t AstWalker::Visit(AstFuncDefExp* f)
+uint32_t AstWalker::Visit(AstFuncDefExp* f)
 {
     auto proto = f->GetProto();
     proto->Accept(*this);
@@ -301,20 +301,20 @@ int64_t AstWalker::Visit(AstFuncDefExp* f)
     s_func_.pop_back();
 }
 
-int64_t AstWalker::Visit(AstScopeStatementExp* s)
+uint32_t AstWalker::Visit(AstScopeStatementExp* s)
 {
     auto& body = s->GetBody();
     // TODO
     (void)body;
 }
 
-int64_t AstWalker::Visit(AstFuncCallExp*) {}
-int64_t AstWalker::Visit(AstRetExp*) {}
-int64_t AstWalker::Visit(AstIfExp*) {}
-int64_t AstWalker::Visit(AstTrueExp*) {}
-int64_t AstWalker::Visit(AstWhileExp*) {}
-int64_t AstWalker::Visit(AstForExp*) {}
-int64_t AstWalker::Visit(AstErrInfo*) {}
+uint32_t AstWalker::Visit(AstFuncCallExp*) {}
+uint32_t AstWalker::Visit(AstRetExp*) {}
+uint32_t AstWalker::Visit(AstIfExp*) {}
+uint32_t AstWalker::Visit(AstTrueExp*) {}
+uint32_t AstWalker::Visit(AstWhileExp*) {}
+uint32_t AstWalker::Visit(AstForExp*) {}
+uint32_t AstWalker::Visit(AstErrInfo*) {}
 
 CodeGen::CodeGen()
 {

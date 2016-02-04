@@ -8,9 +8,9 @@ using namespace ink;
 class BinVisitor: public VisitorBase
 {
     public:
-        typedef int64_t (*VisitProc)(AstBinaryExp*);
+        typedef uint32_t (*VisitProc)(AstBinaryExp*);
 
-        virtual int64_t Visit(AstBinaryExp* t)
+        virtual uint32_t Visit(AstBinaryExp* t)
         {
             return proc_(t);
         }

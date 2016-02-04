@@ -228,27 +228,27 @@ public:
 
     std::unique_ptr<InkTable> CreateTable(const std::vector<Value>& vs);
 
-    virtual int64_t Visit(AstIntExp* node);
-    virtual int64_t Visit(AstBoolExp* node);
-    virtual int64_t Visit(AstFloatExp* node);
-    virtual int64_t Visit(AstStringExp* node);
-    virtual int64_t Visit(AstVarExp* v);
-    virtual int64_t Visit(AstBinaryExp* exp);
-    virtual int64_t Visit(AstArrayExp* exp);
+    virtual uint32_t Visit(AstIntExp* node);
+    virtual uint32_t Visit(AstBoolExp* node);
+    virtual uint32_t Visit(AstFloatExp* node);
+    virtual uint32_t Visit(AstStringExp* node);
+    virtual uint32_t Visit(AstVarExp* v);
+    virtual uint32_t Visit(AstBinaryExp* exp);
+    virtual uint32_t Visit(AstArrayExp* exp);
 
-    virtual int64_t Visit(AstArrayIndexExp*);
-    virtual int64_t Visit(AstUnaryExp*);
-    virtual int64_t Visit(AstFuncProtoExp* f);
-    virtual int64_t Visit(AstFuncDefExp* f);
-    virtual int64_t Visit(AstScopeStatementExp* s);
+    virtual uint32_t Visit(AstArrayIndexExp*);
+    virtual uint32_t Visit(AstUnaryExp*);
+    virtual uint32_t Visit(AstFuncProtoExp* f);
+    virtual uint32_t Visit(AstFuncDefExp* f);
+    virtual uint32_t Visit(AstScopeStatementExp* s);
 
-    virtual int64_t Visit(AstFuncCallExp*);
-    virtual int64_t Visit(AstRetExp*);
-    virtual int64_t Visit(AstIfExp*);
-    virtual int64_t Visit(AstTrueExp*);
-    virtual int64_t Visit(AstWhileExp*);
-    virtual int64_t Visit(AstForExp*);
-    virtual int64_t Visit(AstErrInfo*);
+    virtual uint32_t Visit(AstFuncCallExp*);
+    virtual uint32_t Visit(AstRetExp*);
+    virtual uint32_t Visit(AstIfExp*);
+    virtual uint32_t Visit(AstTrueExp*);
+    virtual uint32_t Visit(AstWhileExp*);
+    virtual uint32_t Visit(AstForExp*);
+    virtual uint32_t Visit(AstErrInfo*);
 
 private:
     bool debug_;
