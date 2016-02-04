@@ -260,7 +260,7 @@ AstBasePtr Parser::ParseArrIndexExp(std::string name)
 AstBasePtr Parser::ParseIdentifierExp()
 {
     TokenType tok = lex_.GetCurToken();
-    bool is_local = (tok == TOK_LOCAL);
+    bool is_global = (tok == TOK_GLOBAL);
 
     if (tok == TOK_LOCAL || tok == TOK_GLOBAL)
     {
@@ -274,7 +274,7 @@ AstBasePtr Parser::ParseIdentifierExp()
     tok = lex_.GetCurToken();
     if (tok != TOK_PAREN_LEFT && tok != TOK_BRACKET_LEFT)
     {
-        return std::make_shared<AstVarExp>(std::move(name), is_local);
+        return std::make_shared<AstVarExp>(std::move(name), !is_global);
     }
 
     // consume '(' or '['

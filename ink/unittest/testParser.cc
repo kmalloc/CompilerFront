@@ -42,7 +42,7 @@ TEST(ink_test_suit, test_var_definition)
     ASSERT_EQ(AST_VAR, lhs->GetType());
     auto spl = std::dynamic_pointer_cast<AstVarExp>(lhs);
     ASSERT_STREQ("a", spl->GetName().c_str());
-    ASSERT_FALSE(spl->IsLocal());
+    ASSERT_TRUE(spl->IsLocal());
 
     auto rhs = bpt->GetRightOperand();
     ASSERT_EQ(AST_INT, rhs->GetType());

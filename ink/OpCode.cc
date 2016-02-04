@@ -1,384 +1,275 @@
 #include "OpCode.h"
-#include "Types.h"
 
-#include <stack>
 #include <iostream>
 
 #include <assert.h>
 
 namespace ink {
 
-struct CodeVar
+void AstWalker::ReportError(const AstBase* t, const std::string& msg)
 {
-    explicit CodeVar(std::string name)
-        : name_(std::move(name))
-    {
-    }
+    std::cerr << msg << std::endl;
+    std::cerr << "from file:" << t->GetLocFile()
+    << ", line:" << t->GetLocLine() << std::endl;
+}
 
-    CodeVar(CodeVar&& v)
-    {
-        if (this == &v) return;
-
-        name_ = std::move(v.name_);
-    }
-
-    Value val_;
-    std::string name_;
-};
-
-struct CodeFunc
+size_t AstWalker::AddTable(InkTable* t)
 {
-    // sink parameter
-    CodeFunc(std::string name, std::vector<std::string> param)
-        : name_(std::move(name)), params_(std::move(param)), rdx_(0)
-    {
-        ins_.reserve(64);
-    }
+    // TODO
+    (void)t;
+    return 0xffff;
+}
 
-    CodeFunc(CodeFunc&& fun)
-    {
-        if (this == &fun) return;
-
-        name_ = std::move(fun.name_);
-        params_ = std::move(fun.params_);
-        ins_ = std::move(fun.ins_);
-        var_pool_ = std::move(fun.var_pool_);
-    }
-
-    void AddInstruction(uint32_t in)
-    {
-        ins_.push_back(in);
-    }
-
-    uint32_t FetchAndIncIdx() { return rdx_++; }
-
-    std::string name_;
-    std::vector<std::string> params_;
-
-    // for generating local variable stack.
-    std::vector<CodeVar> var_pool_;
-    std::unordered_map<std::string, size_t> var_pool_index_; // value to index
-
-    uint32_t rdx_;
-    std::vector<ins_t> ins_;
-
-    std::vector<CodeFunc> sub_func_;
-    // function name to index of sub_func_
-    std::unordered_map<std::string, size_t> sub_func_index_;
-
-    // const values attached to the function.
-    ConstPool const_val_pool_;
-    std::unordered_map<std::string, size_t> const_val_ind_;
-};
-
-struct CodeClass
+size_t AstWalker::AddVar(const std::string& name, bool is_local)
 {
-    CodeClass() {}
-    CodeClass(CodeClass&&) {}
+    // all global variables stored in main's stack.
+    auto func = is_local? s_func_.back():&main_func_;
+    auto& var = func->var_pool_;
+    auto& idx = func->var_pool_index_;
 
-private:
-    std::string name_;
-    std::vector<CodeFunc> func_; // member function
-    std::vector<std::string> mem_; // member variables
-};
+    // FIXME, searching closure variable is not implemented correctly yet.
+    // 1. should search up along the calling chain instead of just searching current stack.
+    // 2. closure is not implemented yet: should implement python style closure not lua.
 
-class AstWalker: public VisitorBase
+    auto it = idx.find(name);
+    if (it != idx.end()) return it->second;
+
+    auto i = var.size();
+    if (i >= MaxOpAddr())
+    {
+        assert(0 && "number of local variable exceed.");
+        return ~0u;
+    }
+
+    idx[name] = i;
+    var.emplace_back(std::string(name));
+
+    return i;
+}
+
+int64_t AstWalker::Visit(AstIntExp* node)
 {
-    public:
-        AstWalker()
-            : debug_(false)
-            , main_func_("main", std::vector<std::string>())
-        {
-            s_func_.push(&main_func_);
-        }
+    auto v = node->GetValue();
+    auto i = AddLiteralInt(v);
+    auto r = s_func_.back()->FetchAndIncIdx();
 
-        void EnableDebugInfo(bool enable)
-        {
-            debug_ = enable;
-        }
+    // load pointer of the literal value(which stored in slot i) to register r.
+    ins_t in = OP_LDK | (i << InsAPos()) | (r << InsBPos());
 
-        void ReportError(const AstBase* t, const std::string& msg)
-        {
-            std::cerr << msg << std::endl;
-            std::cerr << "from file:" << t->GetLocFile()
-                << ", line:" << t->GetLocLine() << std::endl;
-        }
+    s_func_.back()->AddInstruction(in);
 
-        size_t AddLiteralInt(int64_t v)
-        {
-            return s_func_.top()->const_val_pool_.AddConst(v);
-        }
+    return r;
+}
 
-        size_t AddLiteralFloat(double v)
-        {
-            return s_func_.top()->const_val_pool_.AddConst(v);
-        }
+int64_t AstWalker::Visit(AstBoolExp* node)
+{
+    int64_t v = node->GetValue();
+    auto i = AddLiteralInt(v);
+    auto r = s_func_.back()->FetchAndIncIdx();
+    ins_t in = OP_LDK | (i << InsAPos()) | (r << InsBPos());
 
-        size_t AddLiteralString(const std::string& v)
-        {
-            return s_func_.top()->const_val_pool_.AddConst(v);
-        }
+    s_func_.back()->AddInstruction(in);
 
-        size_t AddTable(InkTable* t)
-        {
-            // TODO
-            (void)t;
-            return 0xffff;
-        }
+    return r;
+}
 
-        size_t AddVar(const std::string& name, bool is_local)
-        {
-            // all global variables stored in main's stack.
-            auto func = is_local? s_func_.top():&main_func_;
-            auto& var = func->var_pool_;
-            auto& idx = func->var_pool_index_;
+int64_t AstWalker::Visit(AstFloatExp* node)
+{
+    auto v = node->GetValue();
+    auto i = AddLiteralFloat(v);
+    auto r = s_func_.back()->FetchAndIncIdx();
+    ins_t in = OP_LDF | (i << InsAPos()) | (r << InsBPos());
 
-            // FIXME, searching global variable is not implemented correctly yet.
-            // should search up along the calling chain instead of just searching main.
-            auto it = idx.find(name);
-            if (it != idx.end()) return it->second;
+    s_func_.back()->AddInstruction(in);
 
-            auto i = var.size();
-            if (i >= MaxOpAddr())
-            {
-                assert(0 && "number of local variable exceed.");
-                return ~0u;
-            }
+    return r;
+}
 
-            idx[name] = i;
-            var.emplace_back(std::string(name));
+int64_t AstWalker::Visit(AstStringExp* node)
+{
+    const auto& v = node->GetValue();
+    auto i = AddLiteralString(v);
+    auto r = s_func_.back()->FetchAndIncIdx();
+    ins_t in = OP_LDS | (i << InsAPos()) | (r << InsBPos());
 
-            return i;
-        }
+    s_func_.back()->AddInstruction(in);
 
-        virtual int64_t Visit(AstIntExp* node)
-        {
-            auto v = node->GetValue();
-            auto i = AddLiteralInt(v);
-            auto r = s_func_.top()->FetchAndIncIdx();
+    return r;
+}
 
-            // load pointer of the literal value(which stored in slot i) to register r.
-            ins_t in = OP_LDK | (i << InsAPos()) | (r << InsBPos());
+int64_t AstWalker::Visit(AstVarExp* v)
+{
+    auto is_local = v->IsLocal();
+    const auto& name = v->GetName();
 
-            s_func_.top()->AddInstruction(in);
+    auto i = AddVar(name, is_local);
+    auto r = s_func_.back()->FetchAndIncIdx();
 
-            return r;
-        }
+    ins_t in = is_local? OP_LDL:OP_LDG;
 
-        virtual int64_t Visit(AstBoolExp* node)
-        {
-            int64_t v = node->GetValue();
-            auto i = AddLiteralInt(v);
-            auto r = s_func_.top()->FetchAndIncIdx();
-            ins_t in = OP_LDK | (i << InsAPos()) | (r << InsBPos());
+    // load pointer of the variable i to register r.
+    in = in | (i << InsAPos()) | (r << InsBPos());
+    s_func_.back()->AddInstruction(in);
 
-            s_func_.top()->AddInstruction(in);
+    return r;
+}
 
-            return r;
-        }
+// op: 6 bits, out: 8 bits, l: 9 bits, r: 9 bits
+// highest bit of l and r indicates whether it is const
+void AstWalker::CreateBinInstruction(OpCode op,
+                          uint32_t out, uint32_t l, uint32_t r)
+{
+    ins_t in = op << InsOpPos();
 
-        virtual int64_t Visit(AstFloatExp* node)
-        {
-            auto v = node->GetValue();
-            auto i = AddLiteralFloat(v);
-            auto r = s_func_.top()->FetchAndIncIdx();
-            ins_t in = OP_LDF | (i << InsAPos()) | (r << InsBPos());
+    in |= out << InsAPos();
+    in |= l << InsBPos();
+    in |= r << InsCPos();
 
-            s_func_.top()->AddInstruction(in);
+    s_func_.back()->AddInstruction(in);
+}
 
-            return r;
-        }
+int64_t AstWalker::Visit(AstBinaryExp* exp)
+{
+    auto ret = 0;
+    OpCode op = OP_NOP;
+    auto func = s_func_.back();
 
-        virtual int64_t Visit(AstStringExp* node)
-        {
-            const auto& v = node->GetValue();
-            auto i = AddLiteralString(v);
-            auto r = s_func_.top()->FetchAndIncIdx();
-            ins_t in = OP_LDS | (i << InsAPos()) | (r << InsBPos());
+    switch (exp->GetOpType())
+    {
+        case TOK_ADD:
+            op  = OP_ADD;
+            ret = func->FetchAndIncIdx();
+            break;
+        case TOK_SUB:
+            op  = OP_SUB;
+            ret = func->FetchAndIncIdx();
+            break;
+        case TOK_MUL:
+            op  = OP_MUL;
+            ret = func->FetchAndIncIdx();
+            break;
+        case TOK_DIV:
+            op  = OP_DIV;
+            ret = func->FetchAndIncIdx();
+            break;
+        case TOK_POW:
+            op  = OP_POW;
+            ret = func->FetchAndIncIdx();
+            break;
+        case TOK_AS:
+            op = OP_MOV;
+            break;
+        default:
+            assert(0 && "unregconize binary operator.");
+            exit(0);
+    }
 
-            s_func_.top()->AddInstruction(in);
+    auto l_rdx = exp->GetLeftOperand()->Accept(*this);
+    auto r_rdx = exp->GetRightOperand()->Accept(*this);
 
-            return r;
-        }
+    CreateBinInstruction(op, ret, l_rdx, r_rdx);
+    return ret;
+}
 
-        virtual int64_t Visit(AstVarExp* v)
-        {
-            auto is_local = v->IsLocal();
-            const auto& name = v->GetName();
+std::unique_ptr<InkTable> AstWalker::CreateTable(const std::vector<Value>& vs)
+{
+    //TODO
+    (void)vs;
+    return std::unique_ptr<InkTable>();
+}
 
-            auto i = AddVar(name, is_local);
-            auto r = s_func_.top()->FetchAndIncIdx();
+int64_t AstWalker::Visit(AstArrayExp* exp)
+{
+    std::vector<Value> vs;
+    const auto& arr = exp->GetArray();
 
-            ins_t in = is_local? OP_LDL:OP_LDG;
+    vs.reserve(arr.size());
+    for (auto& p: arr)
+    {
+        Value v;
+        p->Accept(*this);
+        vs.push_back(v);
+    }
 
-            // load pointer of the variable i to register r.
-            in = in | (i << InsAPos()) | (r << InsBPos());
-            s_func_.top()->AddInstruction(in);
+    std::unique_ptr<InkTable> t = CreateTable(vs);
+    AddTable(t.get());
 
-            return r;
-        }
+    // TODO, return value
+}
 
-        // op: 6 bits, out: 8 bits, l: 9 bits, r: 9 bits
-        // highest bit of l and r indicates whether it is const
-        void CreateBinInstruction(OpCode op,
-                uint32_t out, uint32_t l, uint32_t r)
-        {
-            ins_t in = op << InsOpPos();
+int64_t AstWalker::Visit(AstArrayIndexExp*)
+{
+    // TODO
+}
 
-            in |= out << InsAPos();
-            in |= l << InsBPos();
-            in |= r << InsCPos();
+int64_t AstWalker::Visit(AstUnaryExp*)
+{
+    // TODO
+}
 
-            s_func_.top()->AddInstruction(in);
-        }
+int64_t AstWalker::Visit(AstFuncProtoExp* f)
+{
+    const auto& name = f->GetName();
+    const auto& params = f->GetParams();
 
-        virtual int64_t Visit(AstBinaryExp* exp)
-        {
-            auto ret = 0;
-            OpCode op = OP_NOP;
-            auto func = s_func_.top();
+    auto cur_func = s_func_.back();
+    auto& func_pool = cur_func->sub_func_;
+    auto& func_pool_index = cur_func->sub_func_index_;
 
-            switch (exp->GetOpType())
-            {
-                case TOK_ADD:
-                    op  = OP_ADD;
-                    ret = func->FetchAndIncIdx();
-                    break;
-                case TOK_SUB:
-                    op  = OP_SUB;
-                    ret = func->FetchAndIncIdx();
-                    break;
-                case TOK_MUL:
-                    op  = OP_MUL;
-                    ret = func->FetchAndIncIdx();
-                    break;
-                case TOK_DIV:
-                    op  = OP_DIV;
-                    ret = func->FetchAndIncIdx();
-                    break;
-                case TOK_POW:
-                    op  = OP_POW;
-                    ret = func->FetchAndIncIdx();
-                    break;
-                case TOK_AS:
-                    op = OP_MOV;
-                    break;
-                default:
-                    break;
-            }
+    auto it = func_pool_index.find(name);
+    if (it != func_pool_index.end())
+    {
+        auto ind = it->second;
+        const auto& func = func_pool[ind];
 
-            auto l_rdx = exp->GetLeftOperand()->Accept(*this);
-            auto r_rdx = exp->GetRightOperand()->Accept(*this);
+        // TODO
+        if (func.params_ == params) return 0x0000;
 
-            CreateBinInstruction(op, ret, l_rdx, r_rdx);
-            return ret;
-        }
+        ReportError(f, std::string("redefinition of function:") + name);
 
-        std::unique_ptr<InkTable> CreateTable(const std::vector<Value>& vs)
-        {
-            //TODO
-            (void)vs;
-            return std::unique_ptr<InkTable>();
-        }
+        return 0xffffff;
+    }
 
-        virtual int64_t Visit(AstArrayExp* exp)
-        {
-            std::vector<Value> vs;
-            const auto& arr = exp->GetArray();
+    auto ind = func_pool.size();
+    func_pool_index[name] = ind;
+    func_pool.emplace_back(std::string(name), params);
+}
 
-            vs.reserve(arr.size());
-            for (auto& p: arr)
-            {
-                Value v;
-                p->Accept(*this);
-                vs.push_back(v);
-            }
+int64_t AstWalker::Visit(AstFuncDefExp* f)
+{
+    auto proto = f->GetProto();
+    proto->Accept(*this);
 
-            std::unique_ptr<InkTable> t = CreateTable(vs);
-            AddTable(t.get());
+    auto name = proto->GetName();
+    const auto& params = proto->GetParams();
 
-            // TODO, return value
-        }
+    auto cur_func = s_func_.back();
+    auto pos = cur_func->sub_func_.size();
 
-        virtual int64_t Visit(AstArrayIndexExp*)
-        {
-            // TODO
-        }
+    cur_func->sub_func_index_[name] = pos;
+    cur_func->sub_func_.emplace_back(std::move(name), params);
 
-        virtual int64_t Visit(AstUnaryExp*)
-        {
-            // TODO
-        }
+    s_func_.push_back(&cur_func->sub_func_[pos]);
 
-        virtual int64_t Visit(AstFuncProtoExp* f)
-        {
-            const auto& name = f->GetName();
-            const auto& params = f->GetParams();
+    // TODO, store/serialize the function to somewhere appropriately.
 
-            auto cur_func = s_func_.top();
-            auto& func_pool = cur_func->sub_func_;
-            auto& func_pool_index = cur_func->sub_func_index_;
+    s_func_.pop_back();
+}
 
-            auto it = func_pool_index.find(name);
-            if (it != func_pool_index.end())
-            {
-                auto ind = it->second;
-                const auto& func = func_pool[ind];
+int64_t AstWalker::Visit(AstScopeStatementExp* s)
+{
+    auto& body = s->GetBody();
+    // TODO
+    (void)body;
+}
 
-                // TODO
-                if (func.params_ == params) return 0x0000;
-
-                ReportError(f, std::string("redefinition of function:") + name);
-
-                return 0xffffff;
-            }
-
-            auto ind = func_pool.size();
-            func_pool_index[name] = ind;
-            func_pool.emplace_back(std::string(name), params);
-        }
-
-        virtual int64_t Visit(AstFuncDefExp* f)
-        {
-            auto proto = f->GetProto();
-            proto->Accept(*this);
-
-            auto name = proto->GetName();
-            const auto& params = proto->GetParams();
-
-            auto cur_func = s_func_.top();
-            auto pos = cur_func->sub_func_.size();
-
-            cur_func->sub_func_index_[name] = pos;
-            cur_func->sub_func_.emplace_back(std::move(name), params);
-
-            s_func_.push(&cur_func->sub_func_[pos]);
-
-            // TODO, store/serialize the function to somewhere appropriately.
-
-            s_func_.pop();
-        }
-
-        virtual int64_t Visit(AstScopeStatementExp* s)
-        {
-            auto& body = s->GetBody();
-            // TODO
-            (void)body;
-        }
-
-        virtual int64_t Visit(AstFuncCallExp*) {}
-        virtual int64_t Visit(AstRetExp*) {}
-        virtual int64_t Visit(AstIfExp*) {}
-        virtual int64_t Visit(AstTrueExp*) {}
-        virtual int64_t Visit(AstWhileExp*) {}
-        virtual int64_t Visit(AstForExp*) {}
-        virtual int64_t Visit(AstErrInfo*) {}
-
-    private:
-        bool debug_;
-        CodeFunc main_func_;
-        std::stack<CodeFunc*> s_func_;
-};
+int64_t AstWalker::Visit(AstFuncCallExp*) {}
+int64_t AstWalker::Visit(AstRetExp*) {}
+int64_t AstWalker::Visit(AstIfExp*) {}
+int64_t AstWalker::Visit(AstTrueExp*) {}
+int64_t AstWalker::Visit(AstWhileExp*) {}
+int64_t AstWalker::Visit(AstForExp*) {}
+int64_t AstWalker::Visit(AstErrInfo*) {}
 
 CodeGen::CodeGen()
 {

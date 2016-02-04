@@ -2,8 +2,10 @@
 #define __INK_OPCODE_H__
 
 #include "Parser.h"
+#include "Types.h"
 
 #include <string>
+#include <vector>
 
 namespace ink {
 
@@ -79,6 +81,153 @@ enum OpCode
 
     // maximum instruction.
     OP_MAX = (1 << 6),
+};
+
+struct CodeVar
+{
+    explicit CodeVar(std::string name)
+            : name_(std::move(name))
+    {
+    }
+
+    CodeVar(const CodeVar&) =  default;
+
+    CodeVar(CodeVar&& v)
+    {
+        if (this == &v) return;
+
+        name_ = std::move(v.name_);
+    }
+
+    Value val_;
+    std::string name_;
+};
+
+struct CodeFunc
+{
+    // sink parameter
+    CodeFunc(std::string name, std::vector<std::string> param)
+            : name_(std::move(name)), params_(std::move(param)), rdx_(0)
+    {
+        ins_.reserve(64);
+    }
+
+    CodeFunc(const CodeFunc&) = default;
+
+    CodeFunc(CodeFunc&& fun)
+    {
+        if (this == &fun) return;
+
+        name_ = std::move(fun.name_);
+        params_ = std::move(fun.params_);
+        ins_ = std::move(fun.ins_);
+        var_pool_ = std::move(fun.var_pool_);
+    }
+
+    void AddInstruction(uint32_t in)
+    {
+        ins_.push_back(in);
+    }
+
+    uint32_t FetchAndIncIdx() { return rdx_++; }
+
+    std::string name_;
+    std::vector<std::string> params_;
+
+    // for generating local variable stack.
+    std::vector<CodeVar> var_pool_;
+    std::unordered_map<std::string, size_t> var_pool_index_; // value to index
+
+    uint32_t rdx_;
+    std::vector<ins_t> ins_;
+
+    std::vector<CodeFunc> sub_func_;
+    // function name to index of sub_func_
+    std::unordered_map<std::string, size_t> sub_func_index_;
+
+    // const values attached to the function.
+    ConstPool const_val_pool_;
+    std::unordered_map<std::string, size_t> const_val_ind_;
+};
+
+struct CodeClass
+{
+    CodeClass() {}
+    CodeClass(CodeClass&&) {}
+
+private:
+    std::string name_;
+    std::vector<CodeFunc> func_; // member function
+    std::vector<std::string> mem_; // member variables
+};
+
+class AstWalker: public VisitorBase
+{
+public:
+    AstWalker()
+            : debug_(false)
+            , main_func_("main", std::vector<std::string>())
+    {
+        s_func_.push_back(&main_func_);
+    }
+
+    void EnableDebugInfo(bool enable)
+    {
+        debug_ = enable;
+    }
+
+    void ReportError(const AstBase* t, const std::string& msg);
+
+    size_t AddLiteralInt(int64_t v)
+    {
+        return s_func_.back()->const_val_pool_.AddConst(v);
+    }
+
+    size_t AddLiteralFloat(double v)
+    {
+        return s_func_.back()->const_val_pool_.AddConst(v);
+    }
+
+    size_t AddLiteralString(const std::string& v)
+    {
+        return s_func_.back()->const_val_pool_.AddConst(v);
+    }
+
+    size_t AddTable(InkTable* t);
+    size_t AddVar(const std::string& name, bool is_local);
+
+    // op: 6 bits, out: 8 bits, l: 9 bits, r: 9 bits
+    // highest bit of l and r indicates whether it is const
+    void CreateBinInstruction(OpCode op, uint32_t out, uint32_t l, uint32_t r);
+
+    std::unique_ptr<InkTable> CreateTable(const std::vector<Value>& vs);
+
+    virtual int64_t Visit(AstIntExp* node);
+    virtual int64_t Visit(AstBoolExp* node);
+    virtual int64_t Visit(AstFloatExp* node);
+    virtual int64_t Visit(AstStringExp* node);
+    virtual int64_t Visit(AstVarExp* v);
+    virtual int64_t Visit(AstBinaryExp* exp);
+    virtual int64_t Visit(AstArrayExp* exp);
+
+    virtual int64_t Visit(AstArrayIndexExp*);
+    virtual int64_t Visit(AstUnaryExp*);
+    virtual int64_t Visit(AstFuncProtoExp* f);
+    virtual int64_t Visit(AstFuncDefExp* f);
+    virtual int64_t Visit(AstScopeStatementExp* s);
+
+    virtual int64_t Visit(AstFuncCallExp*);
+    virtual int64_t Visit(AstRetExp*);
+    virtual int64_t Visit(AstIfExp*);
+    virtual int64_t Visit(AstTrueExp*);
+    virtual int64_t Visit(AstWhileExp*);
+    virtual int64_t Visit(AstForExp*);
+    virtual int64_t Visit(AstErrInfo*);
+
+private:
+    bool debug_;
+    CodeFunc main_func_;
+    std::vector<CodeFunc*> s_func_;
 };
 
 class CodeGen
