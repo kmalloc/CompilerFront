@@ -26,11 +26,13 @@ constexpr uint32_t InsOpSize() { return 6; }
 constexpr uint32_t InsOpASize() { return 9; }
 constexpr uint32_t InsOpBSize() { return 9; }
 constexpr uint32_t InsOpCSize() { return 8; }
+constexpr uint32_t InsOpBxSize() { return InsOpBSize() + InsOpCSize(); }
 
 constexpr uint32_t InsOpPos() { return 0; }
 constexpr uint32_t InsAPos() { return InsOpPos() + InsOpSize(); }
 constexpr uint32_t InsBPos() { return InsAPos() + InsOpASize(); }
 constexpr uint32_t InsCPos() { return InsBPos() + InsOpBSize(); }
+constexpr uint32_t InsBxPos() { return InsAPos() + InsOpASize(); }
 
 constexpr uint32_t MaxOpAddr() { return 1 << InsOpBSize(); }
 
@@ -38,6 +40,7 @@ enum OpCode
 {
     OP_NOP,
     OP_MOV,
+    OP_INI, // |OP|A|, set A to nil.
     /*
      * load instruction in form of: |op|A|B|
      * meaning: load pointer of value stored in address A(which may be a local addr or a global addr) to register B.
@@ -47,6 +50,9 @@ enum OpCode
     OP_LDK, // load literal int
     OP_LDS, // load literal string
     OP_LDF, // load literal float
+    OP_LDU, // load an upvalue.
+    OP_SET_UPVAL, // create an upvalue
+    OP_CLOSE_UPVAL, // close an upvalue
 
     OP_ST, // store value to local
     OP_GST, // store value to global
@@ -83,16 +89,18 @@ enum OpCode
     OP_MAX = (1 << 6),
 };
 
-struct CodeVar
+struct UpValue;
+
+struct Variable
 {
-    explicit CodeVar(std::string name)
+    explicit Variable(std::string name)
             : name_(std::move(name))
     {
     }
 
-    CodeVar(const CodeVar&) =  default;
+    Variable(const Variable &) =  default;
 
-    CodeVar(CodeVar&& v)
+    Variable(Variable && v)
     {
         if (this == &v) return;
 
@@ -101,6 +109,21 @@ struct CodeVar
 
     Value val_;
     std::string name_;
+
+    // close all upvalues when current variable is out of scope.
+    std::vector<UpValue*> upvalue_;
+};
+
+struct UpValue
+{
+    bool own_; // is closed or not
+    Variable* value_;
+};
+
+struct ScopeInfo
+{
+    std::vector<Variable> var_pool_;
+    std::unordered_map<std::string, size_t> var_pool_index_; // value to index
 };
 
 struct CodeFunc
@@ -112,7 +135,7 @@ struct CodeFunc
         ins_.reserve(64);
     }
 
-    CodeFunc(const CodeFunc&) = default;
+    CodeFunc(const CodeFunc&) = delete;
 
     CodeFunc(CodeFunc&& fun)
     {
@@ -121,7 +144,7 @@ struct CodeFunc
         name_ = std::move(fun.name_);
         params_ = std::move(fun.params_);
         ins_ = std::move(fun.ins_);
-        var_pool_ = std::move(fun.var_pool_);
+        upvalue_ = std::move(fun.upvalue_);
     }
 
     void AddInstruction(uint32_t in)
@@ -131,12 +154,10 @@ struct CodeFunc
 
     uint32_t FetchAndIncIdx() { return rdx_++; }
 
-    std::string name_;
+    std::string name_; // function name.
     std::vector<std::string> params_;
 
-    // for generating local variable stack.
-    std::vector<CodeVar> var_pool_;
-    std::unordered_map<std::string, size_t> var_pool_index_; // value to index
+    std::vector<std::unique_ptr<UpValue>> upvalue_;
 
     uint32_t rdx_;
     std::vector<ins_t> ins_;
@@ -147,7 +168,12 @@ struct CodeFunc
 
     // const values attached to the function.
     ConstPool const_val_pool_;
-    std::unordered_map<std::string, size_t> const_val_ind_;
+};
+
+struct VarInfo
+{
+    size_t scope_;
+    size_t addr_idx_;
 };
 
 struct CodeClass
@@ -165,7 +191,7 @@ class AstWalker: public VisitorBase
 {
 public:
     AstWalker()
-            : debug_(false)
+            : debug_(false), scope_id_(0)
             , main_func_("main", std::vector<std::string>())
     {
         s_func_.push_back(&main_func_);
@@ -194,7 +220,7 @@ public:
     }
 
     size_t AddTable(InkTable* t);
-    size_t AddVar(const std::string& name, bool is_local);
+    VarInfo AddVar(const std::string& name, bool is_local, bool write);
 
     // op: 6 bits, out: 8 bits, l: 9 bits, r: 9 bits
     // highest bit of l and r indicates whether it is const
@@ -226,6 +252,11 @@ public:
 
 private:
     bool debug_;
+
+    // current scope.
+    size_t scope_id_;
+    std::vector<ScopeInfo> scope_;
+
     CodeFunc main_func_;
     std::vector<CodeFunc*> s_func_;
 };

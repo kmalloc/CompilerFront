@@ -20,31 +20,66 @@ size_t AstWalker::AddTable(InkTable* t)
     return 0xffff;
 }
 
-size_t AstWalker::AddVar(const std::string& name, bool is_local)
+VarInfo AstWalker::AddVar(const std::string& name, bool is_local, bool write)
 {
     // all global variables stored in main's stack.
-    auto func = is_local? s_func_.back():&main_func_;
-    auto& var = func->var_pool_;
-    auto& idx = func->var_pool_index_;
 
-    // FIXME, searching closure variable is not implemented correctly yet.
-    // 1. should search up along the calling chain instead of just searching current stack.
-    // 2. closure is not implemented yet: should implement python style closure not lua.
+    size_t sp;
+    VarInfo ret;
 
-    auto it = idx.find(name);
-    if (it != idx.end()) return it->second;
+    if (is_local)
+    {
+        sp = scope_.size() - 1;
+
+        do
+        {
+            auto& scope = scope_[sp];
+            auto& idx = scope.var_pool_index_;
+
+            auto it = idx.find(name);
+            if (it == idx.end()) continue;
+
+            ret.addr_idx_ = it->second;
+            ret.scope_ = sp;
+            return ret;
+
+        } while (!write && sp--);
+
+        ret.scope_ = sp;
+    }
+    else
+    {
+        sp = 0;
+        auto& scope = scope_[sp];
+        auto& idx = scope.var_pool_index_;
+
+        auto it = idx.find(name);
+        if (it != idx.end())
+        {
+            ret.scope_ = 0;
+            ret.addr_idx_ = it->second;
+            return ret;
+        }
+    }
+
+    auto& scope = scope_[sp];
+    auto& var = scope.var_pool_;
+    auto& idx = scope.var_pool_index_;
 
     auto i = var.size();
     if (i >= MaxOpAddr())
     {
         assert(0 && "number of local variable exceed.");
-        return ~0u;
+
+        ret.addr_idx_ = ~0u;
+        ret.addr_idx_ = ~0u;
+        return ret;
     }
 
-    idx[name] = i;
+    ret.addr_idx_ = idx[name] = i;
     var.emplace_back(std::string(name));
 
-    return i;
+    return ret;
 }
 
 int64_t AstWalker::Visit(AstIntExp* node)
@@ -102,15 +137,24 @@ int64_t AstWalker::Visit(AstVarExp* v)
     auto is_local = v->IsLocal();
     const auto& name = v->GetName();
 
-    auto i = AddVar(name, is_local);
+    auto c = AddVar(name, is_local, v->IsWriteMode());
     auto r = s_func_.back()->FetchAndIncIdx();
 
-    ins_t in = is_local? OP_LDL:OP_LDG;
+    auto s = c.scope_;
+    auto i = c.addr_idx_;
+
+    is_local = (s == scope_id_);
+    ins_t in = is_local? OP_LDL:OP_LDU;
 
     // load pointer of the variable i to register r.
     in = in | (i << InsAPos()) | (r << InsBPos());
-    s_func_.back()->AddInstruction(in);
 
+    if (!is_local)
+    {
+        in = in | (s << InsCPos());
+    }
+
+    s_func_.back()->AddInstruction(in);
     return r;
 }
 
@@ -130,8 +174,8 @@ void AstWalker::CreateBinInstruction(OpCode op,
 
 int64_t AstWalker::Visit(AstBinaryExp* exp)
 {
+    OpCode op;
     auto ret = 0;
-    OpCode op = OP_NOP;
     auto func = s_func_.back();
 
     switch (exp->GetOpType())
@@ -158,6 +202,7 @@ int64_t AstWalker::Visit(AstBinaryExp* exp)
             break;
         case TOK_AS:
             op = OP_MOV;
+            exp->GetLeftOperand()->SetWriteMode(true);
             break;
         default:
             assert(0 && "unregconize binary operator.");

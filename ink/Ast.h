@@ -54,6 +54,8 @@ class AstBase: noncopyable
         virtual ~AstBase() {}
         virtual ValueNodePtr Evaluate() = 0;
         virtual int64_t Accept(VisitorBase& v) = 0;
+        virtual void SetWriteMode(bool) {}
+        virtual bool IsWriteMode() const { return false; }
 
         inline bool IsError() const;
         int GetType() const { return type_; }
@@ -204,7 +206,8 @@ class AstVarExp: public AstBase
 {
     public:
         AstVarExp(std::string name, bool is_local)
-            : AstBase(AST_VAR), is_local_(is_local), name_(std::move(name)) {}
+                : AstBase(AST_VAR), rw_mode_(false)
+                , is_local_(is_local), name_(std::move(name)) {}
 
         ~AstVarExp() {}
 
@@ -219,10 +222,14 @@ class AstVarExp: public AstBase
             return ValueNodePtr();
         }
 
+        virtual bool IsWriteMode() const { return rw_mode_; }
+        virtual void SetWriteMode(bool write) { rw_mode_ = write; }
+
         bool IsLocal() const { return is_local_; }
         const std::string& GetName() const { return name_; }
 
     private:
+        bool rw_mode_;
         bool is_local_;
         std::string name_;
 };
