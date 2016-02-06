@@ -202,6 +202,8 @@ public:
         debug_ = enable;
     }
 
+private:
+
     void ReportError(const AstBase* t, const std::string& msg);
 
     size_t AddLiteralInt(int64_t v)
@@ -227,6 +229,9 @@ public:
     void CreateBinInstruction(OpCode op, uint32_t out, uint32_t l, uint32_t r);
 
     std::unique_ptr<InkTable> CreateTable(const std::vector<Value>& vs);
+
+    int ExitScope();
+    int EnterScope();
 
     virtual uint32_t Visit(AstIntExp* node);
     virtual uint32_t Visit(AstBoolExp* node);
