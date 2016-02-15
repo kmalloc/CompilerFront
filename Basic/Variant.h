@@ -91,7 +91,7 @@ namespace VariantHelper {
     }
 
     template<>
-    void CopyConstruct<void>(const unsigned char*, unsigned char*)
+    inline void CopyConstruct<void>(const unsigned char*, unsigned char*)
     {
         throw "try to copy Variant object containing non-copyable type.";
     }
@@ -104,7 +104,7 @@ namespace VariantHelper {
     }
 
     template<>
-    void MoveConstruct<void>(unsigned char*, unsigned char*)
+    inline void MoveConstruct<void>(unsigned char*, unsigned char*)
     {
         throw "try to move Variant object containing non-movable type.";
     }
@@ -119,7 +119,7 @@ namespace VariantHelper {
     }
 
     template<>
-    void MoveAssignConstruct<void>(unsigned char*, unsigned char*)
+    inline void MoveAssignConstruct<void>(unsigned char*, unsigned char*)
     {
         throw "try to move assign Variant object containing non-assignable type.";
     }
@@ -134,7 +134,7 @@ namespace VariantHelper {
     }
 
     template<>
-    void CopyAssignConstruct<void>(const unsigned char*, unsigned char*)
+    inline void CopyAssignConstruct<void>(const unsigned char*, unsigned char*)
     {
         throw "try to copy assign Variant object containing non-assignable type.";
     }

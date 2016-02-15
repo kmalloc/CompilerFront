@@ -122,6 +122,8 @@ struct UpValue
 
 struct ScopeInfo
 {
+    ScopeInfo() { var_pool_.reserve(64); }
+
     std::vector<Variable> var_pool_;
     std::unordered_map<std::string, size_t> var_pool_index_; // value to index
 };
@@ -129,8 +131,8 @@ struct ScopeInfo
 struct CodeFunc
 {
     // sink parameter
-    CodeFunc(std::string name, std::vector<std::string> param)
-            : name_(std::move(name)), params_(std::move(param)), rdx_(0)
+    CodeFunc(std::string name, std::vector<std::string> param, uint32_t sc)
+            : name_(std::move(name)), params_(std::move(param)), rdx_(0), scope_(sc)
     {
         ins_.reserve(64);
     }
@@ -160,6 +162,7 @@ struct CodeFunc
     std::vector<std::unique_ptr<UpValue>> upvalue_;
 
     uint32_t rdx_;
+    uint32_t scope_;
     std::vector<ins_t> ins_;
 
     std::vector<CodeFunc> sub_func_;
@@ -192,7 +195,7 @@ class AstWalker: public VisitorBase
 public:
     AstWalker()
             : debug_(false), scope_id_(0)
-            , main_func_("main", std::vector<std::string>())
+            , main_func_("main", std::vector<std::string>(), 0)
     {
         s_func_.push_back(&main_func_);
     }
@@ -269,11 +272,11 @@ private:
 class CodeGen
 {
     public:
-        CodeGen();
-        ~CodeGen();
+        CodeGen() {}
+        ~CodeGen() {}
 
         void SetParser(const ParserPtr& p) { parser_ = p; }
-        std::string StartGenCode(unsigned char* buff, size_t sz);
+        std::string StartGenCode(const std::string& buff);
 
     private:
         ParserPtr parser_;

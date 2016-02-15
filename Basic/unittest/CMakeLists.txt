@@ -3,7 +3,8 @@ set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11 -g")
 include_directories(.. ../..)
 
 set(BASIC_FUN_TEST_FILES
-        testVariant.cc)
+        testVariant.cc
+        testVariantDummy.cc)
 
 link_directories(..)
 add_executable(basic_func_unittest ${BASIC_FUN_TEST_FILES})

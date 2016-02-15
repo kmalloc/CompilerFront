@@ -275,9 +275,11 @@ uint32_t AstWalker::Visit(AstFuncProtoExp* f)
         return 0xffffff;
     }
 
-    auto ind = func_pool.size();
-    func_pool_index[name] = ind;
-    func_pool.emplace_back(std::string(name), params);
+    // a proto type contains just name & signature, nothing more, not a complete function yet.
+    // so set the index of this prototype to 0xffffffff
+    func_pool.emplace_back(std::string(name), params, ~0x0);
+
+    return 0;
 }
 
 uint32_t AstWalker::Visit(AstFuncDefExp* f)
@@ -291,8 +293,10 @@ uint32_t AstWalker::Visit(AstFuncDefExp* f)
     auto cur_func = s_func_.back();
     auto pos = cur_func->sub_func_.size();
 
+    assert(cur_func->sub_func_index_.find(name) != cur_func->sub_func_index_.end());
+
     cur_func->sub_func_index_[name] = pos;
-    cur_func->sub_func_.emplace_back(std::move(name), params);
+    cur_func->sub_func_.emplace_back(std::move(name), params, pos);
 
     s_func_.push_back(&cur_func->sub_func_[pos]);
 
@@ -304,8 +308,21 @@ uint32_t AstWalker::Visit(AstFuncDefExp* f)
 uint32_t AstWalker::Visit(AstScopeStatementExp* s)
 {
     auto& body = s->GetBody();
-    // TODO
-    (void)body;
+
+    auto idx = scope_id_++;
+    scope_.push_back(ScopeInfo());
+
+    for(auto& ast: body)
+    {
+        ast->Accept(*this);
+    }
+
+    scope_id_--;
+    scope_.pop_back();
+
+    assert(idx == scope_id_);
+
+    return 0;
 }
 
 uint32_t AstWalker::Visit(AstFuncCallExp*) {}
@@ -316,19 +333,13 @@ uint32_t AstWalker::Visit(AstWhileExp*) {}
 uint32_t AstWalker::Visit(AstForExp*) {}
 uint32_t AstWalker::Visit(AstErrInfo*) {}
 
-CodeGen::CodeGen()
+// code gen impl
+std::string CodeGen::StartGenCode(const std::string& buff)
 {
-}
+    if (buff.size() < 256 || !parser_) return "";
 
-CodeGen::~CodeGen()
-{
-}
-
-std::string CodeGen::StartGenCode(unsigned char* buff, size_t sz)
-{
-    if (sz < 256 || !parser_) return "";
-
-    (void)buff; (void)sz;
+    parser_->SetBuffer(buff);
+    parser_->StartParsing();
 
     const std::vector<AstBasePtr>& ast = parser_->GetResult();
     if (ast.empty()) return "no ast input";
