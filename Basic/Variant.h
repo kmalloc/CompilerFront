@@ -190,6 +190,39 @@ namespace VariantHelper {
     {
         enum { value = CHECK<T>::value && CheckTypeList<CHECK, TS...>::value };
     };
+
+    template <typename T, typename R = void>
+    struct GetVisitorResultType
+    {
+        template <typename T2> static typename T2::result_type foo(typename T2::result_type* v);
+
+        template <typename T2> static R foo(...);
+
+        using type = decltype(foo<T>(NULL));
+    };
+
+    template<class V, class ...TS> struct check_visitor_func;
+
+    template<class V>
+    struct check_visitor_func<V>
+    {
+        enum { value = 1 };
+    };
+
+    template<class V, class T, class ...TS>
+    struct check_visitor_func<V, T, TS...>
+    {
+        using ret_t = typename VariantHelper::GetVisitorResultType<V>::type;
+
+        static T& getFakeValRef();
+        using func_t = decltype(std::declval<V>()(getFakeValRef()));
+
+        enum { value = std::is_convertible<ret_t, func_t>::value && check_visitor_func<V, TS...>::value };
+
+        // static_assert(value, "signature of visitor is not correct.");
+    };
+
+
 } // end namespace VariantHelper
 
 
@@ -212,10 +245,10 @@ public:
         : type_(VariantHelper::TypeExist<CT, TS...>::id)
     {
         static_assert(VariantHelper::TypeExist<CT, TS...>::exist,
-                     "invalid type for invariant.");
+                     "invalid type for the variant.");
 
         static_assert(VariantHelper::CheckConstructible<std::is_lvalue_reference<T>::value, CT>::value,
-                     "try to copy or move an object that is not copyable or moveable.");
+                     "try to copy or move an object that is not copyable or movable.");
 
         new(data_) CT(std::forward<T>(v));
     }
@@ -318,7 +351,7 @@ public:
     template <typename T, typename ...TS2>
     void EmplaceSet(TS2&& ...arg)
     {
-        static_assert(VariantHelper::TypeExist<T, TS...>::exist, "invalid type for invariant.");
+        static_assert(VariantHelper::TypeExist<T, TS...>::exist, "invalid type for the variant.");
 
         Release();
 
@@ -329,7 +362,7 @@ public:
     template <typename T>
     T* GetPtr() noexcept
     {
-        static_assert(VariantHelper::TypeExist<T, TS...>::exist, "invalid type for invariant.");
+        static_assert(VariantHelper::TypeExist<T, TS...>::exist, "invalid type for the variant.");
 
         if (type_ != VariantHelper::TypeExist<T, TS...>::id) return NULL;
 
@@ -339,7 +372,7 @@ public:
     template <typename T>
     const T* GetConstPtr() const noexcept
     {
-        static_assert(VariantHelper::TypeExist<T, TS...>::exist, "invalid type for invariant.");
+        static_assert(VariantHelper::TypeExist<T, TS...>::exist, "invalid type for the variant.");
 
         if (type_ != VariantHelper::TypeExist<T, TS...>::id) return NULL;
 
@@ -356,7 +389,7 @@ public:
     T& GetRef()
     {
         T* p = GetPtr<T>();
-        if (!p) throw "invalid type for Invariant::Get<>()";
+        if (!p) throw "invalid type for variant::Get<>()";
 
         return *p;
     }
@@ -365,7 +398,7 @@ public:
     const T& GetConstRef() const
     {
         const T* p = GetConstPtr<T>();
-        if (!p) throw "invalid type for Invariant::Get<>()";
+        if (!p) throw "invalid type for variant::Get<>()";
 
         return *p;
     }
@@ -374,6 +407,29 @@ public:
 
     constexpr static size_t Alignment() { return VariantHelper::TypeMaxSize<TS...>::align; }
     constexpr static std::size_t GetSize() { return VariantHelper::TypeMaxSize<TS...>::value; }
+
+    template<class V>
+    struct VisitorImpl
+    {
+        using R = typename VariantHelper::GetVisitorResultType<V>::type;
+        using visitor_func_t = R (*)(Variant& v, V& visitor, unsigned char*);
+
+        static R Visit(Variant& var, V& vi)
+        {
+            const int which = var.GetType() - 1;
+            return visitor_impl_[which](var, vi, var.data_);
+        }
+
+        template<class T>
+        static R do_visit(Variant& v, V& vi, unsigned char* s)
+        {
+            T& val = *reinterpret_cast<T*>(s);
+            return vi(val);
+        }
+
+        constexpr static visitor_func_t visitor_impl_[] = {do_visit<TS>...};
+    };
+
 
 private:
     void Release()
@@ -410,4 +466,18 @@ constexpr typename VariantHelper::move_func_t Variant<TS...>::move_assign_[];
 template<class ...TS>
 constexpr typename VariantHelper::destroy_func_t Variant<TS...>::destroy_[];
 
-#endif //COMPILERFRONT_INVARIANT_H
+template<class ...TS>
+template<class V>
+constexpr typename Variant<TS...>::template VisitorImpl<V>::visitor_func_t Variant<TS...>::VisitorImpl<V>::visitor_impl_[];
+
+template<class Visitor, class ...TS>
+typename VariantHelper::GetVisitorResultType<Visitor>::type
+VisitVariant(Variant<TS...>& variant, Visitor& visitor)
+{
+    static_assert(VariantHelper::check_visitor_func<Visitor, TS...>::value,
+                  "signature of the visitor is not correct, please check the return type of your visitor.");
+
+    return Variant<TS...>::template VisitorImpl<Visitor>::Visit(variant, visitor);
+}
+
+#endif // COMPILERFRONT_INVARIANT_H

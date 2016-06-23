@@ -467,3 +467,67 @@ TEST(ink_test_suit, test_variant_non_copy_move)
 }
 
 
+struct visitor
+{
+    using result_type = int;
+
+    int type_;
+
+    visitor(): type_(0) {}
+
+
+    int operator()(std::string& s)
+    {
+        type_ = 1;
+        return type_;
+    }
+
+    int operator()(int f)
+    {
+        type_ = 2;
+        return type_;
+    }
+
+    char operator()(double f)
+    {
+        type_ = 3;
+        return type_;
+    }
+
+    int operator()(visitor& v)
+    {
+        type_ = 4;
+        return type_;
+    }
+};
+
+
+TEST(ink_test_suite, test_variant_visitor)
+{
+    visitor v;
+    Variant<std::string, int, double, visitor> var("abc");
+
+    int ret = VisitVariant(var, v);
+
+    ASSERT_EQ(1, ret);
+    ASSERT_EQ(1, v.type_);
+
+    var = 233;
+    ret = VisitVariant(var, v);
+
+    ASSERT_EQ(2, ret);
+    ASSERT_EQ(2, v.type_);
+
+    var = 233.0;
+    ret = VisitVariant(var, v);
+
+    ASSERT_EQ(3, ret);
+    ASSERT_EQ(3, v.type_);
+
+    var = v;
+    ret = VisitVariant(var, v);
+
+    ASSERT_EQ(4, ret);
+    ASSERT_EQ(4, v.type_);
+}
+

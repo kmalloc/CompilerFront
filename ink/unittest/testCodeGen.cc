@@ -9,7 +9,7 @@ using namespace ink;
 
 TEST(ink_test_suit, test_code_gen_binary_op)
 {
-   const char* txt = "a = 23";
+    const char* txt = "a = 23";
 }
 
 TEST(ink_test_suit, test_code_gen_scope)
@@ -48,6 +48,4 @@ TEST(ink_test_suit, test_code_gen_if_else)
 TEST(ink_test_suit, test_code_gen_while)
 {
 }
-
-
 
