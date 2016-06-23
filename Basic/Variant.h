@@ -417,7 +417,7 @@ public:
         static R Visit(Variant& var, V& vi)
         {
             const int which = var.GetType() - 1;
-            return visitor_impl_[which](var, vi, var.data_);
+            return visitors_[which](var, vi, var.data_);
         }
 
         template<class T>
@@ -427,7 +427,7 @@ public:
             return vi(val);
         }
 
-        constexpr static visitor_func_t visitor_impl_[] = {do_visit<TS>...};
+        constexpr static visitor_func_t visitors_[] = {do_visit<TS>...};
     };
 
 
@@ -468,7 +468,7 @@ constexpr typename VariantHelper::destroy_func_t Variant<TS...>::destroy_[];
 
 template<class ...TS>
 template<class V>
-constexpr typename Variant<TS...>::template VisitorImpl<V>::visitor_func_t Variant<TS...>::VisitorImpl<V>::visitor_impl_[];
+constexpr typename Variant<TS...>::template VisitorImpl<V>::visitor_func_t Variant<TS...>::VisitorImpl<V>::visitors_[];
 
 template<class Visitor, class ...TS>
 typename VariantHelper::GetVisitorResultType<Visitor>::type

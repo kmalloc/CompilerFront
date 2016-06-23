@@ -466,6 +466,13 @@ TEST(ink_test_suit, test_variant_non_copy_move)
 
 }
 
+struct complex
+{
+    std::string s1;
+    int a, b;
+    double d;
+    std::string s2;
+};
 
 struct visitor
 {
@@ -473,24 +480,33 @@ struct visitor
 
     int type_;
 
-    visitor(): type_(0) {}
+    int ival_;
+    double dval_;
+    std::string sval_;
+    complex cval_;
 
+    visitor(): type_(0) {}
 
     int operator()(std::string& s)
     {
         type_ = 1;
+        sval_ = s;
+        s += "abc";
         return type_;
     }
 
-    int operator()(int f)
+    int operator()(int& f)
     {
         type_ = 2;
+        ival_ = f;
+        f += 100;
         return type_;
     }
 
     char operator()(double f)
     {
         type_ = 3;
+        dval_ = f;
         return type_;
     }
 
@@ -499,35 +515,74 @@ struct visitor
         type_ = 4;
         return type_;
     }
+
+    int operator()(complex& c)
+    {
+        type_ = 5;
+        cval_ = c;
+        c.d = 23.2323;
+        c.s1 = "modified by visitor";
+        c.b  = 23333;
+        return type_;
+    }
 };
 
 
 TEST(ink_test_suite, test_variant_visitor)
 {
     visitor v;
-    Variant<std::string, int, double, visitor> var("abc");
+    Variant<std::string, int, double, visitor, complex> var("abc");
 
     int ret = VisitVariant(var, v);
 
     ASSERT_EQ(1, ret);
     ASSERT_EQ(1, v.type_);
+    ASSERT_STREQ("abc", v.sval_.c_str());
+    ASSERT_STREQ("abcabc", var.GetRef<std::string>().c_str());
 
     var = 233;
     ret = VisitVariant(var, v);
 
     ASSERT_EQ(2, ret);
     ASSERT_EQ(2, v.type_);
+    ASSERT_EQ(233, v.ival_);
+    ASSERT_EQ(333, var.GetRef<int>());
 
-    var = 233.0;
+    var = 233.23;
     ret = VisitVariant(var, v);
 
     ASSERT_EQ(3, ret);
     ASSERT_EQ(3, v.type_);
+    ASSERT_DOUBLE_EQ(233.23, v.dval_);
 
     var = v;
     ret = VisitVariant(var, v);
 
     ASSERT_EQ(4, ret);
     ASSERT_EQ(4, v.type_);
+
+    var = complex{"henhenhaha", 233, 533, 2213.233, "bbbbwwwwfff"};
+    ret = VisitVariant(var, v);
+
+    ASSERT_EQ(5, ret);
+    ASSERT_EQ(5, v.type_);
+
+    ASSERT_EQ(v.cval_.a, var.GetRef<complex>().a);
+    ASSERT_EQ(v.cval_.b, 533);
+    ASSERT_DOUBLE_EQ(v.cval_.d, 2213.233);
+    ASSERT_STREQ(v.cval_.s1.c_str(), "henhenhaha");
+    ASSERT_STREQ(v.cval_.s2.c_str(), var.GetRef<complex>().s2.c_str());
+
+    ASSERT_EQ(23333, var.GetRef<complex>().b);
+    ASSERT_DOUBLE_EQ(23.2323, var.GetRef<complex>().d);
+    ASSERT_STREQ("modified by visitor", var.GetRef<complex>().s1.c_str());
+
+    var = "done testing visitor";
+    ret = VisitVariant(var, v);
+
+    ASSERT_EQ(1, ret);
+    ASSERT_EQ(1, v.type_);
+    ASSERT_STREQ("done testing visitor", v.sval_.c_str());
+    ASSERT_STREQ("done testing visitorabc", var.GetRef<std::string>().c_str());
 }
 
