@@ -96,7 +96,7 @@ namespace ink {
         ObjType GetType() const { return type_; }
 
         template<typename T>
-        const T& GetValue() const { val_.GetConstRef<T>(); }
+        const T& GetValue() const { return val_.GetConstRef<T>(); }
 
     private:
         ObjType type_;

@@ -240,16 +240,19 @@ uint32_t AstWalker::Visit(AstArrayExp* exp)
     AddTable(t.get());
 
     // TODO, return value
+    return 0;
 }
 
 uint32_t AstWalker::Visit(AstArrayIndexExp*)
 {
     // TODO
+    return 0;
 }
 
 uint32_t AstWalker::Visit(AstUnaryExp*)
 {
     // TODO
+    return 0;
 }
 
 uint32_t AstWalker::Visit(AstFuncProtoExp* f)
@@ -303,6 +306,9 @@ uint32_t AstWalker::Visit(AstFuncDefExp* f)
     // TODO, store/serialize the function to somewhere appropriately.
 
     s_func_.pop_back();
+
+    // TODO, gen instruction.
+    return 0;
 }
 
 uint32_t AstWalker::Visit(AstScopeStatementExp* s)
@@ -325,13 +331,13 @@ uint32_t AstWalker::Visit(AstScopeStatementExp* s)
     return 0;
 }
 
-uint32_t AstWalker::Visit(AstFuncCallExp*) {}
-uint32_t AstWalker::Visit(AstRetExp*) {}
-uint32_t AstWalker::Visit(AstIfExp*) {}
-uint32_t AstWalker::Visit(AstTrueExp*) {}
-uint32_t AstWalker::Visit(AstWhileExp*) {}
-uint32_t AstWalker::Visit(AstForExp*) {}
-uint32_t AstWalker::Visit(AstErrInfo*) {}
+uint32_t AstWalker::Visit(AstFuncCallExp*) { return 0; }
+uint32_t AstWalker::Visit(AstRetExp*) { return 0; }
+uint32_t AstWalker::Visit(AstIfExp*) { return 0; }
+uint32_t AstWalker::Visit(AstTrueExp*) { return 0; }
+uint32_t AstWalker::Visit(AstWhileExp*) { return 0; }
+uint32_t AstWalker::Visit(AstForExp*) { return 0; }
+uint32_t AstWalker::Visit(AstErrInfo*) { return 0; }
 
 // code gen impl
 std::string CodeGen::StartGenCode(const std::string& buff)

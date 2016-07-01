@@ -26,25 +26,25 @@ class AstBoolExp;
 class VisitorBase
 {
     public:
-        virtual uint32_t Visit(AstIntExp*) {}
-        virtual uint32_t Visit(AstBoolExp*) {}
-        virtual uint32_t Visit(AstFloatExp*) {}
-        virtual uint32_t Visit(AstStringExp*) {}
-        virtual uint32_t Visit(AstFuncProtoExp*) {}
-        virtual uint32_t Visit(AstScopeStatementExp*) {}
-        virtual uint32_t Visit(AstFuncDefExp*) {}
-        virtual uint32_t Visit(AstFuncCallExp*) {}
-        virtual uint32_t Visit(AstArrayExp*) {}
-        virtual uint32_t Visit(AstArrayIndexExp*) {}
-        virtual uint32_t Visit(AstVarExp*) {}
-        virtual uint32_t Visit(AstUnaryExp*) {}
-        virtual uint32_t Visit(AstBinaryExp*) {}
-        virtual uint32_t Visit(AstRetExp*) {}
-        virtual uint32_t Visit(AstIfExp*) {}
-        virtual uint32_t Visit(AstTrueExp*) {}
-        virtual uint32_t Visit(AstWhileExp*) {}
-        virtual uint32_t Visit(AstForExp*) {}
-        virtual uint32_t Visit(AstErrInfo*) {}
+        virtual uint32_t Visit(AstIntExp*) { return 0; }
+        virtual uint32_t Visit(AstBoolExp*) { return 0; }
+        virtual uint32_t Visit(AstFloatExp*) { return 0; }
+        virtual uint32_t Visit(AstStringExp*) { return 0; }
+        virtual uint32_t Visit(AstFuncProtoExp*) { return 0; }
+        virtual uint32_t Visit(AstScopeStatementExp*) { return 0; }
+        virtual uint32_t Visit(AstFuncDefExp*) { return 0; }
+        virtual uint32_t Visit(AstFuncCallExp*) { return 0; }
+        virtual uint32_t Visit(AstArrayExp*) { return 0; }
+        virtual uint32_t Visit(AstArrayIndexExp*) { return 0; }
+        virtual uint32_t Visit(AstVarExp*) { return 0; }
+        virtual uint32_t Visit(AstUnaryExp*) { return 0; }
+        virtual uint32_t Visit(AstBinaryExp*) { return 0; }
+        virtual uint32_t Visit(AstRetExp*) { return 0; }
+        virtual uint32_t Visit(AstIfExp*) { return 0; }
+        virtual uint32_t Visit(AstTrueExp*) { return 0; }
+        virtual uint32_t Visit(AstWhileExp*) { return 0; }
+        virtual uint32_t Visit(AstForExp*) { return 0; }
+        virtual uint32_t Visit(AstErrInfo*) { return 0; }
 };
 
 } // end namespace
