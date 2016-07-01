@@ -222,18 +222,23 @@ namespace VariantHelper {
         // static_assert(value, "signature of visitor is not correct.");
     };
 
+    template<class T, class V>
+    struct variant_cast
+    {
+        operator T& () { return static_cast<V&>(*this).template GetRef<T>(); }
+    };
 
 } // end namespace VariantHelper
 
 
 // implementation of variant.
 
+
 template <typename ...TS>
-class Variant
+class Variant: public VariantHelper::variant_cast<TS, Variant<TS...>>...
 {
 public:
-    Variant()
-        : type_(0)
+    Variant(): type_(0)
     {
     }
 
@@ -241,8 +246,7 @@ public:
             !std::is_same<typename std::remove_reference<T>::type, Variant<TS...>>::value>::type,
             typename CT = typename VariantHelper::SelectType<
                     typename std::remove_reference<T>::type, TS...>::type>
-    Variant(T&& v)
-        : type_(VariantHelper::TypeExist<CT, TS...>::id)
+    Variant(T&& v): type_(VariantHelper::TypeExist<CT, TS...>::id)
     {
         static_assert(VariantHelper::TypeExist<CT, TS...>::exist,
                      "invalid type for the variant.");

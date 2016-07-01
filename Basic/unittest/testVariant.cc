@@ -137,6 +137,29 @@ TEST(ink_test_suit, test_variant_basic)
     Variant<std::string, int>& nv = vv.GetRef<Variant<std::string, int>>();
     ASSERT_EQ(2, nv.GetType());
     ASSERT_EQ(23, nv.GetRef<int>());
+
+
+    Variant<int, std::string> cv(23);
+
+    int& vi1 = cv;
+    ASSERT_EQ(23, vi1);
+    cv = 3232;
+    ASSERT_EQ(3232, vi1);
+
+    vi1 = 244;
+    int vi2 = cv;
+    ASSERT_EQ(244, vi2);
+    ASSERT_EQ(244, cv.GetRef<int>());
+
+    cv = "22223333sdkfjlsdkfjsldjfklsjflkjsdklfjs";
+    std::string& rs2 = cv;
+    ASSERT_STREQ("22223333sdkfjlsdkfjsldjfklsjflkjsdklfjs", rs2.c_str());
+
+    rs2 = "vvvvvvvvvvvvvvvsjdlfksjkldfj232r2r323rv";
+    ASSERT_STREQ("vvvvvvvvvvvvvvvsjdlfksjkldfj232r2r323rv", cv.GetRef<std::string>().c_str());
+
+    cv = "wewewewewerw";
+    ASSERT_STREQ("wewewewewerw", rs2.c_str());
 }
 
 
