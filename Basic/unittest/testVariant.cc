@@ -151,6 +151,8 @@ TEST(ink_test_suit, test_variant_basic)
     ASSERT_EQ(244, vi2);
     ASSERT_EQ(244, cv.GetRef<int>());
 
+    ASSERT_THROW([&](){ std::string s = cv; }(), const char*);
+
     cv = "22223333sdkfjlsdkfjsldjfklsjflkjsdklfjs";
     std::string& rs2 = cv;
     ASSERT_STREQ("22223333sdkfjlsdkfjsldjfklsjflkjsdklfjs", rs2.c_str());
