@@ -7,13 +7,11 @@
 
 #include <functional>
 
-
 struct ForDestroy
 {
     ForDestroy() = default;
 
-    explicit ForDestroy(std::function<void(void)> fun)
-            :fun_(std::move(fun)) {}
+    explicit ForDestroy(std::function<void(void)> fun): fun_(std::move(fun)) {}
 
     ForDestroy(const ForDestroy& other) = default;
 
@@ -41,7 +39,6 @@ struct ForDestroy
     std::function<void(void)> fun_;
 };
 
-
 TEST(ink_test_suit, test_variant_basic)
 {
     Variant<int, double> v1(32);
@@ -51,10 +48,12 @@ TEST(ink_test_suit, test_variant_basic)
     int& ri = v1.GetRef<int>();
     ri = 33;
     ASSERT_EQ(33, v1.GetRef<int>());
+    ASSERT_THROW(v1.GetRef<double>(), const char*);
 
     v1 = 2.333;
     ASSERT_EQ(2, v1.GetType());
     ASSERT_DOUBLE_EQ(2.333, v1.GetRef<double>());
+    ASSERT_THROW(v1.GetRef<int>(), const char*);
 
     double& rd = v1.GetRef<double>();
     rd = 23.33;
@@ -138,7 +137,6 @@ TEST(ink_test_suit, test_variant_basic)
     ASSERT_EQ(2, nv.GetType());
     ASSERT_EQ(23, nv.GetRef<int>());
 
-
     Variant<int, std::string> cv(23);
 
     int& vi1 = cv;
@@ -164,17 +162,93 @@ TEST(ink_test_suit, test_variant_basic)
     ASSERT_STREQ("wewewewewerw", rs2.c_str());
 }
 
+struct exception_on_copy_move
+{
+    unsigned int type_;
+
+    exception_on_copy_move(unsigned int type = 7): type_(type) {}
+
+    exception_on_copy_move(const exception_on_copy_move& o)
+    {
+        if (o.type_ & 1) throw("throw from copy");
+
+        type_ = o.type_;
+    }
+
+    exception_on_copy_move(exception_on_copy_move&& o)
+    {
+        if (o.type_ & 2) throw("throw from copy");
+
+        type_ = o.type_;
+    }
+
+    exception_on_copy_move& operator=(const exception_on_copy_move& o)
+    {
+        if (type_ & 1) throw("throw from copy");
+
+        type_ = o.type_;
+        return *this;
+    }
+
+    exception_on_copy_move& operator=(exception_on_copy_move&& o)
+    {
+        if (type_ & 2) throw("throw from move");
+
+        type_ = o.type_;
+        return *this;
+    }
+};
+
+TEST(ink_test_suit, test_variant_raise_exception)
+{
+    exception_on_copy_move ecm;
+    Variant<int, exception_on_copy_move> v(233);
+
+    ASSERT_EQ(1, v.GetType());
+    ASSERT_THROW(v=ecm, const char*);
+
+    ASSERT_EQ(0, v.GetType());
+
+    ecm.type_ = 0;
+    v = ecm;
+    ecm.type_ = 3;
+
+    ASSERT_EQ(2, v.GetType());
+
+    exception_on_copy_move& recm = v;
+    recm.type_ = 3;
+
+    ASSERT_THROW(v=ecm, const char*);
+    ASSERT_EQ(0, v.GetType());
+
+    v = 244;
+    ASSERT_THROW(v=std::move(ecm), const char*);
+    ASSERT_EQ(0, v.GetType());
+
+    v = 33;
+    ecm.type_ = 0;
+
+    v = ecm;
+    ASSERT_EQ(2, v.GetType());
+
+    ecm.type_ = 7;
+    ASSERT_EQ(0, v.GetRef<exception_on_copy_move>().type_);
+
+    v = ecm;
+    ASSERT_EQ(7, v.GetRef<exception_on_copy_move>().type_);
+
+    ASSERT_THROW(v=std::move(ecm), const char*);
+    ASSERT_EQ(0, v.GetType());
+}
 
 struct ForMove
 {
-    ForMove(int res)
-        : res_(res), notify_([](){})
+    ForMove(int res): res_(res), notify_([](){})
     {
 
     }
 
-    ForMove(int res, std::function<void()> f)
-            : res_(res), notify_(std::move(f))
+    ForMove(int res, std::function<void()> f): res_(res), notify_(std::move(f))
     {
 
     }
@@ -325,8 +399,8 @@ TEST(ink_test_suit, test_variant_internal)
     ASSERT_EQ(42 + 13 + 23, v10.GetRef<ForMove>().GetRes());
 
     v7 = v8;
-    ASSERT_EQ(42 + 13 + 3, v7.GetRef<ForMove>().GetRes());
     ASSERT_EQ(42 + 13, v8.GetRef<ForMove>().GetRes());
+    ASSERT_EQ(42 + 13 + 3, v7.GetRef<ForMove>().GetRes());
 
     v8 = std::move(v10);
     ASSERT_EQ(2, v10.GetType());
@@ -390,8 +464,9 @@ TEST(ink_test_suit, test_variant_internal)
 
 struct NonCopyableType
 {
-    explicit NonCopyableType(int i)
-            : res_(i) {}
+    int res_ = 0;
+
+    explicit NonCopyableType(int i): res_(i) {}
 
     NonCopyableType(const NonCopyableType&) = delete;
 
@@ -409,14 +484,13 @@ struct NonCopyableType
         other.res_ = 0;
         return *this;
     }
-
-    int res_ = 0;
 };
 
 struct NonMovableType
 {
-    explicit NonMovableType(int i)
-            : res_(i) {}
+    int res_ = 0;
+
+    explicit NonMovableType(int i) : res_(i) {}
 
     NonMovableType(const NonMovableType& other)
     {
@@ -432,8 +506,6 @@ struct NonMovableType
     }
 
     NonMovableType(NonMovableType&&) = delete;
-
-    int res_ = 0;
 };
 
 TEST(ink_test_suit, test_variant_non_copy_move)
@@ -488,7 +560,6 @@ TEST(ink_test_suit, test_variant_non_copy_move)
     }
 
     ASSERT_TRUE(flag);
-
 }
 
 struct complex

@@ -8,14 +8,11 @@
 #include <algorithm>
 #include <type_traits>
 
-
 namespace VariantHelper {
 
     // check if a type exists in the variadic type list
-    template <typename T, typename ...TS> struct TypeExist;
-
-    template <typename T>
-    struct TypeExist<T>
+    template <typename T, typename ...TS>
+    struct TypeExist
     {
         enum { exist = 0 };
         static constexpr std::size_t id = 0;
@@ -30,10 +27,8 @@ namespace VariantHelper {
     };
 
     // get the max size of type in the type list
-    template <typename ...TS> struct TypeMaxSize;
-
-    template <>
-    struct TypeMaxSize<>
+    template <typename ...TS>
+    struct TypeMaxSize
     {
         static constexpr std::size_t value = 0;
         static constexpr std::size_t align = 0;
@@ -194,17 +189,14 @@ namespace VariantHelper {
     template <typename T, typename R = void>
     struct GetVisitorResultType
     {
-        template <typename T2> static typename T2::result_type foo(typename T2::result_type* v);
-
         template <typename T2> static R foo(...);
+        template <typename T2> static typename T2::result_type foo(typename T2::result_type* v);
 
         using type = decltype(foo<T>(NULL));
     };
 
-    template<class V, class ...TS> struct check_visitor_func;
-
-    template<class V>
-    struct check_visitor_func<V>
+    template<class V, class ...TS>
+    struct check_visitor_func
     {
         enum { value = 1 };
     };
@@ -232,7 +224,6 @@ namespace VariantHelper {
 
 
 // implementation of variant.
-
 
 template <typename ...TS>
 class Variant: public VariantHelper::variant_cast<TS, Variant<TS...>>...
@@ -294,7 +285,11 @@ public:
         }
         else if (type_)
         {
+            // if exception occurs, then variant remains invalid
+            const auto type = type_;
+            type_ = 0;
             *reinterpret_cast<CT*>(data_) = std::forward<T>(v);
+            type_ = type;
         }
         else
         {
@@ -319,7 +314,10 @@ public:
         }
         else if (type_)
         {
-            copy_assign_[type_ - 1](other.data_, data_);
+            const auto type = type_;
+            type_ = 0;
+            copy_assign_[type - 1](other.data_, data_);
+            type_ = type;
         }
 
         return *this;
@@ -341,7 +339,10 @@ public:
         }
         else if (type_)
         {
-            move_assign_[type_ - 1](other.data_, data_);
+            const auto type = type_;
+            type_ = 0;
+            move_assign_[type - 1](other.data_, data_);
+            type_ = type;
         }
 
         return *this;
@@ -359,8 +360,8 @@ public:
 
         Release();
 
-        type_ = VariantHelper::TypeExist<T, TS...>::id;
         new(data_) T(std::forward<TS2>(arg)...);
+        type_ = VariantHelper::TypeExist<T, TS...>::id;
     }
 
     template <typename T>
@@ -433,7 +434,6 @@ public:
 
         constexpr static visitor_func_t visitors_[] = {do_visit<TS>...};
     };
-
 
 private:
     void Release()
