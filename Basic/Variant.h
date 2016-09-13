@@ -428,6 +428,7 @@ public:
         template<class T>
         static R do_visit(Variant& v, V& vi, unsigned char* s)
         {
+            v; // eliminate warning
             T& val = *reinterpret_cast<T*>(s);
             return vi(val);
         }

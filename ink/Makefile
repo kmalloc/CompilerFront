@@ -3,7 +3,7 @@ CFLAGS=-c -Wall -Wextra -g -Werror -std=c++11
 SOURCES=$(wildcard *.cc)
 
 LIBS=
-INCLUDE=-I./
+INCLUDE=-I./ -I../
 
 OBJECTS=$(SOURCES:.cc=.o)
 
@@ -12,13 +12,13 @@ OUTPUT=libink.a
 all: $(SOURCES) $(OUTPUT)
 
 %.o:%.cc
-	$(CC) $(CFLAGS) $(INCLUDE) $< -o $@ ${REG_DEFINE}
+	$(CC) $(CFLAGS) $< -o $@ $(INCLUDE) ${REG_DEFINE}
 
 depend:.depend
 
 .depend:$(SOURCES)
 	rm -f ./.depend
-	$(CC) $(CFLAGS) -MM $^>>./.depend;
+	$(CC) $(CFLAGS) $(INCLUDE) -MM $^>>./.depend;
 
 include .depend
 

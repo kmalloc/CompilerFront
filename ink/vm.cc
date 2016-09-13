@@ -29,11 +29,10 @@ class Stack
 
 class Runtime
 {
-    template<class T>
-    T* GetValue(size_t p) { return static_cast<T*>(gvar_ + p); }
+    public:
 
-    private:
-        char gvar_[];
+        template<class T>
+        T* GetValue(size_t) { return nullptr; }
 };
 
 void vm::Run()
